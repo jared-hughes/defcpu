@@ -1,12 +1,10 @@
-pub(crate) mod diag;
 pub(crate) mod mem;
 pub(crate) mod parse_elf;
 
-use diag::Diag;
 use mem::Memory;
 use parse_elf::SimpleElfFile;
 
-pub fn interpret(input: &[u8]) -> Result<u64, Diag> {
+pub fn interpret(input: &[u8]) {
     let elf = SimpleElfFile::from_bytes(input).unwrap_or_else(|pe| panic!("{}", pe));
     let mut mem = Memory::from_segments(elf.segments);
     println!("{}", mem);
@@ -18,5 +16,4 @@ pub fn interpret(input: &[u8]) -> Result<u64, Diag> {
     );
     println!();
     println!("{}", mem);
-    Ok(0)
 }

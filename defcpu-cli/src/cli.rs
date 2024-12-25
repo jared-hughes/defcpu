@@ -16,7 +16,6 @@ fn run() -> Result<(), String> {
     }
     let path = &args[1];
     let contents = std::fs::read(path).map_err(|e| format!("{}", e))?;
-    let ret = interpret(&contents).map_err(|e| format!("{:#?}", e))?;
-    println!("{}", ret);
+    interpret(&contents);
     Ok(())
 }
