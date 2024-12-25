@@ -1,6 +1,6 @@
 # DefCPU
 
-A silly CPU simulator for the goal of simulating assembly solutions on [code.golf](https://code.golf/fibonacci#assembly). The name is based on ([DefAsssembler](https://github.com/NewDefectus/defasm)), which is the assembler for code.golf.
+A silly CPU emulator for the goal of simulating assembly solutions on [code.golf](https://code.golf/fibonacci#assembly). The name is based on ([DefAsssembler](https://github.com/NewDefectus/defasm)), which is the assembler for code.golf x86 assembly solutions.
 
 Goals:
 
@@ -11,6 +11,7 @@ Non-goals:
 
 - Support every x86-64 instruction. I intend to only spend time on instructions relevant to code golf holes (x86-64 architecture).
 - Get perfect compatability with regards to things like exception handling.
+- Great performance. While I don't want it to too sluggish, I wouldn't be surprised if the performance ends up hundreds of times slower than running natively.
 
 Eventual ideas:
 

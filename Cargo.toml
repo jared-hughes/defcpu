@@ -4,3 +4,6 @@ members = [
     "defcpu-core",
     "defcpu-cli",
 ]
+
+[workspace.dependencies]
+elf = "0.7.4"
