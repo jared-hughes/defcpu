@@ -1,0 +1,11 @@
+{
+  "name": "defcpu-gen-elfs",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "@defasm/cli": "1.3.0",
+    "golfc": "0.3.2"
+  },
+  "author": "Jared Hughes",
+  "license": "MIT"
+}
