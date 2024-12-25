@@ -1,0 +1,16 @@
+[package]
+name = "defcpu_core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Jared Hughes <jahughes241@gmail.com>"]
+description = """
+A silly CPU simulator.
+"""
+documentation = "https://github.com/jared-hughes/defcpu"
+homepage = "https://github.com/jared-hughes/defcpu"
+repository = "https://github.com/jared-hughes/defcpu"
+license = "MIT"
+categories = ["compilers", "simulation"]
+
+[lib]
+name = "defcpu_core"
