@@ -2,7 +2,7 @@ use crate::{
     decode_inst::{decode_inst, Inst},
     memory::Memory,
     parse_elf::SimpleElfFile,
-    registers::{Registers, GPR32, GPR8},
+    registers::Registers,
 };
 
 pub struct Machine {
@@ -38,22 +38,11 @@ impl Machine {
 
     pub fn run_inst(&mut self, inst: Inst) {
         match inst {
-            Inst::MovImm8(gpr8, imm8) => match gpr8 {
-                GPR8::Low(qreg) => {
-                    let ind = qreg.reg_index();
-                    self.regs.regs[ind] &= !0xFF;
-                    self.regs.regs[ind] |= imm8 as u64;
-                }
-                GPR8::High(abcdreg) => {
-                    let ind = abcdreg.reg_index();
-                    self.regs.regs[ind] &= !0xFF_00;
-                    self.regs.regs[ind] |= (imm8 as u64) << 8;
-                }
-            },
-            Inst::MovImm32(GPR32(qreg), imm32) => {
-                let ind = qreg.reg_index();
-                self.regs.regs[ind] &= !0xFF_FF_FF_FF;
-                self.regs.regs[ind] |= imm32 as u64;
+            Inst::MovImm8(gpr8, imm8) => {
+                self.regs.set_reg8(gpr8, imm8);
+            }
+            Inst::MovImm32(gpr32, imm32) => {
+                self.regs.set_reg32(gpr32, imm32);
             }
             Inst::Hlt => {
                 eprintln!("{}", self.regs);

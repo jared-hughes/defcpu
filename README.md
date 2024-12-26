@@ -27,6 +27,8 @@ To run the CLI on a particular file
 cargo run filename.elf
 ```
 
+My primary reference is the October 2024 version of [Intel® 64 and IA-32 Architectures Software Developer's Manual.](https://software.intel.com/en-us/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4). Unqualified references in comments to "Vol 1", "Vol 2A", etc. refer to this manual.
+
 ## Tests
 
 To regenerate test files, first make sure defasm and golfc are installed by running `npm install`.
@@ -34,3 +36,9 @@ To regenerate test files, first make sure defasm and golfc are installed by runn
 The script `./build-elfs.sh` uses DefAssembler to make ELF files from the x86 asm in `sources/*.s`. These are NOT checked into git because there's no point. DefAssembler is fast enough, and they're binary files.
 
 The script `./run-sources.sh` uses the code.golf servers to run the assembly and put the outputs in the `outputs` directory. Out of respect for the servers, these are checked into git and cached using the `sha256sum` of the sources as the sole cache key.
+
+## Future correctness pass notes
+
+- `REX.W` prefix switching instructions.
+- Any `REX` prefix switching legacy to 64-bit mode instructions?
+- `REX` prefixes have 16 possible lower-4-bits. Test more possibilities (I typically only testedthe REX bytes `0x40` and `0x41`, but they go up to `0x4F`).

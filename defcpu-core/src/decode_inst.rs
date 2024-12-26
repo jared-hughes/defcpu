@@ -10,23 +10,68 @@ pub enum Inst {
     Hlt,
 }
 
+/// There are three relevant encodings of instructions
+///   A: Just has a ModR/M byte.
+///      - Vol 2A: Figure 2-4. "Memory Addressing Without an SIB Byte; REX.X Not Used"
+///      - Vol 2A: Figure 2-5. "Register-Register Addressing (No Memory Operand); REX.X Not Used"
+///   B: Has a ModR/M byte and a SIB byte.
+///      - Vol 2A: Figure 2-6. "Memory Addressing With a SIB Byte"
+///   C: Has no ModR/M byte, but the lower 3 bits of the opcode are a reg field.
+///      - Vol 2A: Figure 2-7. "Register Operand Coded in Opcode Byte; REX.X & REX.R Not Used"
+#[derive(Clone, Copy)]
+struct Rex {
+    /// If false, operand size is determined by CS.D
+    /// If true forces a 64 Bit Operand Size
+    w: bool,
+    /// An extra bit extended to the MSB of the reg field of the ModR/M byte,
+    /// when present (encodings A and B), ignored otherwise.
+    r: bool,
+    /// An extra bit extended to the MSB of the index field of the SIB byte,
+    /// when present (encoding B), ignored otherwise.
+    x: bool,
+    /// An extra bit extended to the MSB of the:
+    ///   - Encoding A: R/M field of ModR/M byte.
+    ///   - Encoding B: base field of SIB byte.
+    ///   - Encoding C: reg field of the opcode.
+    b: bool,
+}
+impl Rex {
+    fn from_u8(x: u8) -> Rex {
+        Rex {
+            w: x & 0b1000 != 0,
+            r: x & 0b0100 != 0,
+            x: x & 0b0010 != 0,
+            b: x & 0b0001 != 0,
+        }
+    }
+}
+
 /// Returns instruction together with the number of bytes read.
 pub fn decode_inst(mem: &Memory, i: u64) -> (Inst, u64) {
+    decode_inst_inner(mem, i, None)
+}
+
+fn decode_inst_inner(mem: &Memory, i: u64, rex: Option<Rex>) -> (Inst, u64) {
     let b0 = mem.read_byte(i);
     match b0 {
+        0x40..=0x4F => {
+            let (inst, len) = decode_inst_inner(mem, i + 1, Some(Rex::from_u8(b0)));
+            (inst, len + 1)
+        }
         0xB0..=0xB7 => {
             let imm8 = mem.read_byte(i + 1);
-            let reg = reg8_field_select(b0);
+            let reg = reg8_field_select(b0, rex);
             (MovImm8(reg, imm8), 2)
         }
         0xB8..=0xBF => {
+            // TODO: REX.W switches the behavior here to 64-bit.
             // little-endian
             let d0 = mem.read_byte(i + 1) as u32;
             let d1 = mem.read_byte(i + 2) as u32;
             let d2 = mem.read_byte(i + 3) as u32;
             let d3 = mem.read_byte(i + 4) as u32;
             let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
-            let reg = reg32_field_select(b0);
+            let reg = reg32_field_select(b0, rex);
             (MovImm32(reg, imm32), 5)
         }
         0xF4 => (Hlt, 1),
@@ -34,36 +79,66 @@ pub fn decode_inst(mem: &Memory, i: u64) -> (Inst, u64) {
     }
 }
 
-/// ref Table 3-1. of Vol. 2A.
-/// Register Codes Associated With +rb, +rw, +rd, +ro.
-/// This is for +rb with no REX prefix.
-fn reg8_field_select(op: u8) -> GPR8 {
-    match op & 0b111 {
-        0b000 => GPR8::al,
-        0b001 => GPR8::cl,
-        0b010 => GPR8::dl,
-        0b011 => GPR8::bl,
-        0b100 => GPR8::ah,
-        0b101 => GPR8::ch,
-        0b110 => GPR8::dh,
-        0b111 => GPR8::bh,
-        _ => panic!("Mask failed in reg8_field_select."),
+/// Vol 2A: Table 3-1 "Register Codes Associated With +rb, +rw, +rd, +ro.""
+/// This is for +rb (byte register).
+fn reg8_field_select(op: u8, rex: Option<Rex>) -> GPR8 {
+    match (rex.map(|x| x.b), op & 0b111) {
+        // No REX prefix, or REX prefix with B bit cleared.
+        (None, 0b000) => GPR8::al,
+        (Some(false), 0b000) => GPR8::al,
+        (None, 0b001) => GPR8::cl,
+        (Some(false), 0b001) => GPR8::cl,
+        (None, 0b010) => GPR8::dl,
+        (Some(false), 0b010) => GPR8::dl,
+        (None, 0b011) => GPR8::bl,
+        (Some(false), 0b011) => GPR8::bl,
+        // No REX prefix.
+        (None, 0b100) => GPR8::ah,
+        (None, 0b101) => GPR8::ch,
+        (None, 0b110) => GPR8::dh,
+        (None, 0b111) => GPR8::bh,
+        // REX prefix with B bit cleared (e.g. 0x40).
+        (Some(false), 0b100) => GPR8::spl,
+        (Some(false), 0b101) => GPR8::bpl,
+        (Some(false), 0b110) => GPR8::sil,
+        (Some(false), 0b111) => GPR8::dil,
+        // REX prefix with B bit set (e.g. 0x41).
+        (Some(true), 0b000) => GPR8::r8b,
+        (Some(true), 0b001) => GPR8::r9b,
+        (Some(true), 0b010) => GPR8::r10b,
+        (Some(true), 0b011) => GPR8::r11b,
+        (Some(true), 0b100) => GPR8::r12b,
+        (Some(true), 0b101) => GPR8::r13b,
+        (Some(true), 0b110) => GPR8::r14b,
+        (Some(true), 0b111) => GPR8::r15b,
+        _ => panic!("Missing match arm in reg8_field_select."),
     }
 }
 
-/// ref Table 3-1. of Vol. 2A.
-/// Register Codes Associated With +rb, +rw, +rd, +ro.
-/// This is for +rd with no REX prefix.
-fn reg32_field_select(op: u8) -> GPR32 {
-    match op & 0b111 {
-        0b000 => GPR32::eax,
-        0b001 => GPR32::ecx,
-        0b010 => GPR32::edx,
-        0b011 => GPR32::ebx,
-        0b100 => GPR32::esp,
-        0b101 => GPR32::ebp,
-        0b110 => GPR32::esi,
-        0b111 => GPR32::edi,
-        _ => panic!("Mask failed in reg32_field_select."),
+/// Table 3-1. of Vol. 2A. "Register Codes Associated With +rb, +rw, +rd, +ro."
+/// This is for +rd (dword register).
+fn reg32_field_select(op: u8, rex: Option<Rex>) -> GPR32 {
+    // No REX prefix is the same as a REX prefix with B bit clear.
+    let rexb = rex.map(|x| x.b).unwrap_or(false);
+    match (rexb, op & 0b111) {
+        // No REX prefix, or REX prefix with B bit cleared (e.g. 0x40).
+        (false, 0b000) => GPR32::eax,
+        (false, 0b001) => GPR32::ecx,
+        (false, 0b010) => GPR32::edx,
+        (false, 0b011) => GPR32::ebx,
+        (false, 0b100) => GPR32::esp,
+        (false, 0b101) => GPR32::ebp,
+        (false, 0b110) => GPR32::esi,
+        (false, 0b111) => GPR32::edi,
+        // REX prefix with B bit set (e.g. 0x41).
+        (true, 0b000) => GPR32::r8d,
+        (true, 0b001) => GPR32::r9d,
+        (true, 0b010) => GPR32::r10d,
+        (true, 0b011) => GPR32::r11d,
+        (true, 0b100) => GPR32::r12d,
+        (true, 0b101) => GPR32::r13d,
+        (true, 0b110) => GPR32::r14d,
+        (true, 0b111) => GPR32::r15d,
+        _ => panic!("Missing match arm in reg32_field_select."),
     }
 }

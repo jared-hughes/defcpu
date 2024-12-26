@@ -29,8 +29,8 @@ pub enum QReg {
     Rdi,
     Rsp,
     Rbp,
-    R08,
-    R09,
+    R8,
+    R9,
     R10,
     R11,
     R12,
@@ -49,8 +49,8 @@ impl QReg {
             Rdi => 5,
             Rsp => 6,
             Rbp => 7,
-            R08 => 8,
-            R09 => 9,
+            R8 => 8,
+            R9 => 9,
             R10 => 10,
             R11 => 11,
             R12 => 12,
@@ -81,8 +81,8 @@ impl GPR8 {
     pub const dil: GPR8 = GPR8::Low(Rdi);
     pub const spl: GPR8 = GPR8::Low(Rsp);
     pub const bpl: GPR8 = GPR8::Low(Rbp);
-    pub const r8b: GPR8 = GPR8::Low(R08);
-    pub const r9b: GPR8 = GPR8::Low(R09);
+    pub const r8b: GPR8 = GPR8::Low(R8);
+    pub const r9b: GPR8 = GPR8::Low(R9);
     pub const r10b: GPR8 = GPR8::Low(R10);
     pub const r11b: GPR8 = GPR8::Low(R11);
     pub const r12b: GPR8 = GPR8::Low(R12);
@@ -101,8 +101,8 @@ impl fmt::Display for GPR8 {
             GPR8::Low(Rdi) => "dil",
             GPR8::Low(Rsp) => "spl",
             GPR8::Low(Rbp) => "bpl",
-            GPR8::Low(R08) => "r8b",
-            GPR8::Low(R09) => "r9b",
+            GPR8::Low(R8) => "r8b",
+            GPR8::Low(R9) => "r9b",
             GPR8::Low(R10) => "r10b",
             GPR8::Low(R11) => "r11b",
             GPR8::Low(R12) => "r12b",
@@ -132,8 +132,8 @@ impl fmt::Display for GPR16 {
             Rdi => "di",
             Rsp => "sp",
             Rbp => "bp",
-            R08 => "r8w",
-            R09 => "r9w",
+            R8 => "r8w",
+            R9 => "r9w",
             R10 => "r10w",
             R11 => "r11w",
             R12 => "r12w",
@@ -154,8 +154,8 @@ impl GPR16 {
     pub const di: GPR16 = GPR16(Rdi);
     pub const sp: GPR16 = GPR16(Rsp);
     pub const bp: GPR16 = GPR16(Rbp);
-    pub const r8w: GPR16 = GPR16(R08);
-    pub const r9w: GPR16 = GPR16(R09);
+    pub const r8w: GPR16 = GPR16(R8);
+    pub const r9w: GPR16 = GPR16(R9);
     pub const r10w: GPR16 = GPR16(R10);
     pub const r11w: GPR16 = GPR16(R11);
     pub const r12w: GPR16 = GPR16(R12);
@@ -176,14 +176,14 @@ impl GPR32 {
     pub const edi: GPR32 = GPR32(Rdi);
     pub const esp: GPR32 = GPR32(Rsp);
     pub const ebp: GPR32 = GPR32(Rbp);
-    pub const e08: GPR32 = GPR32(R08);
-    pub const e09: GPR32 = GPR32(R09);
-    pub const e10: GPR32 = GPR32(R10);
-    pub const e11: GPR32 = GPR32(R11);
-    pub const e12: GPR32 = GPR32(R12);
-    pub const e13: GPR32 = GPR32(R13);
-    pub const e14: GPR32 = GPR32(R14);
-    pub const e15: GPR32 = GPR32(R15);
+    pub const r8d: GPR32 = GPR32(R8);
+    pub const r9d: GPR32 = GPR32(R9);
+    pub const r10d: GPR32 = GPR32(R10);
+    pub const r11d: GPR32 = GPR32(R11);
+    pub const r12d: GPR32 = GPR32(R12);
+    pub const r13d: GPR32 = GPR32(R13);
+    pub const r14d: GPR32 = GPR32(R14);
+    pub const r15d: GPR32 = GPR32(R15);
 }
 impl fmt::Display for GPR32 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -196,8 +196,8 @@ impl fmt::Display for GPR32 {
             Rdi => "edi",
             Rsp => "esp",
             Rbp => "ebp",
-            R08 => "e08",
-            R09 => "e09",
+            R8 => "e08",
+            R9 => "e09",
             R10 => "e10",
             R11 => "e11",
             R12 => "e12",
@@ -221,8 +221,8 @@ impl GPR64 {
     pub const rdi: GPR64 = GPR64(Rdi);
     pub const rsp: GPR64 = GPR64(Rsp);
     pub const rbp: GPR64 = GPR64(Rbp);
-    pub const r08: GPR64 = GPR64(R08);
-    pub const r09: GPR64 = GPR64(R09);
+    pub const r8: GPR64 = GPR64(R8);
+    pub const r9: GPR64 = GPR64(R9);
     pub const r10: GPR64 = GPR64(R10);
     pub const r11: GPR64 = GPR64(R11);
     pub const r12: GPR64 = GPR64(R12);
@@ -241,8 +241,8 @@ impl fmt::Display for GPR64 {
             Rdi => "rdi",
             Rsp => "rsp",
             Rbp => "rbp",
-            R08 => "r08",
-            R09 => "r09",
+            R8 => "r08",
+            R9 => "r09",
             R10 => "r10",
             R11 => "r11",
             R12 => "r12",
@@ -282,6 +282,31 @@ pub struct Registers {
     pub rflags: u64,
     /// instruction pointer register
     pub rip: u64,
+}
+
+impl Registers {
+    /// Set 8 bits in a register without affecting any other bits.
+    pub fn set_reg8(&mut self, gpr8: GPR8, imm8: u8) {
+        match gpr8 {
+            GPR8::Low(qreg) => {
+                let ind = qreg.reg_index();
+                self.regs[ind] &= !0xFF;
+                self.regs[ind] |= imm8 as u64;
+            }
+            GPR8::High(abcdreg) => {
+                let ind = abcdreg.reg_index();
+                self.regs[ind] &= !0xFF_00;
+                self.regs[ind] |= (imm8 as u64) << 8;
+            }
+        }
+    }
+
+    /// Set the low 32 bits of a register without affecting any other bits.
+    pub fn set_reg32(&mut self, gpr32: GPR32, imm32: u32) {
+        let ind = gpr32.0.reg_index();
+        self.regs[ind] &= !0xFF_FF_FF_FF;
+        self.regs[ind] |= imm32 as u64;
+    }
 }
 
 // Ref https://en.wikipedia.org/wiki/FLAGS_register.
