@@ -1,12 +1,13 @@
 use crate::{
     memory::Memory,
-    registers::{GPR32, GPR8},
+    registers::{GPR32, GPR64, GPR8},
 };
 
 use Inst::*;
 pub enum Inst {
     MovImm8(GPR8, u8),
     MovImm32(GPR32, u32),
+    MovImm64(GPR64, u64),
     Hlt,
 }
 
@@ -59,20 +60,45 @@ fn decode_inst_inner(mem: &Memory, i: u64, rex: Option<Rex>) -> (Inst, u64) {
             (inst, len + 1)
         }
         0xB0..=0xB7 => {
+            // B0+ rb ib; MOV r8, imm8
+            // Move imm8 to r8.
             let imm8 = mem.read_byte(i + 1);
             let reg = reg8_field_select(b0, rex);
             (MovImm8(reg, imm8), 2)
         }
         0xB8..=0xBF => {
-            // TODO: REX.W switches the behavior here to 64-bit.
-            // little-endian
-            let d0 = mem.read_byte(i + 1) as u32;
-            let d1 = mem.read_byte(i + 2) as u32;
-            let d2 = mem.read_byte(i + 3) as u32;
-            let d3 = mem.read_byte(i + 4) as u32;
-            let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
-            let reg = reg32_field_select(b0, rex);
-            (MovImm32(reg, imm32), 5)
+            if let Some(true) = rex.map(|x| x.w) {
+                // REX.W + B8+ rd io
+                // little-endian
+                let d0 = mem.read_byte(i + 1) as u64;
+                let d1 = mem.read_byte(i + 2) as u64;
+                let d2 = mem.read_byte(i + 3) as u64;
+                let d3 = mem.read_byte(i + 4) as u64;
+                let d4 = mem.read_byte(i + 5) as u64;
+                let d5 = mem.read_byte(i + 6) as u64;
+                let d6 = mem.read_byte(i + 7) as u64;
+                let d7 = mem.read_byte(i + 8) as u64;
+                let imm64 = (d7 << 56)
+                    | (d6 << 48)
+                    | (d5 << 40)
+                    | (d4 << 32)
+                    | (d3 << 24)
+                    | (d2 << 16)
+                    | (d1 << 8)
+                    | d0;
+                let reg = reg64_field_select(b0, rex);
+                (MovImm64(reg, imm64), 9)
+            } else {
+                // B8+ rd id; MOV r32, imm32
+                // little-endian
+                let d0 = mem.read_byte(i + 1) as u32;
+                let d1 = mem.read_byte(i + 2) as u32;
+                let d2 = mem.read_byte(i + 3) as u32;
+                let d3 = mem.read_byte(i + 4) as u32;
+                let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
+                let reg = reg32_field_select(b0, rex);
+                (MovImm32(reg, imm32), 5)
+            }
         }
         0xF4 => (Hlt, 1),
         _ => panic!("Opcode 0x{:02X} not yet implemented.", b0),
@@ -140,5 +166,33 @@ fn reg32_field_select(op: u8, rex: Option<Rex>) -> GPR32 {
         (true, 0b110) => GPR32::r14d,
         (true, 0b111) => GPR32::r15d,
         _ => panic!("Missing match arm in reg32_field_select."),
+    }
+}
+
+/// Table 3-1. of Vol. 2A. "Register Codes Associated With +rb, +rw, +rd, +ro."
+/// This is for +ro (quadword register).
+fn reg64_field_select(op: u8, rex: Option<Rex>) -> GPR64 {
+    // No REX prefix is the same as a REX prefix with B bit clear.
+    let rexb = rex.map(|x| x.b).unwrap_or(false);
+    match (rexb, op & 0b111) {
+        // No REX prefix, or REX prefix with B bit cleared (e.g. 0x40).
+        (false, 0b000) => GPR64::rax,
+        (false, 0b001) => GPR64::rcx,
+        (false, 0b010) => GPR64::rdx,
+        (false, 0b011) => GPR64::rbx,
+        (false, 0b100) => GPR64::rsp,
+        (false, 0b101) => GPR64::rbp,
+        (false, 0b110) => GPR64::rsi,
+        (false, 0b111) => GPR64::rdi,
+        // REX prefix with B bit set (e.g. 0x41).
+        (true, 0b000) => GPR64::r8,
+        (true, 0b001) => GPR64::r9,
+        (true, 0b010) => GPR64::r10,
+        (true, 0b011) => GPR64::r11,
+        (true, 0b100) => GPR64::r12,
+        (true, 0b101) => GPR64::r13,
+        (true, 0b110) => GPR64::r14,
+        (true, 0b111) => GPR64::r15,
+        _ => panic!("Missing match arm in reg64_field_select."),
     }
 }

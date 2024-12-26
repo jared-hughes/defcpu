@@ -1,13 +1,13 @@
-Signal: segmentation fault on line 18 (%rip was 0000000000400058)
+Signal: segmentation fault on line 18 (%rip was 00000000004000A0)
 Registers:
-    %rax = 00000000DEA0BEEF        %r8  = 00000000DEA8BEE7
-    %rbx = 00000000DEA3BEEC        %r9  = 00000000DEA9BEE6
-    %rcx = 00000000DEA1BEEE        %r10 = 00000000DEAABEE5
-    %rdx = 00000000DEA2BEED        %r11 = 00000000DEABBEE4
-    %rsi = 00000000DEA6BEE9        %r12 = 00000000DEACBEE3
-    %rdi = 00000000DEA7BEE8        %r13 = 00000000DEADBEE2
-    %rsp = 00000000DEA4BEEB        %r14 = 00000000DEAEBEE1
-    %rbp = 00000000DEA5BEEA        %r15 = 00000000DEAFBEE0
+    %rax = 87654321DEA0BEEF        %r8  = 87654321DEA8BEE7
+    %rbx = 87654321DEA3BEEC        %r9  = 87654321DEA9BEE6
+    %rcx = 87654321DEA1BEEE        %r10 = 87654321DEAABEE5
+    %rdx = 87654321DEA2BEED        %r11 = 87654321DEABBEE4
+    %rsi = 87654321DEA6BEE9        %r12 = 87654321DEACBEE3
+    %rdi = 87654321DEA7BEE8        %r13 = 87654321DEADBEE2
+    %rsp = 87654321DEA4BEEB        %r14 = 87654321DEAEBEE1
+    %rbp = 87654321DEA5BEEA        %r15 = 87654321DEAFBEE0
 Flags (0000000000010202):
     Carry     = 0 (no carry)       Zero   = 0 (isn&#39;t zero)
     Overflow  = 0 (no overflow)    Sign   = 0 (positive)

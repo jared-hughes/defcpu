@@ -44,6 +44,9 @@ impl Machine {
             Inst::MovImm32(gpr32, imm32) => {
                 self.regs.set_reg32(gpr32, imm32);
             }
+            Inst::MovImm64(gpr64, imm64) => {
+                self.regs.set_reg64(gpr64, imm64);
+            }
             Inst::Hlt => {
                 eprintln!("{}", self.regs);
                 self.halt = true;

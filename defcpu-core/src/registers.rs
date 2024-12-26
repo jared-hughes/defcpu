@@ -307,6 +307,12 @@ impl Registers {
         self.regs[ind] &= !0xFF_FF_FF_FF;
         self.regs[ind] |= imm32 as u64;
     }
+
+    /// Set a full register.
+    pub fn set_reg64(&mut self, gpr64: GPR64, imm64: u64) {
+        let ind = gpr64.0.reg_index();
+        self.regs[ind] = imm64;
+    }
 }
 
 // Ref https://en.wikipedia.org/wiki/FLAGS_register.
