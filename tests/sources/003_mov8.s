@@ -1,0 +1,10 @@
+# hole: fibonacci
+mov $0x11, %al
+mov $0x12, %cl
+mov $0x13, %dl
+mov $0x14, %bl
+mov $0x21, %ah
+mov $0x22, %ch
+mov $0x23, %dh
+mov $0x24, %bh
+hlt

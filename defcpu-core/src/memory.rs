@@ -33,14 +33,14 @@ impl fmt::Display for Memory {
             } else {
                 writeln!(f)?;
             }
-            writeln!(f, "Page at 0x{:016x} ({}):", page_addr, page.flags)?;
+            writeln!(f, "Page at 0x{:016X} ({}):", page_addr, page.flags)?;
             let len = after_last_nonzero(page);
             let nlines = len.div_ceil(16);
             for i in 0..nlines {
-                for j in 0..15 {
+                for j in 0..16 {
                     let ind = i * 16 + j;
                     if ind < len {
-                        write!(f, "{:02x}", page.data[ind])?;
+                        write!(f, "{:02X}", page.data[ind])?;
                     } else {
                         write!(f, "  ")?;
                     }
@@ -56,7 +56,7 @@ impl fmt::Display for Memory {
 }
 
 impl Memory {
-    pub fn from_segments(segments: Vec<LoadSegment>) -> Memory {
+    pub fn from_segments(segments: &[LoadSegment]) -> Memory {
         let mut mem = Memory {
             map: HashMap::new(),
         };
@@ -71,7 +71,7 @@ impl Memory {
                 let addr = (segment.p_vaddr as usize) + offset;
                 let page_addr = addr & !PAGE_MASK;
                 if mem.map.contains_key(&page_addr) {
-                    panic!("Duplicate page 0x{:016x}", page_addr);
+                    panic!("Duplicate page 0x{:016X}", page_addr);
                 }
                 let mut page_data = [0_u8; PAGE_SIZE];
                 let suffix_slice = &data[offset..];
@@ -90,7 +90,7 @@ impl Memory {
     pub fn read_byte(&self, i: u64) -> u8 {
         let page = self.get_page(i);
         if !page.flags.readable {
-            panic!("Page not writeable at address 0x{:016x}.", i);
+            panic!("Page not writeable at address 0x{:016X}.", i);
         }
         page.data[(i as usize) & PAGE_MASK]
     }
@@ -98,7 +98,7 @@ impl Memory {
     pub fn write_byte(&mut self, i: u64, val: u8) {
         let page = self.get_page_mut(i);
         if !page.flags.writeable {
-            panic!("Page not writeable at address 0x{:016x}.", i);
+            panic!("Page not writeable at address 0x{:016X}.", i);
         }
         page.data[(i as usize) & PAGE_MASK] = val;
     }
@@ -118,7 +118,7 @@ impl Memory {
 
 fn page_fault(addr: u64) -> ! {
     panic!(
-        "Page fault: not yet initialized. Reading address 0x{:016x}.",
+        "Page fault: not yet initialized. Reading address 0x{:016X}.",
         addr
     )
 }

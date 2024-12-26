@@ -1,19 +1,19 @@
-pub(crate) mod mem;
+pub(crate) mod decode_inst;
+pub(crate) mod interpret;
+pub(crate) mod memory;
 pub(crate) mod parse_elf;
+pub(crate) mod registers;
 
-use mem::Memory;
+use interpret::Machine;
 use parse_elf::SimpleElfFile;
 
 pub fn interpret(input: &[u8]) {
     let elf = SimpleElfFile::from_bytes(input).unwrap_or_else(|pe| panic!("{}", pe));
-    let mut mem = Memory::from_segments(elf.segments);
-    println!("{}", mem);
-    println!("Entry byte: 0x{:02x}", mem.read_byte(elf.e_entry));
-    mem.write_byte(elf.e_entry, 0x42);
-    println!(
-        "Overwrote it with 0x42. Now it's 0x{:02x}",
-        mem.read_byte(elf.e_entry)
-    );
-    println!();
-    println!("{}", mem);
+    let mut machine = Machine::from_elf(&elf);
+    let max_steps = 100000;
+    let mut step_index = 0;
+    while step_index < max_steps && !machine.halt {
+        machine.step();
+        step_index += 1;
+    }
 }
