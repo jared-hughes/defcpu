@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{
     memory::Memory,
     registers::{GPR16, GPR32, GPR64, GPR8},
@@ -10,6 +12,18 @@ pub enum Inst {
     MovImm32(GPR32, u32),
     MovImm64(GPR64, u64),
     Hlt,
+}
+
+impl fmt::Display for Inst {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MovImm8(gpr8, imm8) => write!(f, "mov    $0x{:x}, %{}", imm8, gpr8),
+            MovImm16(gpr16, imm16) => write!(f, "mov    $0x{:x}, %{}", imm16, gpr16),
+            MovImm32(gpr32, imm32) => write!(f, "mov    $0x{:x}, %{}", imm32, gpr32),
+            MovImm64(gpr64, imm64) => write!(f, "mov    $0x{:x}, %{}", imm64, gpr64),
+            Hlt => write!(f, "hlt"),
+        }
+    }
 }
 
 /// There are three relevant encodings of instructions

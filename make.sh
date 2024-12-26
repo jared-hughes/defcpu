@@ -7,3 +7,7 @@ set -euo pipefail
     ./build-elfs.sh
     ./run-sources.sh
 )
+(
+    cd tests/decoding
+    ./validate-sources.sh "$@"
+)

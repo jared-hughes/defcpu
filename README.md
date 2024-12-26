@@ -24,7 +24,13 @@ We use `clippy` for linting. Run `cargo clippy` or set up your editor to use cli
 To run the CLI on a particular file
 
 ```sh
-cargo run filename.elf
+cargo run -- run filename.elf
+```
+
+To get a disassembly:
+
+```sh
+cargo run -- dis filename.elf
 ```
 
 My primary reference is the October 2024 version of [Intel® 64 and IA-32 Architectures Software Developer's Manual.](https://software.intel.com/en-us/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4). Unqualified references in comments to "Vol 1", "Vol 2A", etc. refer to this manual.
@@ -42,3 +48,11 @@ The script `./run-sources.sh` uses the code.golf servers to run the assembly and
 - `REX.W` prefix switching instructions.
 - Any `REX` prefix switching legacy to 64-bit mode instructions?
 - `REX` prefixes have 16 possible lower-4-bits. Test more possibilities (I typically only testedthe REX bytes `0x40` and `0x41`, but they go up to `0x4F`).
+
+## Tooling relevant for development
+
+`objdump` is great for giving the segments etc. of an ELF file with the `-x` flag, but it doesn't seem to disassemble (`-d`) the ELFs produced by DefAssembler.
+
+For quick things, https://defuse.ca/online-x86-assembler.htm is good for assembly/disassembling small bits of asm.
+
+`gdb` can show disassembly with the `disassemble` command. For example, `disassemble /m 0x400000, +0x49` disassembles the 73 bytes starting at `0x400000`.
