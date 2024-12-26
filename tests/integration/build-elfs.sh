@@ -8,5 +8,5 @@ mkdir elfs
 for source_path in sources/*.s; do
     base="${source_path##sources/}"
     base="${base%.s}"
-    ./node_modules/.bin/defasm "$source_path" -w -x -o "elfs/${base}.elf"
+    ../node_modules/.bin/defasm "$source_path" -w -x -o "elfs/${base}.elf"
 done

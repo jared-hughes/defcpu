@@ -36,7 +36,7 @@ for source_file in sources/*.s; do
 
     # Run
     run_tmp_dir="./outputs/${base}-orig"
-    ./node_modules/.bin/golfc submit -h "$hole" -l assembly \
+    ../node_modules/.bin/golfc submit -h "$hole" -l assembly \
         -i "$source_file" --no-auth -o "${run_tmp_dir}"
     cp "${run_tmp_dir}"/{output,errors} "${out_dir}"
     rm -r "${run_tmp_dir}"

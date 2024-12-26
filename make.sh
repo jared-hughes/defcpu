@@ -3,7 +3,7 @@ set -euo pipefail
 
 # A "make" script-ish.
 (
-    cd tests
+    cd tests/integration
     ./build-elfs.sh
     ./run-sources.sh
 )
