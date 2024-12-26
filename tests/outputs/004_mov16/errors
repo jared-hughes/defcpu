@@ -1,0 +1,14 @@
+Signal: segmentation fault on line 18 (%rip was 0000000000400048)
+Registers:
+    %rax = 000000000000BEEF        %r8  = 000000000000BEE7
+    %rbx = 000000000000BEEC        %r9  = 000000000000BEE6
+    %rcx = 000000000000BEEE        %r10 = 000000000000BEE5
+    %rdx = 000000000000BEED        %r11 = 000000000000BEE4
+    %rsi = 000000000000BEE9        %r12 = 000000000000BEE3
+    %rdi = 000000000000BEE8        %r13 = 000000000000BEE2
+    %rsp = 00007FFCA2C2BEEB        %r14 = 000000000000BEE1
+    %rbp = 000000000000BEEA        %r15 = 000000000000BEE0
+Flags (0000000000010202):
+    Carry     = 0 (no carry)       Zero   = 0 (isn&#39;t zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)

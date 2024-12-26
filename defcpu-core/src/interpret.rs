@@ -41,6 +41,9 @@ impl Machine {
             Inst::MovImm8(gpr8, imm8) => {
                 self.regs.set_reg8(gpr8, imm8);
             }
+            Inst::MovImm16(gpr16, imm16) => {
+                self.regs.set_reg16(gpr16, imm16);
+            }
             Inst::MovImm32(gpr32, imm32) => {
                 self.regs.set_reg32(gpr32, imm32);
             }

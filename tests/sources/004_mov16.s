@@ -1,0 +1,18 @@
+# hole: fibonacci
+mov $0xBEEF, %ax
+mov $0xBEEE, %cx
+mov $0xBEED, %dx
+mov $0xBEEC, %bx
+mov $0xBEEB, %sp
+mov $0xBEEA, %bp
+mov $0xBEE9, %si
+mov $0xBEE8, %di
+mov $0xBEE7, %r8w
+mov $0xBEE6, %r9w
+mov $0xBEE5, %r10w
+mov $0xBEE4, %r11w
+mov $0xBEE3, %r12w
+mov $0xBEE2, %r13w
+mov $0xBEE1, %r14w
+mov $0xBEE0, %r15w
+hlt

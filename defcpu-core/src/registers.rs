@@ -254,25 +254,6 @@ impl fmt::Display for GPR64 {
     }
 }
 
-/// General-purpose register
-pub enum GPR {
-    QWord(GPR64),
-    DWord(GPR32),
-    Word(GPR16),
-    Byte(GPR8),
-}
-
-impl fmt::Display for GPR {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            GPR::QWord(gpr64) => gpr64.fmt(f),
-            GPR::DWord(gpr32) => gpr32.fmt(f),
-            GPR::Word(gpr16) => gpr16.fmt(f),
-            GPR::Byte(gpr8) => gpr8.fmt(f),
-        }
-    }
-}
-
 pub struct Registers {
     /// rax, rbx, rcx, rdx, rsi, rdi, rsp, rbp,
     /// r8, r9, r10, r11, r12, r13, r14, r15
@@ -299,6 +280,13 @@ impl Registers {
                 self.regs[ind] |= (imm8 as u64) << 8;
             }
         }
+    }
+
+    /// Set the low 16 bits of a register without affecting any other bits.
+    pub fn set_reg16(&mut self, gpr16: GPR16, imm16: u16) {
+        let ind = gpr16.0.reg_index();
+        self.regs[ind] &= !0xFF_FF;
+        self.regs[ind] |= imm16 as u64;
     }
 
     /// Set the low 32 bits of a register without affecting any other bits.
