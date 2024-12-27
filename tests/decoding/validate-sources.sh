@@ -16,12 +16,14 @@ for source_path in sources/*.s; do
 
     temp_source="$(mktemp)"
     echo -n '.byte ' > "$temp_source";
-    sed -E 's/(([0-9a-f]{2} )+) .*/\1/g' "$source_path" \
-        | tr -d '\n' \
-        | sed 's/ *$//g' \
-        | sed 's/ /, /g' \
-        | sed -E 's/([0-9a-f]{2})/0x\1/g' \
+    sed -E 's/(([0-9a-fA-F]{2} )+) .*/\1/g' "$source_path" \
+        | tr '\n' ' ' \
+        | sed -E 's/ +/ /g' \
+        | sed -E 's/ /, /g' \
+        | sed -E 's/([0-9a-fA-F]{2})/0x\1/g' \
+        | sed -E 's/, $//g' \
         >> "$temp_source";
+
     echo >> "$temp_source";
 
     elf="elfs/${base}.elf"
@@ -41,7 +43,7 @@ for source_path in sources/*.s; do
         -ex "disassemble /r $start_addr, +$segment_len" \
         | tail -n +5 \
         | head -n -1 \
-        | sed -E 's/(=>)? *0x[0-9a-f]+:\s*//g' \
+        | sed -E 's/(=>)? *0x[0-9a-fA-F]+:\s*//g' \
         | sed -E 's/,/, /g' \
         | sed -E 's/,  /, /g' \
         | sed -E 's/ *$//g' \
@@ -49,13 +51,13 @@ for source_path in sources/*.s; do
     
     longest_start=$(awk -F $"\t" '{ print length($1) }' "$expected" | sort -n | tail -1)
 
-    expand -t $(((longest_start + 3)/8*8 + 4)) "$expected" | sponge "$expected"
+    expand -t $(((longest_start + 4)/8*8 + 4)) "$expected" | sponge "$expected"
 
     exp_dis=$(< "$expected")
     old_dis=$(< "$source_path")
     if [[ "$old_dis" != "$exp_dis" ]]; then
         echo "Difference in '$source_path'."
-        git diff --no-index "$source_path" "$expected" || true
+        git --no-pager diff --no-index "$source_path" "$expected" || true
         if [[ "${1:-}" == "apply" ]]; then
             echo "Applying new contents for '$source_path'...";
             echo "If the file is open in your editor, you may wish to revert it to the version on disk.";

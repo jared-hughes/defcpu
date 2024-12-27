@@ -1,16 +1,22 @@
-48 b8 ef be a0 de 21 43 65 87       movabs $0x87654321dea0beef, %rax
-48 b9 ee be a1 de 21 43 65 87       movabs $0x87654321dea1beee, %rcx
-48 ba ed be a2 de 21 43 65 87       movabs $0x87654321dea2beed, %rdx
-48 bb ec be a3 de 21 43 65 87       movabs $0x87654321dea3beec, %rbx
-48 bc eb be a4 de 21 43 65 87       movabs $0x87654321dea4beeb, %rsp
-48 bd ea be a5 de 21 43 65 87       movabs $0x87654321dea5beea, %rbp
-48 be e9 be a6 de 21 43 65 87       movabs $0x87654321dea6bee9, %rsi
-48 bf e8 be a7 de 21 43 65 87       movabs $0x87654321dea7bee8, %rdi
-49 b8 e7 be a8 de 21 43 65 87       movabs $0x87654321dea8bee7, %r8
-49 b9 e6 be a9 de 21 43 65 87       movabs $0x87654321dea9bee6, %r9
-49 ba e5 be aa de 21 43 65 87       movabs $0x87654321deaabee5, %r10
-49 bb e4 be ab de 21 43 65 87       movabs $0x87654321deabbee4, %r11
-49 bc e3 be ac de 21 43 65 87       movabs $0x87654321deacbee3, %r12
-49 bd e2 be ad de 21 43 65 87       movabs $0x87654321deadbee2, %r13
-49 be e1 be ae de 21 43 65 87       movabs $0x87654321deaebee1, %r14
-49 bf e0 be af de 21 43 65 87       movabs $0x87654321deafbee0, %r15
+48 b8 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %rax
+48 b9 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %rcx
+48 ba 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %rdx
+48 bb 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %rbx
+48 bc 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %rsp
+48 bd 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %rbp
+48 be 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %rsi
+48 bf 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %rdi
+49 b8 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %r8
+49 b9 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %r9
+49 ba 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %r10
+49 bb 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %r11
+49 bc 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %r12
+49 bd 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %r13
+49 be 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %r14
+49 bf 12 34 56 78 9a bc de ff       movabs $0xffdebc9a78563412, %r15
+4a b8 12 34 56 78 9a bc de ff       rex.WX movabs $0xffdebc9a78563412, %rax
+4b b8 12 34 56 78 9a bc de ff       rex.WXB movabs $0xffdebc9a78563412, %r8
+4c b8 12 34 56 78 9a bc de ff       rex.WR movabs $0xffdebc9a78563412, %rax
+4d b8 12 34 56 78 9a bc de ff       rex.WRB movabs $0xffdebc9a78563412, %r8
+4e b8 12 34 56 78 9a bc de ff       rex.WRX movabs $0xffdebc9a78563412, %rax
+4f b8 12 34 56 78 9a bc de ff       rex.WRXB movabs $0xffdebc9a78563412, %r8

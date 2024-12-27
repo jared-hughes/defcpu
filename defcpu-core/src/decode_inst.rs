@@ -13,17 +13,69 @@ pub enum Inst {
     MovImm64(GPR64, u64),
     Hlt,
 }
-
-impl fmt::Display for Inst {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            MovImm8(gpr8, imm8) => write!(f, "mov    $0x{:x}, %{}", imm8, gpr8),
-            MovImm16(gpr16, imm16) => write!(f, "mov    $0x{:x}, %{}", imm16, gpr16),
-            MovImm32(gpr32, imm32) => write!(f, "mov    $0x{:x}, %{}", imm32, gpr32),
-            // movabs just does the same, idk why gdb dumps as movabs.
-            MovImm64(gpr64, imm64) => write!(f, "movabs $0x{:x}, %{}", imm64, gpr64),
-            Hlt => write!(f, "hlt"),
+impl Inst {
+    fn with_prefix(self, prefix: DisassemblyPrefix) -> FullInst {
+        FullInst {
+            prefix,
+            inner: self,
         }
+    }
+}
+
+impl Inst {
+    fn fmt_operands(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            MovImm8(gpr8, imm8) => write!(f, "$0x{:x}, %{}", imm8, gpr8),
+            MovImm16(gpr16, imm16) => write!(f, "$0x{:x}, %{}", imm16, gpr16),
+            MovImm32(gpr32, imm32) => write!(f, "$0x{:x}, %{}", imm32, gpr32),
+            MovImm64(gpr64, imm64) => write!(f, "$0x{:x}, %{}", imm64, gpr64),
+            Hlt => write!(f, ""),
+        }
+    }
+    fn mnemonic(&self) -> &str {
+        match self {
+            MovImm8(_, _) => "mov",
+            MovImm16(_, _) => "mov",
+            MovImm32(_, _) => "mov",
+            // movabs just does the same, idk why gdb dumps as movabs.
+            MovImm64(_, _) => "movabs",
+            Hlt => "hlt",
+        }
+    }
+}
+
+pub struct FullInst {
+    /// The prefix is only encoded for disassembly.
+    prefix: DisassemblyPrefix,
+    /// The inner instruction is needed for disassembly and execution.
+    pub inner: Inst,
+}
+impl fmt::Display for FullInst {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let prefix_plus_mnemonic = format!("{}{}", self.prefix, self.inner.mnemonic());
+        // The prefix and mnemonic together get a budget of 6 spaces.
+        write!(f, "{:6} ", prefix_plus_mnemonic)?;
+        self.inner.fmt_operands(f)
+    }
+}
+
+struct DisassemblyPrefix {
+    pub address_size: Option<AddressSizeAttribute>,
+    pub operand_size: Option<OperandSizeAttribute>,
+    pub rex: Option<Rex>,
+}
+impl fmt::Display for DisassemblyPrefix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(s) = &self.address_size {
+            write!(f, "{} ", s)?;
+        }
+        if let Some(s) = &self.operand_size {
+            write!(f, "{} ", s)?;
+        }
+        if let Some(rex) = &self.rex {
+            write!(f, "{} ", rex)?;
+        }
+        Ok(())
     }
 }
 
@@ -64,6 +116,53 @@ struct Rex {
     ///   - Encoding C: reg field of the opcode.
     b: bool,
 }
+impl Rex {
+    /// True if the Rex is already encoded in the "mov" macro
+    /// (e.g. by affecting the size or selected register), so
+    /// it doesn't need to be printed separately.
+    fn affects_mov_8(&self) -> bool {
+        #[allow(clippy::match_like_matches_macro)]
+        match (self.w, self.r, self.x, self.b) {
+            (false, false, false, false) => true,
+            (false, false, false, true) => true,
+            _ => false,
+        }
+    }
+
+    /// True if the Rex is already encoded in the "mov" macro
+    /// (e.g. by affecting the size or selected register), so
+    /// it doesn't need to be printed separately.
+    fn affects_mov_long(&self) -> bool {
+        #[allow(clippy::match_like_matches_macro)]
+        match (self.w, self.r, self.x, self.b) {
+            (true, false, false, false) => true,
+            (false, false, false, true) => true,
+            (true, false, false, true) => true,
+            _ => false,
+        }
+    }
+}
+impl fmt::Display for Rex {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "rex")?;
+        if self.w || self.r || self.x || self.b {
+            write!(f, ".")?;
+        };
+        if self.w {
+            write!(f, "W")?;
+        }
+        if self.r {
+            write!(f, "R")?;
+        }
+        if self.x {
+            write!(f, "X")?;
+        }
+        if self.b {
+            write!(f, "B")?;
+        }
+        Ok(())
+    }
+}
 
 // TODO: test what happens with chains like 0x66 + 0x67 + REX + 0x67 + REX
 // Reference says only a single REX can influence, but I'm not sure about
@@ -103,18 +202,25 @@ impl Prefix {
 
 /// Vol 1. 3.6.1 "Operand Size and Address Size in 64-Bit Mode"
 /// Address size is 64 by default, but 32 if the Address-Size Prefix 0x67 is present.
-#[allow(unused)]
+#[derive(Clone, Copy)]
 enum AddressSizeAttribute {
-    B64,
-    B32,
+    Addr64,
+    Addr32,
 }
 impl AddressSizeAttribute {
-    #[allow(unused)]
     fn from_prefix(p: Prefix) -> AddressSizeAttribute {
         if p.address_size_prefix {
-            AddressSizeAttribute::B64
+            AddressSizeAttribute::Addr32
         } else {
-            AddressSizeAttribute::B32
+            AddressSizeAttribute::Addr64
+        }
+    }
+}
+impl fmt::Display for AddressSizeAttribute {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AddressSizeAttribute::Addr64 => write!(f, "addr64"),
+            AddressSizeAttribute::Addr32 => write!(f, "addr32"),
         }
     }
 }
@@ -122,30 +228,53 @@ impl AddressSizeAttribute {
 /// Vol 1. 3.6.1 "Operand Size and Address Size in 64-Bit Mode"
 /// Operand size is 32 by default, but 64 if the REX.W prefix is present,
 /// else 16 if the Operand-Size Prefix 0x66 is present. The REX.W takes precedence.
+#[derive(Clone, Copy)]
 enum OperandSizeAttribute {
-    B64,
-    B32,
-    B16,
+    Data64,
+    Data32,
+    Data16,
 }
 impl OperandSizeAttribute {
     fn from_prefix(p: Prefix) -> OperandSizeAttribute {
         if p.rex.map(|x| x.w).unwrap_or(false) {
-            OperandSizeAttribute::B64
+            OperandSizeAttribute::Data64
         } else if p.operand_size_prefix {
-            OperandSizeAttribute::B16
+            OperandSizeAttribute::Data16
         } else {
-            OperandSizeAttribute::B32
+            OperandSizeAttribute::Data32
+        }
+    }
+}
+impl fmt::Display for OperandSizeAttribute {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            OperandSizeAttribute::Data64 => write!(f, "data64"),
+            OperandSizeAttribute::Data32 => write!(f, "data32"),
+            OperandSizeAttribute::Data16 => write!(f, "data16"),
         }
     }
 }
 
 /// Returns instruction together with the number of bytes read.
-pub fn decode_inst(mem: &Memory, i: u64) -> (Inst, u64) {
+pub fn decode_inst(mem: &Memory, i: u64) -> (FullInst, u64) {
     decode_inst_inner(mem, i, Prefix::new())
 }
 
-fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (Inst, u64) {
+fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
     let b0 = mem.read_byte(i);
+    let operand_size = OperandSizeAttribute::from_prefix(prefix);
+    let address_size = AddressSizeAttribute::from_prefix(prefix);
+    let mut dis_prefix = DisassemblyPrefix {
+        operand_size: match prefix.operand_size_prefix {
+            true => Some(operand_size),
+            false => None,
+        },
+        address_size: match prefix.address_size_prefix {
+            true => Some(address_size),
+            false => None,
+        },
+        rex: prefix.rex,
+    };
     match b0 {
         0x40..=0x4F => {
             let (inst, len) = decode_inst_inner(mem, i + 1, prefix.with_rex(b0));
@@ -162,22 +291,33 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (Inst, u64) {
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8
             // Move imm8 to r8.
+            if let Some(rex) = dis_prefix.rex {
+                if rex.affects_mov_8() {
+                    dis_prefix.rex = None
+                };
+            };
             let imm8 = mem.read_byte(i + 1);
             let reg = reg8_field_select(b0, prefix.rex);
-            (MovImm8(reg, imm8), 2)
+            (MovImm8(reg, imm8).with_prefix(dis_prefix), 2)
         }
         0xB8..=0xBF => {
-            let operand_size = OperandSizeAttribute::from_prefix(prefix);
+            // Each is the only `mov` of its size, so no need to mention it in disassembly.
+            dis_prefix.operand_size = None;
+            if let Some(rex) = dis_prefix.rex {
+                if rex.affects_mov_long() {
+                    dis_prefix.rex = None
+                };
+            };
             match operand_size {
-                OperandSizeAttribute::B16 => {
+                OperandSizeAttribute::Data16 => {
                     // B8+ rw iw; MOV r16, imm16
                     let d0 = mem.read_byte(i + 1) as u16;
                     let d1 = mem.read_byte(i + 2) as u16;
                     let imm16 = (d1 << 8) | d0;
                     let reg = reg16_field_select(b0, prefix.rex);
-                    (MovImm16(reg, imm16), 3)
+                    (MovImm16(reg, imm16).with_prefix(dis_prefix), 3)
                 }
-                OperandSizeAttribute::B32 => {
+                OperandSizeAttribute::Data32 => {
                     // B8+ rd id; MOV r32, imm32
                     let d0 = mem.read_byte(i + 1) as u32;
                     let d1 = mem.read_byte(i + 2) as u32;
@@ -185,9 +325,9 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (Inst, u64) {
                     let d3 = mem.read_byte(i + 4) as u32;
                     let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
                     let reg = reg32_field_select(b0, prefix.rex);
-                    (MovImm32(reg, imm32), 5)
+                    (MovImm32(reg, imm32).with_prefix(dis_prefix), 5)
                 }
-                OperandSizeAttribute::B64 => {
+                OperandSizeAttribute::Data64 => {
                     // REX.W + B8+ rd io
                     let d0 = mem.read_byte(i + 1) as u64;
                     let d1 = mem.read_byte(i + 2) as u64;
@@ -206,11 +346,11 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (Inst, u64) {
                         | (d1 << 8)
                         | d0;
                     let reg = reg64_field_select(b0, prefix.rex);
-                    (MovImm64(reg, imm64), 9)
+                    (MovImm64(reg, imm64).with_prefix(dis_prefix), 9)
                 }
             }
         }
-        0xF4 => (Hlt, 1),
+        0xF4 => (Hlt.with_prefix(dis_prefix), 1),
         _ => panic!("Opcode 0x{:02X} not yet implemented.", b0),
     }
 }

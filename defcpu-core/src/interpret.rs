@@ -32,7 +32,7 @@ impl Machine {
             panic!("Unexpected step in a halt state.")
         }
         let (inst, len) = decode_inst(&self.mem, self.regs.rip);
-        self.run_inst(inst);
+        self.run_inst(inst.inner);
         self.regs.rip += len;
     }
 

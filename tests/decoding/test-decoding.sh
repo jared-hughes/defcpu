@@ -43,6 +43,6 @@ for source_path in sources/*.s; do
     exp_dis=$(< "$source_path")
     if [[ "$exp_dis" != "$output_dis" ]]; then
         echo "Test failure from '$source_path'."
-        git diff --no-index "$output" "$source_path" || true
+        git --no-pager diff --no-index "$output" "$source_path" || true
     fi
 done

@@ -18,3 +18,17 @@ b7 24       mov    $0x24, %bh
 41 b5 46    mov    $0x46, %r13b
 41 b6 47    mov    $0x47, %r14b
 41 b7 48    mov    $0x48, %r15b
+42 b6 52    rex.X mov $0x52, %sil
+43 b6 53    rex.XB mov $0x53, %r14b
+44 b6 54    rex.R mov $0x54, %sil
+45 b6 55    rex.RB mov $0x55, %r14b
+46 b6 56    rex.RX mov $0x56, %sil
+47 b6 57    rex.RXB mov $0x57, %r14b
+48 b6 58    rex.W mov $0x58, %sil
+49 b6 59    rex.WB mov $0x59, %r14b
+4a b6 5a    rex.WX mov $0x5a, %sil
+4b b6 5b    rex.WXB mov $0x5b, %r14b
+4c b6 5c    rex.WR mov $0x5c, %sil
+4d b6 5d    rex.WRB mov $0x5d, %r14b
+4e b6 5e    rex.WRX mov $0x5e, %sil
+4f b6 5f    rex.WRXB mov $0x5f, %r14b
