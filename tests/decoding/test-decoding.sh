@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+# Script pre-req: compile to release target (cargo build --release)
+
 # Ensure `cargo dis` matches the disasembly in sources/a.s.
 # The source of truth is the hexdump bytes on the left.
 # The instructions on the right are the disassembly of the bytes on the right.
@@ -31,7 +33,7 @@ for source_path in sources/*.s; do
 
     output="./output/${base}.s"
 
-    cargo run -- dis "$elf" > "$output"
+    ../../target/release/defcpu dis "$elf" > "$output"
     
     longest_start=$(awk -F $"\t" '{ print length($1) }' "$output" | sort -n | tail -1)
 

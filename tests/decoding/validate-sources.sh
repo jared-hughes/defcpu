@@ -31,9 +31,9 @@ for source_path in sources/*.s; do
     rm "$temp_source"
 
     # start_addr looks like 0x0000000000400000
-    start_addr=$(objdump -x elfs/a.elf | grep 'start address' | awk '{ print $3 }')
+    start_addr=$(objdump -x "$elf" | grep 'start address' | awk '{ print $3 }')
     # segment_len looks like 0x0000000000000049
-    segment_len=$(objdump -x elfs/a.elf | awk 'c{print $4;c=0}; /vaddr '"$start_addr"'/{c=1};');
+    segment_len=$(objdump -x "$elf" | awk 'c{print $4;c=0}; /vaddr '"$start_addr"'/{c=1};');
 
     expected="./expected/${base}.s"
 

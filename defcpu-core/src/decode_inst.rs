@@ -20,7 +20,8 @@ impl fmt::Display for Inst {
             MovImm8(gpr8, imm8) => write!(f, "mov    $0x{:x}, %{}", imm8, gpr8),
             MovImm16(gpr16, imm16) => write!(f, "mov    $0x{:x}, %{}", imm16, gpr16),
             MovImm32(gpr32, imm32) => write!(f, "mov    $0x{:x}, %{}", imm32, gpr32),
-            MovImm64(gpr64, imm64) => write!(f, "mov    $0x{:x}, %{}", imm64, gpr64),
+            // movabs just does the same, idk why gdb dumps as movabs.
+            MovImm64(gpr64, imm64) => write!(f, "movabs $0x{:x}, %{}", imm64, gpr64),
             Hlt => write!(f, "hlt"),
         }
     }

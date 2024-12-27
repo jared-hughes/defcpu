@@ -51,8 +51,10 @@ The script `./run-sources.sh` uses the code.golf servers to run the assembly and
 
 ## Tooling relevant for development
 
-`objdump` is great for giving the segments etc. of an ELF file with the `-x` flag, but it doesn't seem to disassemble (`-d`) the ELFs produced by DefAssembler.
+`objdump` is great for giving the segments etc. of an ELF file with the `-x` flag, but it doesn't seem to disassemble (`-d`) the ELFs produced by DefAssembler. `readelf` works about as well as `objdump`.
 
-For quick things, https://defuse.ca/online-x86-assembler.htm is good for assembly/disassembling small bits of asm.
+For quick things, https://defuse.ca/online-x86-assembler.htm is good for assembly/disassembling small bits of asm. It's not perfectly reliable though, and make sure to switch to x64 architecture.
 
 `gdb` can show disassembly with the `disassemble` command. For example, `disassemble /m 0x400000, +0x49` disassembles the 73 bytes starting at `0x400000`.
+
+`nm` is irrelevant because we tend to not have any symbols to deal with.

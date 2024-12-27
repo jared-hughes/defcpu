@@ -14,4 +14,3 @@
 66 41 bd e2 be      mov    $0xbee2, %r13w
 66 41 be e1 be      mov    $0xbee1, %r14w
 66 41 bf e0 be      mov    $0xbee0, %r15w
-f4                  hlt

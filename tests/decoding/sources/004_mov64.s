@@ -1,0 +1,16 @@
+48 b8 ef be a0 de 21 43 65 87       movabs $0x87654321dea0beef, %rax
+48 b9 ee be a1 de 21 43 65 87       movabs $0x87654321dea1beee, %rcx
+48 ba ed be a2 de 21 43 65 87       movabs $0x87654321dea2beed, %rdx
+48 bb ec be a3 de 21 43 65 87       movabs $0x87654321dea3beec, %rbx
+48 bc eb be a4 de 21 43 65 87       movabs $0x87654321dea4beeb, %rsp
+48 bd ea be a5 de 21 43 65 87       movabs $0x87654321dea5beea, %rbp
+48 be e9 be a6 de 21 43 65 87       movabs $0x87654321dea6bee9, %rsi
+48 bf e8 be a7 de 21 43 65 87       movabs $0x87654321dea7bee8, %rdi
+49 b8 e7 be a8 de 21 43 65 87       movabs $0x87654321dea8bee7, %r8
+49 b9 e6 be a9 de 21 43 65 87       movabs $0x87654321dea9bee6, %r9
+49 ba e5 be aa de 21 43 65 87       movabs $0x87654321deaabee5, %r10
+49 bb e4 be ab de 21 43 65 87       movabs $0x87654321deabbee4, %r11
+49 bc e3 be ac de 21 43 65 87       movabs $0x87654321deacbee3, %r12
+49 bd e2 be ad de 21 43 65 87       movabs $0x87654321deadbee2, %r13
+49 be e1 be ae de 21 43 65 87       movabs $0x87654321deaebee1, %r14
+49 bf e0 be af de 21 43 65 87       movabs $0x87654321deafbee0, %r15
