@@ -54,11 +54,9 @@ pub struct Rex {
     pub w: bool,
     /// An extra bit extended to the MSB of the reg field of the ModR/M byte,
     /// when present (encodings A and B), ignored otherwise.
-    #[allow(unused)]
     pub r: bool,
     /// An extra bit extended to the MSB of the index field of the SIB byte,
     /// when present (encoding B), ignored otherwise.
-    #[allow(unused)]
     pub x: bool,
     /// An extra bit extended to the MSB of the:
     ///   - Encoding A: R/M field of ModR/M byte.
@@ -161,9 +159,9 @@ pub enum OperandSizeAttribute {
 }
 impl OperandSizeAttribute {
     pub fn from_prefix(p: Prefix) -> OperandSizeAttribute {
-        if p.rex.map(|x| x.w).unwrap_or(false) {
-            OperandSizeAttribute::Data64
-        } else if p.operand_size_prefix {
+        // Note this doesn't factor in the rex.w bit.
+        // That should be done in each opcode where rex.w is used.
+        if p.operand_size_prefix {
             OperandSizeAttribute::Data16
         } else {
             OperandSizeAttribute::Data32

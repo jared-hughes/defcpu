@@ -9,7 +9,9 @@ use Inst::*;
 pub enum Inst {
     /// A no-op stemming from REX not being followed by a valid expression.
     RexNoop,
-    // REX + B0+ rb ib; MOV r81, imm8; Move imm8 to r8.
+    // 88 /r; MOV r/m8, r8; Move r8 to r/m8.
+    MovMR8(Addr, GPR8),
+    // B0+ rb ib; MOV r8, imm8; Move imm8 to r8.
     MovImm8(GPR8, u8),
     // B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
     MovImm16(GPR16, u16),
@@ -20,6 +22,7 @@ pub enum Inst {
     // F4; HLT
     Hlt,
 }
+
 impl Inst {
     pub fn with_prefix(self, prefix: DisassemblyPrefix) -> FullInst {
         FullInst {
@@ -27,22 +30,21 @@ impl Inst {
             inner: self,
         }
     }
-}
-
-impl Inst {
     fn fmt_operands(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             RexNoop => Ok(()),
-            MovImm8(gpr8, imm8) => write!(f, "$0x{:x}, %{}", imm8, gpr8),
-            MovImm16(gpr16, imm16) => write!(f, "$0x{:x}, %{}", imm16, gpr16),
-            MovImm32(gpr32, imm32) => write!(f, "$0x{:x}, %{}", imm32, gpr32),
-            MovImm64(gpr64, imm64) => write!(f, "$0x{:x}, %{}", imm64, gpr64),
+            MovMR8(addr, reg) => write!(f, "{}, {}", reg, addr),
+            MovImm8(gpr8, imm8) => write!(f, "$0x{:x}, {}", imm8, gpr8),
+            MovImm16(gpr16, imm16) => write!(f, "$0x{:x}, {}", imm16, gpr16),
+            MovImm32(gpr32, imm32) => write!(f, "$0x{:x}, {}", imm32, gpr32),
+            MovImm64(gpr64, imm64) => write!(f, "$0x{:x}, {}", imm64, gpr64),
             Hlt => write!(f, ""),
         }
     }
     fn mnemonic(&self) -> &str {
         match self {
             RexNoop => "",
+            MovMR8(_, _) => "mov",
             MovImm8(_, _) => "mov",
             MovImm16(_, _) => "mov",
             MovImm32(_, _) => "mov",
@@ -75,6 +77,20 @@ impl fmt::Display for FullInst {
         } else {
             // Just prefixes, e.g. due to REX no-op.
             write!(f, "{}", self.prefix)
+        }
+    }
+}
+
+use Addr::*;
+pub enum Addr {
+    Reg32(GPR32),
+    Reg64(GPR64),
+}
+impl fmt::Display for Addr {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Reg32(gpr32) => write!(f, "({})", gpr32),
+            Reg64(gpr64) => write!(f, "({})", gpr64),
         }
     }
 }

@@ -93,26 +93,26 @@ impl GPR8 {
 impl fmt::Display for GPR8 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            GPR8::Low(Rax) => "al",
-            GPR8::Low(Rbx) => "bl",
-            GPR8::Low(Rcx) => "cl",
-            GPR8::Low(Rdx) => "dl",
-            GPR8::Low(Rsi) => "sil",
-            GPR8::Low(Rdi) => "dil",
-            GPR8::Low(Rsp) => "spl",
-            GPR8::Low(Rbp) => "bpl",
-            GPR8::Low(R8) => "r8b",
-            GPR8::Low(R9) => "r9b",
-            GPR8::Low(R10) => "r10b",
-            GPR8::Low(R11) => "r11b",
-            GPR8::Low(R12) => "r12b",
-            GPR8::Low(R13) => "r13b",
-            GPR8::Low(R14) => "r14b",
-            GPR8::Low(R15) => "r15b",
-            GPR8::High(ABCDReg::Rax) => "ah",
-            GPR8::High(ABCDReg::Rbx) => "bh",
-            GPR8::High(ABCDReg::Rcx) => "ch",
-            GPR8::High(ABCDReg::Rdx) => "dh",
+            GPR8::Low(Rax) => "%al",
+            GPR8::Low(Rbx) => "%bl",
+            GPR8::Low(Rcx) => "%cl",
+            GPR8::Low(Rdx) => "%dl",
+            GPR8::Low(Rsi) => "%sil",
+            GPR8::Low(Rdi) => "%dil",
+            GPR8::Low(Rsp) => "%spl",
+            GPR8::Low(Rbp) => "%bpl",
+            GPR8::Low(R8) => "%r8b",
+            GPR8::Low(R9) => "%r9b",
+            GPR8::Low(R10) => "%r10b",
+            GPR8::Low(R11) => "%r11b",
+            GPR8::Low(R12) => "%r12b",
+            GPR8::Low(R13) => "%r13b",
+            GPR8::Low(R14) => "%r14b",
+            GPR8::Low(R15) => "%r15b",
+            GPR8::High(ABCDReg::Rax) => "%ah",
+            GPR8::High(ABCDReg::Rbx) => "%bh",
+            GPR8::High(ABCDReg::Rcx) => "%ch",
+            GPR8::High(ABCDReg::Rdx) => "%dh",
         };
         write!(f, "{}", s)
     }
@@ -124,22 +124,22 @@ pub struct GPR16(pub QReg);
 impl fmt::Display for GPR16 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self.0 {
-            Rax => "ax",
-            Rbx => "bx",
-            Rcx => "cx",
-            Rdx => "dx",
-            Rsi => "si",
-            Rdi => "di",
-            Rsp => "sp",
-            Rbp => "bp",
-            R8 => "r8w",
-            R9 => "r9w",
-            R10 => "r10w",
-            R11 => "r11w",
-            R12 => "r12w",
-            R13 => "r13w",
-            R14 => "r14w",
-            R15 => "r15w",
+            Rax => "%ax",
+            Rbx => "%bx",
+            Rcx => "%cx",
+            Rdx => "%dx",
+            Rsi => "%si",
+            Rdi => "%di",
+            Rsp => "%sp",
+            Rbp => "%bp",
+            R8 => "%r8w",
+            R9 => "%r9w",
+            R10 => "%r10w",
+            R11 => "%r11w",
+            R12 => "%r12w",
+            R13 => "%r13w",
+            R14 => "%r14w",
+            R15 => "%r15w",
         };
         write!(f, "{}", s)
     }
@@ -188,22 +188,22 @@ impl GPR32 {
 impl fmt::Display for GPR32 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self.0 {
-            Rax => "eax",
-            Rbx => "ebx",
-            Rcx => "ecx",
-            Rdx => "edx",
-            Rsi => "esi",
-            Rdi => "edi",
-            Rsp => "esp",
-            Rbp => "ebp",
-            R8 => "r8d",
-            R9 => "r9d",
-            R10 => "r10d",
-            R11 => "r11d",
-            R12 => "r12d",
-            R13 => "r13d",
-            R14 => "r14d",
-            R15 => "r15d",
+            Rax => "%eax",
+            Rbx => "%ebx",
+            Rcx => "%ecx",
+            Rdx => "%edx",
+            Rsi => "%esi",
+            Rdi => "%edi",
+            Rsp => "%esp",
+            Rbp => "%ebp",
+            R8 => "%r8d",
+            R9 => "%r9d",
+            R10 => "%r10d",
+            R11 => "%r11d",
+            R12 => "%r12d",
+            R13 => "%r13d",
+            R14 => "%r14d",
+            R15 => "%r15d",
         };
         write!(f, "{}", s)
     }
@@ -233,22 +233,22 @@ impl GPR64 {
 impl fmt::Display for GPR64 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self.0 {
-            Rax => "rax",
-            Rbx => "rbx",
-            Rcx => "rcx",
-            Rdx => "rdx",
-            Rsi => "rsi",
-            Rdi => "rdi",
-            Rsp => "rsp",
-            Rbp => "rbp",
-            R8 => "r8",
-            R9 => "r9",
-            R10 => "r10",
-            R11 => "r11",
-            R12 => "r12",
-            R13 => "r13",
-            R14 => "r14",
-            R15 => "r15",
+            Rax => "%rax",
+            Rbx => "%rbx",
+            Rcx => "%rcx",
+            Rdx => "%rdx",
+            Rsi => "%rsi",
+            Rdi => "%rdi",
+            Rsp => "%rsp",
+            Rbp => "%rbp",
+            R8 => "%r8",
+            R9 => "%r9",
+            R10 => "%r10",
+            R11 => "%r11",
+            R12 => "%r12",
+            R13 => "%r13",
+            R14 => "%r14",
+            R15 => "%r15",
         };
         write!(f, "{}", s)
     }
@@ -300,6 +300,29 @@ impl Registers {
     pub fn set_reg64(&mut self, gpr64: GPR64, imm64: u64) {
         let ind = gpr64.0.reg_index();
         self.regs[ind] = imm64;
+    }
+
+    pub fn get_reg8(&self, gpr8: GPR8) -> u8 {
+        match gpr8 {
+            GPR8::Low(qreg) => {
+                let ind = qreg.reg_index();
+                (self.regs[ind] & 0xFF).try_into().unwrap()
+            }
+            GPR8::High(abcdreg) => {
+                let ind = abcdreg.reg_index();
+                (self.regs[ind] >> 8 & 0xFF).try_into().unwrap()
+            }
+        }
+    }
+
+    pub fn get_reg32(&self, gpr32: GPR32) -> u32 {
+        let ind = gpr32.0.reg_index();
+        (self.regs[ind] & 0xFF_FF_FF_FF).try_into().unwrap()
+    }
+
+    pub fn get_reg64(&self, gpr64: GPR64) -> u64 {
+        let ind = gpr64.0.reg_index();
+        self.regs[ind]
     }
 }
 

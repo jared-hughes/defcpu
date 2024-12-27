@@ -1,5 +1,8 @@
 use crate::{
-    decode_inst::decode_inst, inst::Inst, memory::Memory, parse_elf::SimpleElfFile,
+    decode_inst::decode_inst,
+    inst::{Addr, Inst},
+    memory::Memory,
+    parse_elf::SimpleElfFile,
     registers::Registers,
 };
 
@@ -37,6 +40,11 @@ impl Machine {
     pub fn run_inst(&mut self, inst: Inst) {
         match inst {
             Inst::RexNoop => {}
+            Inst::MovMR8(addr, gpr8) => {
+                let val = self.regs.get_reg8(gpr8);
+                let a = compute_addr(&self.regs, addr);
+                self.mem.write_byte(a, val);
+            }
             Inst::MovImm8(gpr8, imm8) => {
                 self.regs.set_reg8(gpr8, imm8);
             }
@@ -54,5 +62,12 @@ impl Machine {
                 self.halt = true;
             }
         }
+    }
+}
+
+fn compute_addr(reg: &Registers, addr: Addr) -> u64 {
+    match addr {
+        Addr::Reg32(gpr32) => reg.get_reg32(gpr32) as u64,
+        Addr::Reg64(gpr64) => reg.get_reg64(gpr64),
     }
 }
