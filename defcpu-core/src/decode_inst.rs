@@ -53,7 +53,7 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
             let (inst, len) = decode_inst_inner(mem, i + 1, prefix.with_address_size_prefix());
             (inst, len + 1)
         }
-        0x88 => {
+        0x88 | 0x8A => {
             let modrm = modrm_decode(mem.read_byte(i + 1));
             let (reg, rex_b_matters) = reg8_field_select(modrm.reg3, prefix.rex.map(|x| x.r));
             if let Some(rex) = dis_prefix.rex {
@@ -68,7 +68,12 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
                 Addr32 => modrm_addr32(modrm, prefix.rex),
             };
             dis_prefix.address_size = None;
-            (MovMR8(addr, reg).with_prefix(dis_prefix), 2)
+            let inst = match b0 {
+                0x88 => MovMR8(addr, reg),
+                0x8A => MovRM8(reg, addr),
+                _ => panic!("Missing match arm in decode_inst_inner."),
+            };
+            (inst.with_prefix(dis_prefix), 2)
         }
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8

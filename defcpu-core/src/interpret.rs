@@ -45,6 +45,11 @@ impl Machine {
                 let a = compute_addr(&self.regs, addr);
                 self.mem.write_byte(a, val);
             }
+            Inst::MovRM8(gpr8, addr) => {
+                let a = compute_addr(&self.regs, addr);
+                let val = self.mem.read_byte(a);
+                self.regs.set_reg8(gpr8, val);
+            }
             Inst::MovImm8(gpr8, imm8) => {
                 self.regs.set_reg8(gpr8, imm8);
             }

@@ -6,11 +6,14 @@ use crate::{
 };
 
 use Inst::*;
+/// Instructions. Tuple args are in Intel order.
 pub enum Inst {
     /// A no-op stemming from REX not being followed by a valid expression.
     RexNoop,
     // 88 /r; MOV r/m8, r8; Move r8 to r/m8.
     MovMR8(Addr, GPR8),
+    // 8A /r; MOV r8, r/m8; Move r/m8 to r8.
+    MovRM8(GPR8, Addr),
     // B0+ rb ib; MOV r8, imm8; Move imm8 to r8.
     MovImm8(GPR8, u8),
     // B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
@@ -34,6 +37,7 @@ impl Inst {
         match self {
             RexNoop => Ok(()),
             MovMR8(addr, reg) => write!(f, "{}, {}", reg, addr),
+            MovRM8(reg, addr) => write!(f, "{}, {}", addr, reg),
             MovImm8(gpr8, imm8) => write!(f, "$0x{:x}, {}", imm8, gpr8),
             MovImm16(gpr16, imm16) => write!(f, "$0x{:x}, {}", imm16, gpr16),
             MovImm32(gpr32, imm32) => write!(f, "$0x{:x}, {}", imm32, gpr32),
@@ -45,6 +49,7 @@ impl Inst {
         match self {
             RexNoop => "",
             MovMR8(_, _) => "mov",
+            MovRM8(_, _) => "mov",
             MovImm8(_, _) => "mov",
             MovImm16(_, _) => "mov",
             MovImm32(_, _) => "mov",
