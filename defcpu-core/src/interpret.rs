@@ -1,7 +1,5 @@
 use crate::{
-    decode_inst::{decode_inst, Inst},
-    memory::Memory,
-    parse_elf::SimpleElfFile,
+    decode_inst::decode_inst, inst::Inst, memory::Memory, parse_elf::SimpleElfFile,
     registers::Registers,
 };
 

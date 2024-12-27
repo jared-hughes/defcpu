@@ -1,4 +1,6 @@
 pub(crate) mod decode_inst;
+pub(crate) mod inst;
+pub(crate) mod inst_prefixes;
 pub(crate) mod interpret;
 pub(crate) mod memory;
 pub(crate) mod parse_elf;
