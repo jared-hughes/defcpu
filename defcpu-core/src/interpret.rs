@@ -38,6 +38,7 @@ impl Machine {
 
     pub fn run_inst(&mut self, inst: Inst) {
         match inst {
+            Inst::RexNoop => {}
             Inst::MovImm8(gpr8, imm8) => {
                 self.regs.set_reg8(gpr8, imm8);
             }

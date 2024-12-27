@@ -7,10 +7,17 @@ use crate::{
 
 use Inst::*;
 pub enum Inst {
+    /// A no-op stemming from REX not being followed by a valid expression.
+    RexNoop,
+    // REX + B0+ rb ib; MOV r81, imm8; Move imm8 to r8.
     MovImm8(GPR8, u8),
+    // B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
     MovImm16(GPR16, u16),
+    // B8+ rd id; MOV r32, imm32; Move imm32 to r32.
     MovImm32(GPR32, u32),
+    // REX.W + B8+ rd io; MOV r64, imm64; Move imm64 to r64.
     MovImm64(GPR64, u64),
+    // F4; HLT
     Hlt,
 }
 impl Inst {
@@ -25,6 +32,7 @@ impl Inst {
 impl Inst {
     fn fmt_operands(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            RexNoop => Ok(()),
             MovImm8(gpr8, imm8) => write!(f, "$0x{:x}, %{}", imm8, gpr8),
             MovImm16(gpr16, imm16) => write!(f, "$0x{:x}, %{}", imm16, gpr16),
             MovImm32(gpr32, imm32) => write!(f, "$0x{:x}, %{}", imm32, gpr32),
@@ -34,6 +42,7 @@ impl Inst {
     }
     fn mnemonic(&self) -> &str {
         match self {
+            RexNoop => "",
             MovImm8(_, _) => "mov",
             MovImm16(_, _) => "mov",
             MovImm32(_, _) => "mov",
@@ -52,10 +61,21 @@ pub struct FullInst {
 }
 impl fmt::Display for FullInst {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let prefix_plus_mnemonic = format!("{}{}", self.prefix, self.inner.mnemonic());
-        // The prefix and mnemonic together get a budget of 6 spaces.
-        write!(f, "{:6} ", prefix_plus_mnemonic)?;
-        self.inner.fmt_operands(f)
+        let mnem = self.inner.mnemonic();
+        if !mnem.is_empty() {
+            let prefix = format!("{}", self.prefix);
+            let prefix_plus_mnemonic = if !prefix.is_empty() {
+                format!("{} {}", prefix, mnem)
+            } else {
+                mnem.to_string()
+            };
+            // The prefix and mnemonic together get a budget of 6 spaces.
+            write!(f, "{:6} ", prefix_plus_mnemonic)?;
+            self.inner.fmt_operands(f)
+        } else {
+            // Just prefixes, e.g. due to REX no-op.
+            write!(f, "{}", self.prefix)
+        }
     }
 }
 
@@ -66,14 +86,23 @@ struct DisassemblyPrefix {
 }
 impl fmt::Display for DisassemblyPrefix {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut some = false;
         if let Some(s) = &self.address_size {
-            write!(f, "{} ", s)?;
+            s.fmt(f)?;
+            some = true;
         }
         if let Some(s) = &self.operand_size {
-            write!(f, "{} ", s)?;
+            if some {
+                write!(f, " ")?;
+            }
+            s.fmt(f)?;
+            some = true;
         }
         if let Some(rex) = &self.rex {
-            write!(f, "{} ", rex)?;
+            if some {
+                write!(f, " ")?;
+            }
+            rex.fmt(f)?;
         }
         Ok(())
     }
@@ -116,32 +145,7 @@ struct Rex {
     ///   - Encoding C: reg field of the opcode.
     b: bool,
 }
-impl Rex {
-    /// True if the Rex is already encoded in the "mov" macro
-    /// (e.g. by affecting the size or selected register), so
-    /// it doesn't need to be printed separately.
-    fn affects_mov_8(&self) -> bool {
-        #[allow(clippy::match_like_matches_macro)]
-        match (self.w, self.r, self.x, self.b) {
-            (false, false, false, false) => true,
-            (false, false, false, true) => true,
-            _ => false,
-        }
-    }
-
-    /// True if the Rex is already encoded in the "mov" macro
-    /// (e.g. by affecting the size or selected register), so
-    /// it doesn't need to be printed separately.
-    fn affects_mov_long(&self) -> bool {
-        #[allow(clippy::match_like_matches_macro)]
-        match (self.w, self.r, self.x, self.b) {
-            (true, false, false, false) => true,
-            (false, false, false, true) => true,
-            (true, false, false, true) => true,
-            _ => false,
-        }
-    }
-}
+impl Rex {}
 impl fmt::Display for Rex {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "rex")?;
@@ -277,34 +281,51 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
     };
     match b0 {
         0x40..=0x4F => {
+            if prefix.rex.is_some() {
+                return (RexNoop.with_prefix(dis_prefix), 0);
+            }
             let (inst, len) = decode_inst_inner(mem, i + 1, prefix.with_rex(b0));
             (inst, len + 1)
         }
         0x66 => {
+            if prefix.rex.is_some() {
+                return (RexNoop.with_prefix(dis_prefix), 0);
+            }
             let (inst, len) = decode_inst_inner(mem, i + 1, prefix.with_operand_size_prefix());
             (inst, len + 1)
         }
         0x67 => {
+            if prefix.rex.is_some() {
+                return (RexNoop.with_prefix(dis_prefix), 0);
+            }
             let (inst, len) = decode_inst_inner(mem, i + 1, prefix.with_address_size_prefix());
             (inst, len + 1)
         }
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8
             // Move imm8 to r8.
-            if let Some(rex) = dis_prefix.rex {
-                if rex.affects_mov_8() {
-                    dis_prefix.rex = None
-                };
-            };
+
             let imm8 = mem.read_byte(i + 1);
-            let reg = reg8_field_select(b0, prefix.rex);
+            let (reg, rex_b_matters) = reg8_field_select(b0, prefix.rex);
+            if let Some(rex) = dis_prefix.rex {
+                if !rex.w && !rex.x && !rex.r && rex_b_matters {
+                    // REX prefix doesn't need to be printed separately,
+                    // since it is already the 'default' prefix for the inst.
+                    dis_prefix.rex = None
+                }
+            };
             (MovImm8(reg, imm8).with_prefix(dis_prefix), 2)
         }
         0xB8..=0xBF => {
             // Each is the only `mov` of its size, so no need to mention it in disassembly.
             dis_prefix.operand_size = None;
             if let Some(rex) = dis_prefix.rex {
-                if rex.affects_mov_long() {
+                let no_silly_business = !rex.x && !rex.r;
+                let operand_size_influenced = rex.w;
+                let reg_field_select_influenced = rex.b;
+                if no_silly_business && (operand_size_influenced || reg_field_select_influenced) {
+                    // REX prefix doesn't need to be printed separately,
+                    // since it is already the 'default' prefix for the inst.
                     dis_prefix.rex = None
                 };
             };
@@ -350,43 +371,50 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
                 }
             }
         }
-        0xF4 => (Hlt.with_prefix(dis_prefix), 1),
+        0xF4 => {
+            if prefix.rex.is_some() {
+                return (RexNoop.with_prefix(dis_prefix), 0);
+            }
+            (Hlt.with_prefix(dis_prefix), 1)
+        }
         _ => panic!("Opcode 0x{:02X} not yet implemented.", b0),
     }
 }
 
 /// Vol 2A: Table 3-1 "Register Codes Associated With +rb, +rw, +rd, +ro.""
 /// This is for +rb (byte register).
-fn reg8_field_select(op: u8, rex: Option<Rex>) -> GPR8 {
+/// Return a pair of the register and a boolean, where
+/// the boolean is true iff the REX byte is the "default"
+fn reg8_field_select(op: u8, rex: Option<Rex>) -> (GPR8, bool) {
     match (rex.map(|x| x.b), op & 0b111) {
         // No REX prefix, or REX prefix with B bit cleared.
-        (None, 0b000) => GPR8::al,
-        (Some(false), 0b000) => GPR8::al,
-        (None, 0b001) => GPR8::cl,
-        (Some(false), 0b001) => GPR8::cl,
-        (None, 0b010) => GPR8::dl,
-        (Some(false), 0b010) => GPR8::dl,
-        (None, 0b011) => GPR8::bl,
-        (Some(false), 0b011) => GPR8::bl,
+        (None, 0b000) => (GPR8::al, false),
+        (Some(false), 0b000) => (GPR8::al, false),
+        (None, 0b001) => (GPR8::cl, false),
+        (Some(false), 0b001) => (GPR8::cl, false),
+        (None, 0b010) => (GPR8::dl, false),
+        (Some(false), 0b010) => (GPR8::dl, false),
+        (None, 0b011) => (GPR8::bl, false),
+        (Some(false), 0b011) => (GPR8::bl, false),
         // No REX prefix.
-        (None, 0b100) => GPR8::ah,
-        (None, 0b101) => GPR8::ch,
-        (None, 0b110) => GPR8::dh,
-        (None, 0b111) => GPR8::bh,
+        (None, 0b100) => (GPR8::ah, false),
+        (None, 0b101) => (GPR8::ch, false),
+        (None, 0b110) => (GPR8::dh, false),
+        (None, 0b111) => (GPR8::bh, false),
         // REX prefix with B bit cleared (e.g. 0x40).
-        (Some(false), 0b100) => GPR8::spl,
-        (Some(false), 0b101) => GPR8::bpl,
-        (Some(false), 0b110) => GPR8::sil,
-        (Some(false), 0b111) => GPR8::dil,
+        (Some(false), 0b100) => (GPR8::spl, true),
+        (Some(false), 0b101) => (GPR8::bpl, true),
+        (Some(false), 0b110) => (GPR8::sil, true),
+        (Some(false), 0b111) => (GPR8::dil, true),
         // REX prefix with B bit set (e.g. 0x41).
-        (Some(true), 0b000) => GPR8::r8b,
-        (Some(true), 0b001) => GPR8::r9b,
-        (Some(true), 0b010) => GPR8::r10b,
-        (Some(true), 0b011) => GPR8::r11b,
-        (Some(true), 0b100) => GPR8::r12b,
-        (Some(true), 0b101) => GPR8::r13b,
-        (Some(true), 0b110) => GPR8::r14b,
-        (Some(true), 0b111) => GPR8::r15b,
+        (Some(true), 0b000) => (GPR8::r8b, true),
+        (Some(true), 0b001) => (GPR8::r9b, true),
+        (Some(true), 0b010) => (GPR8::r10b, true),
+        (Some(true), 0b011) => (GPR8::r11b, true),
+        (Some(true), 0b100) => (GPR8::r12b, true),
+        (Some(true), 0b101) => (GPR8::r13b, true),
+        (Some(true), 0b110) => (GPR8::r14b, true),
+        (Some(true), 0b111) => (GPR8::r15b, true),
         _ => panic!("Missing match arm in reg8_field_select."),
     }
 }

@@ -8,6 +8,6 @@ set -euo pipefail
     ./run-sources.sh
 )
 (
-    cd tests/decoding
+    cd tests/disassembly
     ./validate-sources.sh "$@"
 )

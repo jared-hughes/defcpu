@@ -4,6 +4,6 @@ set -euo pipefail
 
 cargo build --release
 (
-    cd tests/decoding
-    ./test-decoding.sh
+    cd tests/disassembly
+    ./test-disassembly.sh
 )

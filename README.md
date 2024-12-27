@@ -39,9 +39,23 @@ My primary reference is the October 2024 version of [Intel® 64 and IA-32 Archit
 
 To regenerate test files, first make sure defasm and golfc are installed by running `npm install`.
 
-The script `./build-elfs.sh` uses DefAssembler to make ELF files from the x86 asm in `sources/*.s`. These are NOT checked into git because there's no point. DefAssembler is fast enough, and they're binary files.
+Run `./make.sh apply` to ensure all test files are up to date.
 
-The script `./run-sources.sh` uses the code.golf servers to run the assembly and put the outputs in the `outputs` directory. Out of respect for the servers, these are checked into git and cached using the `sha256sum` of the sources as the sole cache key.
+Run `./test.sh` to run all test files. Currently this only runs disassembly tests (integration is not yet automated).
+
+### Integration Tests
+
+The script `build-elfs.sh` uses DefAssembler to make ELF files from the x86 asm in `sources/*.s`. These are NOT checked into git because there's no point. DefAssembler is fast enough, and they're binary files.
+
+The script `run-sources.sh` uses the code.golf servers to run the assembly and put the outputs in the `outputs` directory. Out of respect for the servers, these are checked into git and cached using the `sha256sum` of the sources as the sole cache key.
+
+### Disassembly Tests
+
+The script `gen-fuzz.sh` generates some of the files in `tests/disassembly/sources` which are essentially just fuzz tests. A bunch of random bytes from a given pool.
+
+The script `validate-sources.sh` takes the hexadecimal bytes on the left of each file in `tests/disassembly/sources`, puts them in an ELF file (with defasm), then disassembles them with `gdb` (I couldn't get `objdump` to work). If it is ran as `validate-sources.sh apply` (which is automatic from `./make.sh apply`), then the sources get overwritten with the disassembly, so the script essentially behaves as ensuring the disassembly on the right is up-to-date with the hex source on the left.
+
+The script `test-disassembly.sh` is automated testing. It hooks into `defcpu dis` to verify that DefCPU gives the same disassembly as `gdb`.
 
 ## Future correctness pass notes
 

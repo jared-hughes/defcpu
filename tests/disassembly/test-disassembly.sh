@@ -18,7 +18,7 @@ for source_path in sources/*.s; do
 
     temp_source="$(mktemp)"
     echo -n '.byte ' > "$temp_source";
-    sed -E 's/(([0-9a-f]{2} )+) .*/\1/g' "$source_path" \
+    sed -E 's/(([0-9a-f]{2} )+).*/\1/g' "$source_path" \
         | tr -d '\n' \
         | sed 's/ *$//g' \
         | sed 's/ /, /g' \
