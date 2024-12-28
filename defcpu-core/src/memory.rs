@@ -33,7 +33,7 @@ impl fmt::Display for Memory {
             } else {
                 writeln!(f)?;
             }
-            writeln!(f, "Page at 0x{:016X} ({}):", page_addr, page.flags)?;
+            writeln!(f, "Page at {:#016X} ({}):", page_addr, page.flags)?;
             let len = after_last_nonzero(page);
             let nlines = len.div_ceil(16);
             for i in 0..nlines {
@@ -71,7 +71,7 @@ impl Memory {
                 let addr = (segment.p_vaddr as usize) + offset;
                 let page_addr = addr & !PAGE_MASK;
                 if mem.map.contains_key(&page_addr) {
-                    panic!("Duplicate page 0x{:016X}", page_addr);
+                    panic!("Duplicate page {:#016X}", page_addr);
                 }
                 let mut page_data = [0_u8; PAGE_SIZE];
                 let suffix_slice = &data[offset..];
@@ -90,7 +90,7 @@ impl Memory {
     pub fn read_u8(&self, i: u64) -> u8 {
         let page = self.get_page(i);
         if !page.flags.readable {
-            panic!("Page not writeable at address 0x{:016X}.", i);
+            panic!("Page not writeable at address {:#016X}.", i);
         }
         page.data[(i as usize) & PAGE_MASK]
     }
@@ -124,7 +124,7 @@ impl Memory {
     pub fn write_u8(&mut self, i: u64, val: u8) {
         let page = self.get_page_mut(i);
         if !page.flags.writeable {
-            panic!("Page not writeable at address 0x{:016X}.", i);
+            panic!("Page not writeable at address {:#016X}.", i);
         }
         page.data[(i as usize) & PAGE_MASK] = val;
     }
@@ -167,7 +167,7 @@ impl Memory {
 
 fn page_fault(addr: u64) -> ! {
     panic!(
-        "Page fault: not yet initialized. Reading address 0x{:016X}.",
+        "Page fault: not yet initialized. Reading address {:#016X}.",
         addr
     )
 }

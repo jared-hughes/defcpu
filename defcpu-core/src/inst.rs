@@ -1,4 +1,4 @@
-use std::fmt;
+use std::fmt::{self, LowerHex};
 
 use crate::{
     inst_prefixes::DisassemblyPrefix,
@@ -46,14 +46,14 @@ impl Inst {
             RexNoop => Ok(()),
             MovMR8(addr, reg) => write!(f, "{}, {}", reg, addr),
             MovRM8(reg, addr) => write!(f, "{}, {}", addr, reg),
-            MovImm8(gpr8, imm8) => write!(f, "$0x{:x}, {}", imm8, gpr8),
-            MovImm16(gpr16, imm16) => write!(f, "$0x{:x}, {}", imm16, gpr16),
-            MovImm32(gpr32, imm32) => write!(f, "$0x{:x}, {}", imm32, gpr32),
-            MovImm64(gpr64, imm64) => write!(f, "$0x{:x}, {}", imm64, gpr64),
-            MovMI8(addr, imm8) => write!(f, "$0x{:x}, {}", imm8, addr),
-            MovMI16(addr, imm16) => write!(f, "$0x{:x}, {}", imm16, addr),
-            MovMI32(addr, imm32) => write!(f, "$0x{:x}, {}", imm32, addr),
-            MovMI32s64(addr, imm32) => write!(f, "$0x{:x}, {}", imm32, addr),
+            MovImm8(gpr8, imm8) => write!(f, "${:#x}, {}", imm8, gpr8),
+            MovImm16(gpr16, imm16) => write!(f, "${:#x}, {}", imm16, gpr16),
+            MovImm32(gpr32, imm32) => write!(f, "${:#x}, {}", imm32, gpr32),
+            MovImm64(gpr64, imm64) => write!(f, "${:#x}, {}", imm64, gpr64),
+            MovMI8(addr, imm8) => write!(f, "${:#x}, {}", imm8, addr),
+            MovMI16(addr, imm16) => write!(f, "${:#x}, {}", imm16, addr),
+            MovMI32(addr, imm32) => write!(f, "${:#x}, {}", imm32, addr),
+            MovMI32s64(addr, imm32) => write!(f, "${:#x}, {}", imm32, addr),
             Hlt => write!(f, ""),
         }
     }
@@ -120,6 +120,16 @@ impl From<Scale> for u8 {
     }
 }
 
+// https://stackoverflow.com/a/63607986
+struct ReallySigned(i32);
+impl LowerHex for ReallySigned {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let prefix = if f.alternate() { "0x" } else { "" };
+        let bare_hex = format!("{:x}", self.0.abs());
+        f.pad_integral(self.0 >= 0, prefix, &bare_hex)
+    }
+}
+
 // TODO p 527
 fn format_addr<Reg: fmt::Display>(
     f: &mut fmt::Formatter<'_>,
@@ -130,7 +140,7 @@ fn format_addr<Reg: fmt::Display>(
 ) -> fmt::Result {
     if let Some(disp) = disp {
         if disp != 0 {
-            write!(f, "0x{:x}", disp)?;
+            write!(f, "{:#x}", ReallySigned(disp))?;
         }
     }
     write!(f, "(")?;
