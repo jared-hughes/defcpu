@@ -67,7 +67,7 @@ The script `test-disassembly.sh` is automated testing. It hooks into `defcpu dis
 
 `objdump` is great for giving the segments etc. of an ELF file with the `-x` flag, but it doesn't seem to disassemble (`-d`) the ELFs produced by DefAssembler. `readelf` works about as well as `objdump`.
 
-For quick things, https://defuse.ca/online-x86-assembler.htm is good for assembly/disassembling small bits of asm. It's not perfectly reliable though, and make sure to switch to x64 architecture.
+For quick things, https://defuse.ca/online-x86-assembler.htm is good for assembly/disassembling small bits of asm. Make sure to switch to x64 architecture.
 
 `gdb` can show disassembly with the `disassemble` command. For example, `disassemble /m 0x400000, +0x49` disassembles the 73 bytes starting at `0x400000`.
 

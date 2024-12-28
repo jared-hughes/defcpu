@@ -97,40 +97,19 @@ fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64
             match operand_size {
                 Data16 => {
                     // B8+ rw iw; MOV r16, imm16
-                    let d0 = mem.read_u8(i + 1) as u16;
-                    let d1 = mem.read_u8(i + 2) as u16;
-                    let imm16 = (d1 << 8) | d0;
+                    let imm16 = mem.read_u16(i + 1);
                     let reg = reg16_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
                     (MovImm16(reg, imm16).with_prefix(prefix.dis_prefix), 3)
                 }
                 Data32 => {
                     // B8+ rd id; MOV r32, imm32
-                    let d0 = mem.read_u8(i + 1) as u32;
-                    let d1 = mem.read_u8(i + 2) as u32;
-                    let d2 = mem.read_u8(i + 3) as u32;
-                    let d3 = mem.read_u8(i + 4) as u32;
-                    let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
+                    let imm32 = mem.read_u32(i + 1);
                     let reg = reg32_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
                     (MovImm32(reg, imm32).with_prefix(prefix.dis_prefix), 5)
                 }
                 Data64 => {
                     // REX.W + B8+ rd io
-                    let d0 = mem.read_u8(i + 1) as u64;
-                    let d1 = mem.read_u8(i + 2) as u64;
-                    let d2 = mem.read_u8(i + 3) as u64;
-                    let d3 = mem.read_u8(i + 4) as u64;
-                    let d4 = mem.read_u8(i + 5) as u64;
-                    let d5 = mem.read_u8(i + 6) as u64;
-                    let d6 = mem.read_u8(i + 7) as u64;
-                    let d7 = mem.read_u8(i + 8) as u64;
-                    let imm64 = (d7 << 56)
-                        | (d6 << 48)
-                        | (d5 << 40)
-                        | (d4 << 32)
-                        | (d3 << 24)
-                        | (d2 << 16)
-                        | (d1 << 8)
-                        | d0;
+                    let imm64 = mem.read_u64(i + 1);
                     let reg = reg64_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
                     (MovImm64(reg, imm64).with_prefix(prefix.dis_prefix), 9)
                 }
@@ -181,31 +160,21 @@ fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64
                         Data16 => {
                             // C7 /0 iw; MOV r/m16, imm16
                             let modrm = modrm_decode(mem.read_u8(i + 1));
-                            let d0 = mem.read_u8(i + 2) as u16;
-                            let d1 = mem.read_u8(i + 3) as u16;
-                            let imm16 = (d1 << 8) | d0;
+                            let imm16 = mem.read_u16(i + 2);
                             let rm16 = decode_rm16(&modrm, &prefix);
                             (MovMI16(rm16, imm16).with_prefix(prefix.dis_prefix), 4)
                         }
                         Data32 => {
                             // C7 /0 id; MOV r/m32, imm32
                             let modrm = modrm_decode(mem.read_u8(i + 1));
-                            let d0 = mem.read_u8(i + 2) as u32;
-                            let d1 = mem.read_u8(i + 3) as u32;
-                            let d2 = mem.read_u8(i + 4) as u32;
-                            let d3 = mem.read_u8(i + 5) as u32;
-                            let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
+                            let imm32 = mem.read_u32(i + 2);
                             let rm32 = decode_rm32(&modrm, &prefix);
                             (MovMI32(rm32, imm32).with_prefix(prefix.dis_prefix), 6)
                         }
                         Data64 => {
                             // REX.W + C7 /0 id; MOV r/m64, imm32
                             let modrm = modrm_decode(mem.read_u8(i + 1));
-                            let d0 = mem.read_u8(i + 2) as u32;
-                            let d1 = mem.read_u8(i + 3) as u32;
-                            let d2 = mem.read_u8(i + 4) as u32;
-                            let d3 = mem.read_u8(i + 5) as u32;
-                            let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
+                            let imm32 = mem.read_u32(i + 2);
                             let rm64 = decode_rm64(&modrm, &prefix);
                             (MovMI32s64(rm64, imm32).with_prefix(prefix.dis_prefix), 6)
                         }
