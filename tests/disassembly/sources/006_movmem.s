@@ -18,6 +18,33 @@
 67 49 88 23         rex.WB mov %spl, (%r11d)
 66 49 88 23         data16 rex.WB mov %spl, (%r11)
 66 67 49 88 23      data16 rex.WB mov %spl, (%r11d)
+88 c0               mov    %al, %al
+88 c1               mov    %al, %cl
+88 c2               mov    %al, %dl
+88 c3               mov    %al, %bl
+88 c4               mov    %al, %ah
+88 c5               mov    %al, %ch
+88 c6               mov    %al, %dh
+88 c7               mov    %al, %bh
+66 88 c1            data16 mov %al, %cl
+67 88 c1            addr32 mov %al, %cl
+66 67 88 c1         data16 addr32 mov %al, %cl
+40 88 c1            rex mov %al, %cl
+67 40 88 c1         addr32 rex mov %al, %cl
+66 40 88 c1         data16 rex mov %al, %cl
+66 67 40 88 c1      data16 addr32 rex mov %al, %cl
+41 88 c1            mov    %al, %r9b
+67 41 88 c1         addr32 mov %al, %r9b
+66 41 88 c1         data16 mov %al, %r9b
+66 67 41 88 c1      data16 addr32 mov %al, %r9b
+48 88 c1            rex.W mov %al, %cl
+67 48 88 c1         addr32 rex.W mov %al, %cl
+66 48 88 c1         data16 rex.W mov %al, %cl
+66 67 48 88 c1      data16 addr32 rex.W mov %al, %cl
+49 88 c1            rex.WB mov %al, %r9b
+67 49 88 c1         addr32 rex.WB mov %al, %r9b
+66 49 88 c1         data16 rex.WB mov %al, %r9b
+66 67 49 88 c1      data16 addr32 rex.WB mov %al, %r9b
 8a 23               mov    (%rbx), %ah
 66 8a 23            data16 mov (%rbx), %ah
 67 8a 23            mov    (%ebx), %ah

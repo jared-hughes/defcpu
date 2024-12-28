@@ -1,8 +1,8 @@
 use crate::{
-    inst::{Addr, FullInst, Inst::*},
+    inst::{EffAddr, FullInst, Inst::*, RM16, RM32, RM64, RM8},
     inst_prefixes::{
         AddressSizeAttribute::{self, *},
-        DisassemblyPrefix, OperandSizeAttribute, Prefix, Rex,
+        DisassemblyPrefix, OperandSizeAttribute, Prefix,
     },
     memory::Memory,
     registers::{GPR16, GPR32, GPR64, GPR8},
@@ -14,7 +14,7 @@ pub fn decode_inst(mem: &Memory, i: u64) -> (FullInst, u64) {
 }
 
 fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
-    let b0 = mem.read_byte(i);
+    let b0 = mem.read_u8(i);
     let mut operand_size = OperandSizeAttribute::from_prefix(prefix);
     let address_size = AddressSizeAttribute::from_prefix(prefix);
     let mut dis_prefix = DisassemblyPrefix {
@@ -54,7 +54,7 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
             (inst, len + 1)
         }
         0x88 | 0x8A => {
-            let modrm = modrm_decode(mem.read_byte(i + 1));
+            let modrm = modrm_decode(mem.read_u8(i + 1));
             let (reg, rex_b_matters) = reg8_field_select(modrm.reg3, prefix.rex.map(|x| x.r));
             if let Some(rex) = dis_prefix.rex {
                 if !rex.w && !rex.x && !rex.r && rex_b_matters {
@@ -63,11 +63,12 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
                     dis_prefix.rex = None
                 }
             };
-            let addr = match address_size {
-                Addr64 => modrm_addr64(modrm, prefix.rex),
-                Addr32 => modrm_addr32(modrm, prefix.rex),
-            };
-            dis_prefix.address_size = None;
+            let addr = decode_rm8(&modrm, prefix);
+            if modrm.mod2 != 0b11 {
+                // mod2 == 0b11 means the r/m is a register. Otherwise
+                // it is a computed address, 32- or 64- bits.
+                dis_prefix.address_size = None;
+            }
             let inst = match b0 {
                 0x88 => MovMR8(addr, reg),
                 0x8A => MovRM8(reg, addr),
@@ -79,7 +80,7 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
             // B0+ rb ib; MOV r8, imm8
             // Move imm8 to r8.
 
-            let imm8 = mem.read_byte(i + 1);
+            let imm8 = mem.read_u8(i + 1);
             let (reg, rex_b_matters) = reg8_field_select(b0, prefix.rex.map(|r| r.b));
             if let Some(rex) = dis_prefix.rex {
                 if !rex.w && !rex.x && !rex.r && rex_b_matters {
@@ -110,32 +111,32 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
             match operand_size {
                 OperandSizeAttribute::Data16 => {
                     // B8+ rw iw; MOV r16, imm16
-                    let d0 = mem.read_byte(i + 1) as u16;
-                    let d1 = mem.read_byte(i + 2) as u16;
+                    let d0 = mem.read_u8(i + 1) as u16;
+                    let d1 = mem.read_u8(i + 2) as u16;
                     let imm16 = (d1 << 8) | d0;
-                    let reg = reg16_field_select(b0, prefix.rex);
+                    let reg = reg16_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
                     (MovImm16(reg, imm16).with_prefix(dis_prefix), 3)
                 }
                 OperandSizeAttribute::Data32 => {
                     // B8+ rd id; MOV r32, imm32
-                    let d0 = mem.read_byte(i + 1) as u32;
-                    let d1 = mem.read_byte(i + 2) as u32;
-                    let d2 = mem.read_byte(i + 3) as u32;
-                    let d3 = mem.read_byte(i + 4) as u32;
+                    let d0 = mem.read_u8(i + 1) as u32;
+                    let d1 = mem.read_u8(i + 2) as u32;
+                    let d2 = mem.read_u8(i + 3) as u32;
+                    let d3 = mem.read_u8(i + 4) as u32;
                     let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
-                    let reg = reg32_field_select(b0, prefix.rex);
+                    let reg = reg32_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
                     (MovImm32(reg, imm32).with_prefix(dis_prefix), 5)
                 }
                 OperandSizeAttribute::Data64 => {
                     // REX.W + B8+ rd io
-                    let d0 = mem.read_byte(i + 1) as u64;
-                    let d1 = mem.read_byte(i + 2) as u64;
-                    let d2 = mem.read_byte(i + 3) as u64;
-                    let d3 = mem.read_byte(i + 4) as u64;
-                    let d4 = mem.read_byte(i + 5) as u64;
-                    let d5 = mem.read_byte(i + 6) as u64;
-                    let d6 = mem.read_byte(i + 7) as u64;
-                    let d7 = mem.read_byte(i + 8) as u64;
+                    let d0 = mem.read_u8(i + 1) as u64;
+                    let d1 = mem.read_u8(i + 2) as u64;
+                    let d2 = mem.read_u8(i + 3) as u64;
+                    let d3 = mem.read_u8(i + 4) as u64;
+                    let d4 = mem.read_u8(i + 5) as u64;
+                    let d5 = mem.read_u8(i + 6) as u64;
+                    let d6 = mem.read_u8(i + 7) as u64;
+                    let d7 = mem.read_u8(i + 8) as u64;
                     let imm64 = (d7 << 56)
                         | (d6 << 48)
                         | (d5 << 40)
@@ -144,9 +145,65 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
                         | (d2 << 16)
                         | (d1 << 8)
                         | d0;
-                    let reg = reg64_field_select(b0, prefix.rex);
+                    let reg = reg64_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
                     (MovImm64(reg, imm64).with_prefix(dis_prefix), 9)
                 }
+            }
+        }
+        0xC7 => {
+            let modrm = modrm_decode(mem.read_u8(i + 1));
+            match modrm.reg3 {
+                0 => {
+                    // C7 /0
+                    dis_prefix.operand_size = None;
+                    if let Some(rex) = dis_prefix.rex {
+                        let no_silly_business = !rex.x && !rex.r;
+                        let operand_size_influenced = rex.w;
+                        if operand_size_influenced {
+                            operand_size = OperandSizeAttribute::Data64
+                        }
+                        // no reg field to influence
+                        if no_silly_business && operand_size_influenced {
+                            // REX prefix doesn't need to be printed separately,
+                            // since it is already the 'default' prefix for the inst.
+                            dis_prefix.rex = None
+                        };
+                    };
+                    match operand_size {
+                        OperandSizeAttribute::Data16 => {
+                            // C7 /0 iw; MOV r/m16, imm16
+                            let modrm = modrm_decode(mem.read_u8(i + 1));
+                            let d0 = mem.read_u8(i + 2) as u16;
+                            let d1 = mem.read_u8(i + 3) as u16;
+                            let imm16 = (d1 << 8) | d0;
+                            let rm16 = decode_rm16(&modrm, prefix);
+                            (MovMI16(rm16, imm16).with_prefix(dis_prefix), 4)
+                        }
+                        OperandSizeAttribute::Data32 => {
+                            // C7 /0 id; MOV r/m32, imm32
+                            let modrm = modrm_decode(mem.read_u8(i + 1));
+                            let d0 = mem.read_u8(i + 2) as u32;
+                            let d1 = mem.read_u8(i + 3) as u32;
+                            let d2 = mem.read_u8(i + 4) as u32;
+                            let d3 = mem.read_u8(i + 5) as u32;
+                            let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
+                            let rm32 = decode_rm32(&modrm, prefix);
+                            (MovMI32(rm32, imm32).with_prefix(dis_prefix), 6)
+                        }
+                        OperandSizeAttribute::Data64 => {
+                            // REX.W + C7 /0 id; MOV r/m64, imm32
+                            let modrm = modrm_decode(mem.read_u8(i + 1));
+                            let d0 = mem.read_u8(i + 2) as u32;
+                            let d1 = mem.read_u8(i + 3) as u32;
+                            let d2 = mem.read_u8(i + 4) as u32;
+                            let d3 = mem.read_u8(i + 5) as u32;
+                            let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
+                            let rm64 = decode_rm64(&modrm, prefix);
+                            (MovMI32s64(rm64, imm32).with_prefix(dis_prefix), 6)
+                        }
+                    }
+                }
+                _ => unimplemented!("Opcode {:02X} /{} not yet implemented.", b0, modrm.reg3),
             }
         }
         0xF4 => {
@@ -155,7 +212,7 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
             }
             (Hlt.with_prefix(dis_prefix), 1)
         }
-        _ => unimplemented!("Opcode 0x{:02X} not yet implemented.", b0),
+        _ => unimplemented!("Opcode {:02X} not yet implemented.", b0),
     }
 }
 
@@ -172,66 +229,100 @@ fn modrm_decode(modrm: u8) -> ModRM {
     ModRM { mod2, reg3, rm3 }
 }
 
-/// Vol 2A: Table 2-2. "32-Bit Addressing Forms with the ModR/M Byte"
-/// I don't have a source for how the rex bit B comes in either.
-fn modrm_addr32(modrm: ModRM, rex: Option<Rex>) -> Addr {
-    let b = rex.map(|x| x.b).unwrap_or(false);
+// r/m8
+fn decode_rm8(modrm: &ModRM, prefix: Prefix) -> RM8 {
     match modrm.mod2 {
-        0b00 => match (b, modrm.rm3) {
-            (false, 0b000) => Addr::Reg32(GPR32::eax),
-            (false, 0b001) => Addr::Reg32(GPR32::ecx),
-            (false, 0b010) => Addr::Reg32(GPR32::edx),
-            (false, 0b011) => Addr::Reg32(GPR32::ebx),
-            (false, 0b100) => todo!("[--][--] not yet implemented"),
-            (false, 0b101) => todo!("disp32 not yet implemented"),
-            (false, 0b110) => Addr::Reg32(GPR32::esi),
-            (false, 0b111) => Addr::Reg32(GPR32::edi),
-            // TODO: All of these (true, ) fields are guesses.
-            (true, 0b000) => Addr::Reg32(GPR32::r8d),
-            (true, 0b001) => Addr::Reg32(GPR32::r9d),
-            (true, 0b010) => Addr::Reg32(GPR32::r10d),
-            (true, 0b011) => Addr::Reg32(GPR32::r11d),
-            (true, 0b100) => Addr::Reg32(GPR32::r12d),
-            (true, 0b101) => Addr::Reg32(GPR32::r13d),
-            (true, 0b110) => Addr::Reg32(GPR32::r14d),
-            (true, 0b111) => Addr::Reg32(GPR32::r15d),
-            _ => panic!("Missing match arm in modrm_decode_addr32."),
-        },
-        #[allow(clippy::manual_range_patterns)]
-        0b01 | 0b10 | 0b11 => todo!("ModR/M addressing mode not yet implemented."),
+        0b00 => RM8::Addr(decode_rm_00(modrm, prefix)),
+        0b01 | 0b10 => todo!("ModR/M addressing mode not yet implemented."),
+        0b11 => {
+            let rexb_opt = prefix.rex.map(|r| r.b);
+            let (reg, _rex_b_matters) = reg8_field_select(modrm.rm3, rexb_opt);
+            // TODO: Handle rex_b_matters
+            RM8::Reg(reg)
+        }
+        _ => panic!("Missing match arm in modrm_decode_addr8."),
+    }
+}
+
+// r/m16
+fn decode_rm16(modrm: &ModRM, prefix: Prefix) -> RM16 {
+    match modrm.mod2 {
+        0b00 => RM16::Addr(decode_rm_00(modrm, prefix)),
+        0b01 | 0b10 => todo!("ModR/M addressing mode not yet implemented."),
+        0b11 => {
+            let rexb = prefix.rex.map(|r| r.b).unwrap_or(false);
+            RM16::Reg(reg16_field_select(modrm.rm3, rexb))
+        }
+        _ => panic!("Missing match arm in modrm_decode_addr16."),
+    }
+}
+
+// r/m32
+fn decode_rm32(modrm: &ModRM, prefix: Prefix) -> RM32 {
+    match modrm.mod2 {
+        0b00 => RM32::Addr(decode_rm_00(modrm, prefix)),
+        0b01 | 0b10 => todo!("ModR/M addressing mode not yet implemented."),
+        0b11 => {
+            let rexb = prefix.rex.map(|r| r.b).unwrap_or(false);
+            RM32::Reg(reg32_field_select(modrm.rm3, rexb))
+        }
         _ => panic!("Missing match arm in modrm_decode_addr32."),
     }
 }
 
-/// I don't have a source for this. Just guessing based on the addr32 table.
-/// Vol 2A: Table 2-2. "32-Bit Addressing Forms with the ModR/M Byte"
-/// I don't have a source for how the rex bit B comes in either.
-fn modrm_addr64(modrm: ModRM, rex: Option<Rex>) -> Addr {
-    let b = rex.map(|x| x.b).unwrap_or(false);
+// r/m64
+fn decode_rm64(modrm: &ModRM, prefix: Prefix) -> RM64 {
     match modrm.mod2 {
-        0b00 => match (b, modrm.rm3) {
-            (false, 0b000) => Addr::Reg64(GPR64::rax),
-            (false, 0b001) => Addr::Reg64(GPR64::rcx),
-            (false, 0b010) => Addr::Reg64(GPR64::rdx),
-            (false, 0b011) => Addr::Reg64(GPR64::rbx),
-            (false, 0b100) => todo!("[--][--] not yet implemented"),
-            (false, 0b101) => todo!("disp32 not yet implemented"),
-            (false, 0b110) => Addr::Reg64(GPR64::rsi),
-            (false, 0b111) => Addr::Reg64(GPR64::rdi),
-            // TODO: All of these (true, ) fields are guesses.
-            (true, 0b000) => Addr::Reg64(GPR64::r8),
-            (true, 0b001) => Addr::Reg64(GPR64::r9),
-            (true, 0b010) => Addr::Reg64(GPR64::r10),
-            (true, 0b011) => Addr::Reg64(GPR64::r11),
-            (true, 0b100) => Addr::Reg64(GPR64::r12),
-            (true, 0b101) => Addr::Reg64(GPR64::r13),
-            (true, 0b110) => Addr::Reg64(GPR64::r14),
-            (true, 0b111) => Addr::Reg64(GPR64::r15),
-            _ => panic!("Missing match arm in modrm_decode_addr64."),
-        },
-        #[allow(clippy::manual_range_patterns)]
-        0b01 | 0b10 | 0b11 => todo!("ModR/M addressing mode not yet implemented."),
+        0b00 => RM64::Addr(decode_rm_00(modrm, prefix)),
+        0b01 | 0b10 => todo!("ModR/M addressing mode not yet implemented."),
+        0b11 => {
+            let rexb = prefix.rex.map(|r| r.b).unwrap_or(false);
+            RM64::Reg(reg64_field_select(modrm.rm3, rexb))
+        }
         _ => panic!("Missing match arm in modrm_decode_addr64."),
+    }
+}
+
+/// Vol 2A: Table 2-2. "32-Bit Addressing Forms with the ModR/M Byte"
+/// The table only provides (address_size, rexb) = (Addr32, false). Rest are guesses.
+fn decode_rm_00(modrm: &ModRM, prefix: Prefix) -> EffAddr {
+    let rexb = prefix.rex.map(|r| r.b).unwrap_or(false);
+    let address_size = AddressSizeAttribute::from_prefix(prefix);
+    match (address_size, rexb, modrm.rm3) {
+        (Addr32, false, 0b000) => EffAddr::Reg32(GPR32::eax),
+        (Addr32, false, 0b001) => EffAddr::Reg32(GPR32::ecx),
+        (Addr32, false, 0b010) => EffAddr::Reg32(GPR32::edx),
+        (Addr32, false, 0b011) => EffAddr::Reg32(GPR32::ebx),
+        (Addr32, false, 0b100) => todo!("[--][--] not yet implemented"),
+        (Addr32, false, 0b101) => todo!("disp32 not yet implemented"),
+        (Addr32, false, 0b110) => EffAddr::Reg32(GPR32::esi),
+        (Addr32, false, 0b111) => EffAddr::Reg32(GPR32::edi),
+        (Addr64, false, 0b000) => EffAddr::Reg64(GPR64::rax),
+        (Addr64, false, 0b001) => EffAddr::Reg64(GPR64::rcx),
+        (Addr64, false, 0b010) => EffAddr::Reg64(GPR64::rdx),
+        (Addr64, false, 0b011) => EffAddr::Reg64(GPR64::rbx),
+        (Addr64, false, 0b100) => todo!("[--][--] not yet implemented"),
+        (Addr64, false, 0b101) => todo!("disp64 not yet implemented"),
+        (Addr64, false, 0b110) => EffAddr::Reg64(GPR64::rsi),
+        (Addr64, false, 0b111) => EffAddr::Reg64(GPR64::rdi),
+        // TODO: All of these (true, ) fields are guesses.
+        (Addr32, true, 0b000) => EffAddr::Reg32(GPR32::r8d),
+        (Addr32, true, 0b001) => EffAddr::Reg32(GPR32::r9d),
+        (Addr32, true, 0b010) => EffAddr::Reg32(GPR32::r10d),
+        (Addr32, true, 0b011) => EffAddr::Reg32(GPR32::r11d),
+        (Addr32, true, 0b100) => EffAddr::Reg32(GPR32::r12d),
+        (Addr32, true, 0b101) => EffAddr::Reg32(GPR32::r13d),
+        (Addr32, true, 0b110) => EffAddr::Reg32(GPR32::r14d),
+        (Addr32, true, 0b111) => EffAddr::Reg32(GPR32::r15d),
+        (Addr64, true, 0b000) => EffAddr::Reg64(GPR64::r8),
+        (Addr64, true, 0b001) => EffAddr::Reg64(GPR64::r9),
+        (Addr64, true, 0b010) => EffAddr::Reg64(GPR64::r10),
+        (Addr64, true, 0b011) => EffAddr::Reg64(GPR64::r11),
+        (Addr64, true, 0b100) => EffAddr::Reg64(GPR64::r12),
+        (Addr64, true, 0b101) => EffAddr::Reg64(GPR64::r13),
+        (Addr64, true, 0b110) => EffAddr::Reg64(GPR64::r14),
+        (Addr64, true, 0b111) => EffAddr::Reg64(GPR64::r15),
+        _ => panic!("Missing match arm in modrm_decode_addr32."),
     }
 }
 
@@ -283,9 +374,8 @@ fn reg8_field_select(op: u8, rex: Option<bool>) -> (GPR8, bool) {
 
 /// Vol 2A: Table 3-1 "Register Codes Associated With +rb, +rw, +rd, +ro.""
 /// This is for +rw (word register).
-fn reg16_field_select(op: u8, rex: Option<Rex>) -> GPR16 {
-    // No REX prefix is the same as a REX prefix with B bit clear.
-    let rexb = rex.map(|x| x.b).unwrap_or(false);
+// No REX prefix is the same as a REX prefix with B bit clear.
+fn reg16_field_select(op: u8, rexb: bool) -> GPR16 {
     match (rexb, op & 0b111) {
         // No REX prefix, or REX prefix with B bit cleared (e.g. 0x40).
         (false, 0b000) => GPR16::ax,
@@ -311,9 +401,8 @@ fn reg16_field_select(op: u8, rex: Option<Rex>) -> GPR16 {
 
 /// Vol 2A: Table 3-1 "Register Codes Associated With +rb, +rw, +rd, +ro."
 /// This is for +rd (dword register).
-fn reg32_field_select(op: u8, rex: Option<Rex>) -> GPR32 {
-    // No REX prefix is the same as a REX prefix with B bit clear.
-    let rexb = rex.map(|x| x.b).unwrap_or(false);
+// No REX prefix is the same as a REX prefix with B bit clear.
+fn reg32_field_select(op: u8, rexb: bool) -> GPR32 {
     match (rexb, op & 0b111) {
         // No REX prefix, or REX prefix with B bit cleared (e.g. 0x40).
         (false, 0b000) => GPR32::eax,
@@ -339,9 +428,8 @@ fn reg32_field_select(op: u8, rex: Option<Rex>) -> GPR32 {
 
 /// Vol 2A: Table 3-1 "Register Codes Associated With +rb, +rw, +rd, +ro."
 /// This is for +ro (quadword register).
-fn reg64_field_select(op: u8, rex: Option<Rex>) -> GPR64 {
-    // No REX prefix is the same as a REX prefix with B bit clear.
-    let rexb = rex.map(|x| x.b).unwrap_or(false);
+/// No REX prefix is the same as a REX prefix with B bit clear.
+fn reg64_field_select(op: u8, rexb: bool) -> GPR64 {
     match (rexb, op & 0b111) {
         // No REX prefix, or REX prefix with B bit cleared (e.g. 0x40).
         (false, 0b000) => GPR64::rax,

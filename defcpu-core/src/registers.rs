@@ -61,6 +61,7 @@ impl QReg {
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum GPR8 {
     // Low byte (8 bits)
     Low(QReg),
@@ -119,6 +120,7 @@ impl fmt::Display for GPR8 {
 }
 
 // Word (16 bits)
+#[derive(Clone, Copy)]
 pub struct GPR16(pub QReg);
 
 impl fmt::Display for GPR16 {
@@ -165,6 +167,7 @@ impl GPR16 {
 }
 
 /// Double word (32 bits)
+#[derive(Clone, Copy)]
 pub struct GPR32(pub QReg);
 impl GPR32 {
     #![allow(non_upper_case_globals)]
@@ -210,6 +213,7 @@ impl fmt::Display for GPR32 {
 }
 
 /// Quadword (64 bits)
+#[derive(Clone, Copy)]
 pub struct GPR64(pub QReg);
 impl GPR64 {
     #![allow(non_upper_case_globals)]
@@ -313,6 +317,11 @@ impl Registers {
                 (self.regs[ind] >> 8 & 0xFF).try_into().unwrap()
             }
         }
+    }
+
+    pub fn get_reg16(&self, gpr16: GPR16) -> u16 {
+        let ind = gpr16.0.reg_index();
+        (self.regs[ind] & 0xFF_FF).try_into().unwrap()
     }
 
     pub fn get_reg32(&self, gpr32: GPR32) -> u32 {

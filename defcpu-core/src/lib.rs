@@ -1,3 +1,4 @@
+pub(crate) mod bit_hacks;
 pub(crate) mod decode_inst;
 pub(crate) mod inst;
 pub(crate) mod inst_prefixes;
@@ -28,7 +29,7 @@ pub fn disassemble(input: &[u8]) {
     let mut step_index = 0;
     let mut i = machine.regs.rip;
     while step_index < max_steps {
-        if machine.mem.read_byte(i) == 0 {
+        if machine.mem.read_u8(i) == 0 {
             break;
         }
         let (inst, len) = decode_inst(&machine.mem, i);
@@ -38,7 +39,7 @@ pub fn disassemble(input: &[u8]) {
                 print!(" ");
             }
             first = false;
-            print!("{:02x}", machine.mem.read_byte(j));
+            print!("{:02x}", machine.mem.read_u8(j));
         }
         print!("\t");
         i += len;

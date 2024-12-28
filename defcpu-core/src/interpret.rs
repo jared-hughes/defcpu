@@ -1,6 +1,7 @@
 use crate::{
+    bit_hacks::sign_extend_32s64,
     decode_inst::decode_inst,
-    inst::{Addr, Inst},
+    inst::{Inst, RM16, RM32, RM64, RM8},
     memory::Memory,
     parse_elf::SimpleElfFile,
     registers::Registers,
@@ -40,14 +41,12 @@ impl Machine {
     pub fn run_inst(&mut self, inst: Inst) {
         match inst {
             Inst::RexNoop => {}
-            Inst::MovMR8(addr, gpr8) => {
+            Inst::MovMR8(rm8, gpr8) => {
                 let val = self.regs.get_reg8(gpr8);
-                let a = compute_addr(&self.regs, addr);
-                self.mem.write_byte(a, val);
+                self.set_rm8(rm8, val);
             }
-            Inst::MovRM8(gpr8, addr) => {
-                let a = compute_addr(&self.regs, addr);
-                let val = self.mem.read_byte(a);
+            Inst::MovRM8(gpr8, rm8) => {
+                let val = self.get_rm8(rm8);
                 self.regs.set_reg8(gpr8, val);
             }
             Inst::MovImm8(gpr8, imm8) => {
@@ -62,17 +61,111 @@ impl Machine {
             Inst::MovImm64(gpr64, imm64) => {
                 self.regs.set_reg64(gpr64, imm64);
             }
+            Inst::MovMI8(rm8, imm8) => {
+                self.set_rm8(rm8, imm8);
+            }
+            Inst::MovMI16(rm16, imm16) => {
+                self.set_rm16(rm16, imm16);
+            }
+            Inst::MovMI32(rm32, imm32) => {
+                self.set_rm32(rm32, imm32);
+            }
+            Inst::MovMI32s64(rm64, imm32) => {
+                let sign_extended = sign_extend_32s64(imm32);
+                self.set_rm64(rm64, sign_extended);
+            }
             Inst::Hlt => {
                 eprintln!("{}", self.regs);
                 self.halt = true;
             }
         }
     }
-}
 
-fn compute_addr(reg: &Registers, addr: Addr) -> u64 {
-    match addr {
-        Addr::Reg32(gpr32) => reg.get_reg32(gpr32) as u64,
-        Addr::Reg64(gpr64) => reg.get_reg64(gpr64),
+    fn get_rm8(&mut self, addr: RM8) -> u8 {
+        match addr {
+            RM8::Addr(eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.mem.read_u8(a)
+            }
+            RM8::Reg(gpr8) => self.regs.get_reg8(gpr8),
+        }
+    }
+
+    fn get_rm16(&mut self, addr: RM16) -> u16 {
+        match addr {
+            RM16::Addr(eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.mem.read_u16(a)
+            }
+            RM16::Reg(gpr16) => self.regs.get_reg16(gpr16),
+        }
+    }
+
+    fn get_rm32(&mut self, addr: RM32) -> u32 {
+        match addr {
+            RM32::Addr(eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.mem.read_u32(a)
+            }
+            RM32::Reg(gpr32) => self.regs.get_reg32(gpr32),
+        }
+    }
+
+    fn get_rm64(&mut self, addr: RM64) -> u64 {
+        match addr {
+            RM64::Addr(eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.mem.read_u64(a)
+            }
+            RM64::Reg(gpr64) => self.regs.get_reg64(gpr64),
+        }
+    }
+
+    fn set_rm8(&mut self, addr: RM8, val: u8) {
+        match addr {
+            RM8::Addr(eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.mem.write_u8(a, val);
+            }
+            RM8::Reg(gpr8) => {
+                self.regs.set_reg8(gpr8, val);
+            }
+        }
+    }
+
+    fn set_rm16(&mut self, addr: RM16, val: u16) {
+        match addr {
+            RM16::Addr(eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.mem.write_u16(a, val);
+            }
+            RM16::Reg(gpr16) => {
+                self.regs.set_reg16(gpr16, val);
+            }
+        }
+    }
+
+    fn set_rm32(&mut self, addr: RM32, val: u32) {
+        match addr {
+            RM32::Addr(eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.mem.write_u32(a, val);
+            }
+            RM32::Reg(gpr32) => {
+                self.regs.set_reg32(gpr32, val);
+            }
+        }
+    }
+
+    fn set_rm64(&mut self, addr: RM64, val: u64) {
+        match addr {
+            RM64::Addr(eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.mem.write_u64(a, val);
+            }
+            RM64::Reg(gpr64) => {
+                self.regs.set_reg64(gpr64, val);
+            }
+        }
     }
 }

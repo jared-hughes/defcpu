@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{
     inst_prefixes::DisassemblyPrefix,
-    registers::{GPR16, GPR32, GPR64, GPR8},
+    registers::{Registers, GPR16, GPR32, GPR64, GPR8},
 };
 
 use Inst::*;
@@ -11,9 +11,9 @@ pub enum Inst {
     /// A no-op stemming from REX not being followed by a valid expression.
     RexNoop,
     // 88 /r; MOV r/m8, r8; Move r8 to r/m8.
-    MovMR8(Addr, GPR8),
+    MovMR8(RM8, GPR8),
     // 8A /r; MOV r8, r/m8; Move r/m8 to r8.
-    MovRM8(GPR8, Addr),
+    MovRM8(GPR8, RM8),
     // B0+ rb ib; MOV r8, imm8; Move imm8 to r8.
     MovImm8(GPR8, u8),
     // B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
@@ -22,6 +22,14 @@ pub enum Inst {
     MovImm32(GPR32, u32),
     // REX.W + B8+ rd io; MOV r64, imm64; Move imm64 to r64.
     MovImm64(GPR64, u64),
+    // C6 /0 ib; MOV r/m8, imm8; Move imm8 to r/m8.
+    MovMI8(RM8, u8),
+    // C7 /0 iw; MOV r/m16, imm16; Move imm16 to r/m16.
+    MovMI16(RM16, u16),
+    // C7 /0 id; MOV r/m32, imm32; Move imm32 to r/m32.
+    MovMI32(RM32, u32),
+    // REX.W + C7 /0 id; MOV r/m64, imm32; Move imm32 sign extended to 64-bits to r/m64.
+    MovMI32s64(RM64, u32),
     // F4; HLT
     Hlt,
 }
@@ -42,6 +50,10 @@ impl Inst {
             MovImm16(gpr16, imm16) => write!(f, "$0x{:x}, {}", imm16, gpr16),
             MovImm32(gpr32, imm32) => write!(f, "$0x{:x}, {}", imm32, gpr32),
             MovImm64(gpr64, imm64) => write!(f, "$0x{:x}, {}", imm64, gpr64),
+            MovMI8(addr, imm8) => write!(f, "$0x{:x}, {}", imm8, addr),
+            MovMI16(addr, imm16) => write!(f, "$0x{:x}, {}", imm16, addr),
+            MovMI32(addr, imm32) => write!(f, "$0x{:x}, {}", imm32, addr),
+            MovMI32s64(addr, imm32) => write!(f, "$0x{:x}, {}", imm32, addr),
             Hlt => write!(f, ""),
         }
     }
@@ -53,6 +65,10 @@ impl Inst {
             MovImm8(_, _) => "mov",
             MovImm16(_, _) => "mov",
             MovImm32(_, _) => "mov",
+            MovMI8(_, _) => "mov",
+            MovMI16(_, _) => "mov",
+            MovMI32(_, _) => "mov",
+            MovMI32s64(_, _) => "mov",
             // movabs just does the same, idk why gdb dumps as movabs.
             MovImm64(_, _) => "movabs",
             Hlt => "hlt",
@@ -86,16 +102,77 @@ impl fmt::Display for FullInst {
     }
 }
 
-use Addr::*;
-pub enum Addr {
+pub enum EffAddr {
+    // E.g. [eax], which is (%eax) in ATT
     Reg32(GPR32),
+    // E.g. [rax], which is (%rax) in ATT
     Reg64(GPR64),
 }
-impl fmt::Display for Addr {
+impl fmt::Display for EffAddr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Reg32(gpr32) => write!(f, "({})", gpr32),
-            Reg64(gpr64) => write!(f, "({})", gpr64),
+            Self::Reg32(gpr32) => write!(f, "({})", gpr32),
+            Self::Reg64(gpr64) => write!(f, "({})", gpr64),
+        }
+    }
+}
+impl EffAddr {
+    pub fn compute(&self, regs: &Registers) -> u64 {
+        match self {
+            EffAddr::Reg32(gpr32) => regs.get_reg32(*gpr32) as u64,
+            EffAddr::Reg64(gpr64) => regs.get_reg64(*gpr64),
+        }
+    }
+}
+
+pub enum RM8 {
+    Addr(EffAddr),
+    Reg(GPR8),
+}
+impl fmt::Display for RM8 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RM8::Addr(addr) => addr.fmt(f),
+            RM8::Reg(gpr8) => gpr8.fmt(f),
+        }
+    }
+}
+
+pub enum RM16 {
+    Addr(EffAddr),
+    Reg(GPR16),
+}
+impl fmt::Display for RM16 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RM16::Addr(addr) => addr.fmt(f),
+            RM16::Reg(gpr16) => gpr16.fmt(f),
+        }
+    }
+}
+
+pub enum RM32 {
+    Addr(EffAddr),
+    Reg(GPR32),
+}
+impl fmt::Display for RM32 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RM32::Addr(addr) => addr.fmt(f),
+            RM32::Reg(gpr32) => gpr32.fmt(f),
+        }
+    }
+}
+
+pub enum RM64 {
+    Addr(EffAddr),
+    Reg(GPR64),
+}
+impl fmt::Display for RM64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            RM64::Addr(addr) => addr.fmt(f),
+            RM64::Reg(gpr64) => gpr64.fmt(f),
         }
     }
 }
