@@ -1,5 +1,4 @@
 use crate::{
-    bit_hacks::sign_extend_32s64,
     decode_inst::decode_inst,
     inst::{Inst, RM16, RM32, RM64, RM8},
     memory::Memory,
@@ -71,7 +70,9 @@ impl Machine {
                 self.set_rm32(rm32, imm32);
             }
             Inst::MovMI32s64(rm64, imm32) => {
-                let sign_extended = sign_extend_32s64(imm32);
+                // `as i32` is a no-op since the i32 is 2's complement.
+                // `as u64` sign-extends, since the smaller integer is signed.
+                let sign_extended = (imm32 as i32) as u64;
                 self.set_rm64(rm64, sign_extended);
             }
             Inst::Hlt => {

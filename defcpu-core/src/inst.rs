@@ -102,25 +102,151 @@ impl fmt::Display for FullInst {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum Scale {
+    Scale1,
+    Scale2,
+    Scale4,
+    Scale8,
+}
+impl From<Scale> for u8 {
+    fn from(val: Scale) -> Self {
+        match val {
+            Scale::Scale1 => 1,
+            Scale::Scale2 => 2,
+            Scale::Scale4 => 4,
+            Scale::Scale8 => 8,
+        }
+    }
+}
+
+// TODO p 527
+fn format_addr<Reg: fmt::Display>(
+    f: &mut fmt::Formatter<'_>,
+    disp: Option<i32>,
+    base: Option<Reg>,
+    index: Option<Reg>,
+    scale: Scale,
+) -> fmt::Result {
+    if let Some(disp) = disp {
+        if disp != 0 {
+            write!(f, "0x{:x}", disp)?;
+        }
+    }
+    write!(f, "(")?;
+    // disp(base, index, scale)
+    if let Some(base) = base {
+        base.fmt(f)?;
+    }
+    if let Some(index) = index {
+        write!(f, ", {}", index)?;
+        let scale: u8 = scale.into();
+        write!(f, ", {}", scale)?;
+    }
+    write!(f, ")")
+}
+
+#[derive(Clone)]
+pub struct SIDB32 {
+    pub(crate) disp: Option<i32>,
+    pub(crate) base: Option<GPR32>,
+    pub(crate) index: Option<GPR32>,
+    pub(crate) scale: Scale,
+}
+impl fmt::Display for SIDB32 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format_addr(f, self.disp, self.base, self.index, self.scale)
+    }
+}
+
+#[derive(Clone)]
+pub struct SIDB64 {
+    pub(crate) disp: Option<i32>,
+    pub(crate) base: Option<GPR64>,
+    pub(crate) index: Option<GPR64>,
+    pub(crate) scale: Scale,
+}
+impl fmt::Display for SIDB64 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        format_addr(f, self.disp, self.base, self.index, self.scale)
+    }
+}
+
 pub enum EffAddr {
     // E.g. [eax], which is (%eax) in ATT
-    Reg32(GPR32),
+    EffAddr32(SIDB32),
     // E.g. [rax], which is (%rax) in ATT
-    Reg64(GPR64),
+    EffAddr64(SIDB64),
 }
 impl fmt::Display for EffAddr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Reg32(gpr32) => write!(f, "({})", gpr32),
-            Self::Reg64(gpr64) => write!(f, "({})", gpr64),
+            Self::EffAddr32(sidb) => write!(f, "{}", sidb),
+            Self::EffAddr64(sidb) => write!(f, "{}", sidb),
         }
     }
 }
 impl EffAddr {
+    pub fn from_base_reg32(base: GPR32) -> EffAddr {
+        EffAddr::EffAddr32(SIDB32 {
+            disp: None,
+            base: Some(base),
+            index: None,
+            scale: Scale::Scale1,
+        })
+    }
+
+    pub fn from_base_reg64(base: GPR64) -> EffAddr {
+        EffAddr::EffAddr64(SIDB64 {
+            disp: None,
+            base: Some(base),
+            index: None,
+            scale: Scale::Scale1,
+        })
+    }
+
+    pub fn with_disp(&self, disp: Option<i32>) -> Self {
+        match self {
+            EffAddr::EffAddr32(sidb32) => {
+                let mut sidb = sidb32.clone();
+                sidb.disp = disp;
+                EffAddr::EffAddr32(sidb)
+            }
+            EffAddr::EffAddr64(sidb64) => {
+                let mut sidb = sidb64.clone();
+                sidb.disp = disp;
+                EffAddr::EffAddr64(sidb)
+            }
+        }
+    }
+
+    // Vol1 3.7.5.1 "Specifying an Offset in 64-Bit Mode" p88
+    // seems to imply that displacement is only 8/16/32 bits,
+    // base and index arealways 64 bits.
+    // TODO: Somehow RIP (64-bit) + Displacement (32-bit) is also possible.
     pub fn compute(&self, regs: &Registers) -> u64 {
         match self {
-            EffAddr::Reg32(gpr32) => regs.get_reg32(*gpr32) as u64,
-            EffAddr::Reg64(gpr64) => regs.get_reg64(*gpr64),
+            EffAddr::EffAddr32(sidb) => {
+                let disp = sidb.disp.unwrap_or(0);
+                let base = sidb.base.map(|b| regs.get_reg32(b)).unwrap_or(0);
+                let scaled_index = sidb
+                    .index
+                    .map(|i| regs.get_reg32(i) * (sidb.scale as u32))
+                    .unwrap_or(0);
+                // TODO: Not sure how to interpret the wrapping here. May be something closer to
+                //  (base as u64) + (scaled_index as u64) + (disp as u64)
+                base.wrapping_add(scaled_index).wrapping_add(disp as u32) as u64
+            }
+            EffAddr::EffAddr64(sidb) => {
+                let disp = sidb.disp.unwrap_or(0);
+                let base = sidb.base.map(|b| regs.get_reg64(b)).unwrap_or(0);
+                let scaled_index = sidb
+                    .index
+                    .map(|i| regs.get_reg64(i) * (sidb.scale as u64))
+                    .unwrap_or(0);
+                // The `as u64` sign-extends an i32 to u64.
+                base.wrapping_add(scaled_index).wrapping_add(disp as u64)
+            }
         }
     }
 }

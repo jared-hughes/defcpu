@@ -1,4 +1,3 @@
-pub(crate) mod bit_hacks;
 pub(crate) mod decode_inst;
 pub(crate) mod inst;
 pub(crate) mod inst_prefixes;
