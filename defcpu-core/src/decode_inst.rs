@@ -20,16 +20,6 @@ impl<'a> Lexer<'a> {
         self.i - self.i_start
     }
 
-    /// u64 is the length, number of bytes scanned.
-    fn finish(&self, inst: FullInst) -> (FullInst, u64) {
-        (inst, self.len())
-    }
-
-    /// u64 is the length, number of bytes scanned.
-    fn extend(&self, inst_len: (FullInst, u64)) -> (FullInst, u64) {
-        (inst_len.0, inst_len.1 + self.len())
-    }
-
     fn peek_u8(&self) -> u8 {
         self.mem.read_u8(self.i)
     }
@@ -72,39 +62,37 @@ impl<'a> Lexer<'a> {
 
 /// Returns instruction together with the number of bytes read.
 pub fn decode_inst(mem: &Memory, i: u64) -> (FullInst, u64) {
-    decode_inst_inner(mem, i, Prefix::new())
+    let mut lex = Lexer::new(mem, i);
+    let inst = decode_inst_inner(&mut lex, Prefix::new());
+    (inst, lex.len())
 }
 
-fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64) {
-    let mut lex = Lexer::new(mem, i);
+fn decode_inst_inner(lex: &mut Lexer, mut prefix: Prefix) -> FullInst {
     let mut operand_size = prefix.operand_size;
     match lex.peek_u8() {
         0x40..=0x4F => {
             // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
             if prefix.rex.is_some() {
-                return lex.finish(RexNoop.with_prefix(prefix.dis_prefix));
+                return RexNoop.with_prefix(prefix.dis_prefix);
             }
             let opcode = lex.next_u8();
-            let inner = decode_inst_inner(lex.mem, lex.i, prefix.with_rex(opcode));
-            lex.extend(inner)
+            decode_inst_inner(lex, prefix.with_rex(opcode))
         }
         0x66 => {
             // 0x66 Operand size prefix.
             if prefix.rex.is_some() {
-                return lex.finish(RexNoop.with_prefix(prefix.dis_prefix));
+                return RexNoop.with_prefix(prefix.dis_prefix);
             }
             let _opcode = lex.next_u8();
-            let inner = decode_inst_inner(lex.mem, lex.i, prefix.with_operand_size_prefix());
-            lex.extend(inner)
+            decode_inst_inner(lex, prefix.with_operand_size_prefix())
         }
         0x67 => {
             // 0x67 Address size prefix.
             if prefix.rex.is_some() {
-                return lex.finish(RexNoop.with_prefix(prefix.dis_prefix));
+                return RexNoop.with_prefix(prefix.dis_prefix);
             }
             let _opcode = lex.next_u8();
-            let inner = decode_inst_inner(lex.mem, lex.i, prefix.with_address_size_prefix());
-            lex.extend(inner)
+            decode_inst_inner(lex, prefix.with_address_size_prefix())
         }
         0x88 | 0x8A => {
             let opcode = lex.next_u8();
@@ -129,7 +117,7 @@ fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64
                 0x8A => MovRM8(reg, rm8),
                 _ => panic!("Missing match arm in decode_inst_inner."),
             };
-            lex.finish(inst.with_prefix(prefix.dis_prefix))
+            inst.with_prefix(prefix.dis_prefix)
         }
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8
@@ -144,7 +132,7 @@ fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64
                     prefix.dis_prefix.remove_rex_prefix();
                 }
             };
-            lex.finish(MovImm8(reg, imm8).with_prefix(prefix.dis_prefix))
+            MovImm8(reg, imm8).with_prefix(prefix.dis_prefix)
         }
         0xB8..=0xBF => {
             let opcode = lex.next_u8();
@@ -169,19 +157,19 @@ fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64
                     // B8+ rw iw; MOV r16, imm16
                     let imm16 = lex.next_imm16();
                     let reg = reg16_field_select(opcode, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    lex.finish(MovImm16(reg, imm16).with_prefix(prefix.dis_prefix))
+                    MovImm16(reg, imm16).with_prefix(prefix.dis_prefix)
                 }
                 Data32 => {
                     // B8+ rd id; MOV r32, imm32
                     let imm32 = lex.next_imm32();
                     let reg = reg32_field_select(opcode, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    lex.finish(MovImm32(reg, imm32).with_prefix(prefix.dis_prefix))
+                    MovImm32(reg, imm32).with_prefix(prefix.dis_prefix)
                 }
                 Data64 => {
                     // REX.W + B8+ rd io
                     let imm64 = lex.next_imm64();
                     let reg = reg64_field_select(opcode, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    lex.finish(MovImm64(reg, imm64).with_prefix(prefix.dis_prefix))
+                    MovImm64(reg, imm64).with_prefix(prefix.dis_prefix)
                 }
             }
         }
@@ -202,7 +190,7 @@ fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64
                             prefix.dis_prefix.remove_rex_prefix();
                         };
                     };
-                    lex.finish(MovMI8(rm8, imm8).with_prefix(prefix.dis_prefix))
+                    MovMI8(rm8, imm8).with_prefix(prefix.dis_prefix)
                 }
                 _ => unimplemented!("Opcode {:02X} /{} not yet implemented.", opcode, modrm.reg3),
             }
@@ -232,19 +220,19 @@ fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64
                             // C7 /0 iw; MOV r/m16, imm16
                             let imm16 = lex.next_imm16();
                             let rm16 = decode_rm16(&modrm, &prefix);
-                            lex.finish(MovMI16(rm16, imm16).with_prefix(prefix.dis_prefix))
+                            MovMI16(rm16, imm16).with_prefix(prefix.dis_prefix)
                         }
                         Data32 => {
                             // C7 /0 id; MOV r/m32, imm32
                             let imm32 = lex.next_imm32();
                             let rm32 = decode_rm32(&modrm, &prefix);
-                            lex.finish(MovMI32(rm32, imm32).with_prefix(prefix.dis_prefix))
+                            MovMI32(rm32, imm32).with_prefix(prefix.dis_prefix)
                         }
                         Data64 => {
                             // REX.W + C7 /0 id; MOV r/m64, imm32
                             let imm32 = lex.next_imm32();
                             let rm64 = decode_rm64(&modrm, &prefix);
-                            lex.finish(MovMI32s64(rm64, imm32).with_prefix(prefix.dis_prefix))
+                            MovMI32s64(rm64, imm32).with_prefix(prefix.dis_prefix)
                         }
                     }
                 }
@@ -253,9 +241,10 @@ fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64
         }
         0xF4 => {
             if prefix.rex.is_some() {
-                return (RexNoop.with_prefix(prefix.dis_prefix), 0);
+                return RexNoop.with_prefix(prefix.dis_prefix);
             }
-            (Hlt.with_prefix(prefix.dis_prefix), 1)
+            let _opcode = lex.next_u8();
+            Hlt.with_prefix(prefix.dis_prefix)
         }
         opcode => unimplemented!("Opcode {:02X} not yet implemented.", opcode),
     }
