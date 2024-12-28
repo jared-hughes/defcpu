@@ -1,5 +1,9 @@
 use crate::{
-    inst::{EffAddr, FullInst, Inst::*, RM16, RM32, RM64, RM8},
+    inst::{
+        EffAddr, FullInst,
+        Inst::{self, *},
+        RM16, RM32, RM64, RM8,
+    },
     inst_prefixes::{AddressSizeAttribute::*, OperandSizeAttribute::*, Prefix},
     memory::Memory,
     registers::{GPR16, GPR32, GPR64, GPR8},
@@ -7,13 +11,19 @@ use crate::{
 
 struct Lexer<'a> {
     mem: &'a Memory,
+    prefix: Prefix,
     i: u64,
     i_start: u64,
 }
 
 impl<'a> Lexer<'a> {
     fn new(mem: &Memory, i: u64) -> Lexer {
-        Lexer { mem, i, i_start: i }
+        Lexer {
+            mem,
+            i,
+            i_start: i,
+            prefix: Prefix::new(),
+        }
     }
 
     fn len(&self) -> u64 {
@@ -63,83 +73,86 @@ impl<'a> Lexer<'a> {
 /// Returns instruction together with the number of bytes read.
 pub fn decode_inst(mem: &Memory, i: u64) -> (FullInst, u64) {
     let mut lex = Lexer::new(mem, i);
-    let inst = decode_inst_inner(&mut lex, Prefix::new());
-    (inst, lex.len())
+    let inst = decode_inst_inner(&mut lex);
+    let len = lex.len();
+    (inst.with_prefix(lex.prefix.dis_prefix), len)
 }
 
-fn decode_inst_inner(lex: &mut Lexer, mut prefix: Prefix) -> FullInst {
-    let mut operand_size = prefix.operand_size;
+fn decode_inst_inner(lex: &mut Lexer) -> Inst {
+    let mut operand_size = lex.prefix.operand_size;
     match lex.peek_u8() {
         0x40..=0x4F => {
             // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
-            if prefix.rex.is_some() {
-                return RexNoop.with_prefix(prefix.dis_prefix);
+            if lex.prefix.rex.is_some() {
+                return RexNoop;
             }
             let opcode = lex.next_u8();
-            decode_inst_inner(lex, prefix.with_rex(opcode))
+            lex.prefix = lex.prefix.with_rex(opcode);
+            decode_inst_inner(lex)
         }
         0x66 => {
             // 0x66 Operand size prefix.
-            if prefix.rex.is_some() {
-                return RexNoop.with_prefix(prefix.dis_prefix);
+            if lex.prefix.rex.is_some() {
+                return RexNoop;
             }
             let _opcode = lex.next_u8();
-            decode_inst_inner(lex, prefix.with_operand_size_prefix())
+            lex.prefix = lex.prefix.with_operand_size_prefix();
+            decode_inst_inner(lex)
         }
         0x67 => {
             // 0x67 Address size prefix.
-            if prefix.rex.is_some() {
-                return RexNoop.with_prefix(prefix.dis_prefix);
+            if lex.prefix.rex.is_some() {
+                return RexNoop;
             }
             let _opcode = lex.next_u8();
-            decode_inst_inner(lex, prefix.with_address_size_prefix())
+            lex.prefix = lex.prefix.with_address_size_prefix();
+            decode_inst_inner(lex)
         }
         0x88 | 0x8A => {
             let opcode = lex.next_u8();
             let modrm = lex.next_modrm();
-            let (reg, rex_b_matters0) = reg8_field_select(modrm.reg3, prefix.rex.map(|x| x.r));
-            let (rm8, rex_b_matters1) = decode_rm8(&modrm, &prefix);
-            if let Some(rex) = prefix.rex {
+            let (reg, rex_b_matters0) = reg8_field_select(modrm.reg3, lex.prefix.rex.map(|x| x.r));
+            let (rm8, rex_b_matters1) = decode_rm8(&modrm, &lex.prefix);
+            if let Some(rex) = lex.prefix.rex {
                 let rex_b_matters = rex_b_matters0 || rex_b_matters1;
                 if !rex.w && !rex.x && !rex.r && rex_b_matters {
                     // REX prefix doesn't need to be printed separately,
                     // since it is already the 'default' prefix for the inst.
-                    prefix.dis_prefix.remove_rex_prefix();
+                    lex.prefix.dis_prefix.remove_rex_prefix();
                 }
             };
             if modrm.mod2 != 0b11 {
                 // mod2 == 0b11 means the r/m is a register. Otherwise
                 // it is a computed address, 32- or 64- bits.
-                prefix.dis_prefix.remove_last_address_size_prefix();
+                lex.prefix.dis_prefix.remove_last_address_size_prefix();
             }
-            let inst = match opcode {
+            match opcode {
                 0x88 => MovMR8(rm8, reg),
                 0x8A => MovRM8(reg, rm8),
                 _ => panic!("Missing match arm in decode_inst_inner."),
-            };
-            inst.with_prefix(prefix.dis_prefix)
+            }
         }
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8
             // Move imm8 to r8.
             let opcode = lex.next_u8();
             let imm8 = lex.next_imm8();
-            let (reg, rex_b_matters) = reg8_field_select(opcode, prefix.rex.map(|r| r.b));
-            if let Some(rex) = prefix.rex {
+            let (reg, rex_b_matters) = reg8_field_select(opcode, lex.prefix.rex.map(|r| r.b));
+            if let Some(rex) = lex.prefix.rex {
                 if !rex.w && !rex.x && !rex.r && rex_b_matters {
                     // REX prefix doesn't need to be printed separately,
                     // since it is already the 'default' prefix for the inst.
-                    prefix.dis_prefix.remove_rex_prefix();
+                    lex.prefix.dis_prefix.remove_rex_prefix();
                 }
             };
-            MovImm8(reg, imm8).with_prefix(prefix.dis_prefix)
+            MovImm8(reg, imm8)
         }
         0xB8..=0xBF => {
             let opcode = lex.next_u8();
             // The operand size prefix always changes the shape of the mov
             // instruction, so there is never a need to mention it.
-            prefix.dis_prefix.remove_last_operand_size_prefix();
-            if let Some(rex) = prefix.rex {
+            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
+            if let Some(rex) = lex.prefix.rex {
                 let no_silly_business = !rex.x && !rex.r;
                 let operand_size_influenced = rex.w;
                 if operand_size_influenced {
@@ -149,27 +162,30 @@ fn decode_inst_inner(lex: &mut Lexer, mut prefix: Prefix) -> FullInst {
                 if no_silly_business && (operand_size_influenced || reg_field_select_influenced) {
                     // REX prefix doesn't need to be printed separately,
                     // since it is already the 'default' prefix for the inst.
-                    prefix.dis_prefix.remove_rex_prefix();
+                    lex.prefix.dis_prefix.remove_rex_prefix();
                 };
             };
             match operand_size {
                 Data16 => {
                     // B8+ rw iw; MOV r16, imm16
                     let imm16 = lex.next_imm16();
-                    let reg = reg16_field_select(opcode, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    MovImm16(reg, imm16).with_prefix(prefix.dis_prefix)
+                    let reg =
+                        reg16_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
+                    MovImm16(reg, imm16)
                 }
                 Data32 => {
                     // B8+ rd id; MOV r32, imm32
                     let imm32 = lex.next_imm32();
-                    let reg = reg32_field_select(opcode, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    MovImm32(reg, imm32).with_prefix(prefix.dis_prefix)
+                    let reg =
+                        reg32_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
+                    MovImm32(reg, imm32)
                 }
                 Data64 => {
                     // REX.W + B8+ rd io
                     let imm64 = lex.next_imm64();
-                    let reg = reg64_field_select(opcode, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    MovImm64(reg, imm64).with_prefix(prefix.dis_prefix)
+                    let reg =
+                        reg64_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
+                    MovImm64(reg, imm64)
                 }
             }
         }
@@ -181,16 +197,16 @@ fn decode_inst_inner(lex: &mut Lexer, mut prefix: Prefix) -> FullInst {
                     // C6 /0 ib; MOV r/m8, imm16
                     // REX + C6 /0 ib; MOV r/m8, imm16
                     let imm8 = lex.next_imm8();
-                    let (rm8, rex_b_matters) = decode_rm8(&modrm, &prefix);
-                    if let Some(rex) = prefix.rex {
+                    let (rm8, rex_b_matters) = decode_rm8(&modrm, &lex.prefix);
+                    if let Some(rex) = lex.prefix.rex {
                         let no_silly_business = !rex.x && !rex.r;
                         if no_silly_business && !rex.w && rex_b_matters {
                             // REX prefix doesn't need to be printed separately,
                             // since it is already the 'default' prefix for the inst.
-                            prefix.dis_prefix.remove_rex_prefix();
+                            lex.prefix.dis_prefix.remove_rex_prefix();
                         };
                     };
-                    MovMI8(rm8, imm8).with_prefix(prefix.dis_prefix)
+                    MovMI8(rm8, imm8)
                 }
                 _ => unimplemented!("Opcode {:02X} /{} not yet implemented.", opcode, modrm.reg3),
             }
@@ -201,8 +217,8 @@ fn decode_inst_inner(lex: &mut Lexer, mut prefix: Prefix) -> FullInst {
             match modrm.reg3 {
                 0 => {
                     // C7 /0
-                    prefix.dis_prefix.remove_last_operand_size_prefix();
-                    if let Some(rex) = prefix.rex {
+                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
+                    if let Some(rex) = lex.prefix.rex {
                         let no_silly_business = !rex.x && !rex.r;
                         let operand_size_influenced = rex.w;
                         if operand_size_influenced {
@@ -212,27 +228,27 @@ fn decode_inst_inner(lex: &mut Lexer, mut prefix: Prefix) -> FullInst {
                         if no_silly_business && operand_size_influenced {
                             // REX prefix doesn't need to be printed separately,
                             // since it is already the 'default' prefix for the inst.
-                            prefix.dis_prefix.remove_rex_prefix();
+                            lex.prefix.dis_prefix.remove_rex_prefix();
                         };
                     };
                     match operand_size {
                         Data16 => {
                             // C7 /0 iw; MOV r/m16, imm16
                             let imm16 = lex.next_imm16();
-                            let rm16 = decode_rm16(&modrm, &prefix);
-                            MovMI16(rm16, imm16).with_prefix(prefix.dis_prefix)
+                            let rm16 = decode_rm16(&modrm, &lex.prefix);
+                            MovMI16(rm16, imm16)
                         }
                         Data32 => {
                             // C7 /0 id; MOV r/m32, imm32
                             let imm32 = lex.next_imm32();
-                            let rm32 = decode_rm32(&modrm, &prefix);
-                            MovMI32(rm32, imm32).with_prefix(prefix.dis_prefix)
+                            let rm32 = decode_rm32(&modrm, &lex.prefix);
+                            MovMI32(rm32, imm32)
                         }
                         Data64 => {
                             // REX.W + C7 /0 id; MOV r/m64, imm32
                             let imm32 = lex.next_imm32();
-                            let rm64 = decode_rm64(&modrm, &prefix);
-                            MovMI32s64(rm64, imm32).with_prefix(prefix.dis_prefix)
+                            let rm64 = decode_rm64(&modrm, &lex.prefix);
+                            MovMI32s64(rm64, imm32)
                         }
                     }
                 }
@@ -240,11 +256,11 @@ fn decode_inst_inner(lex: &mut Lexer, mut prefix: Prefix) -> FullInst {
             }
         }
         0xF4 => {
-            if prefix.rex.is_some() {
-                return RexNoop.with_prefix(prefix.dis_prefix);
+            if lex.prefix.rex.is_some() {
+                return RexNoop;
             }
             let _opcode = lex.next_u8();
-            Hlt.with_prefix(prefix.dis_prefix)
+            Hlt
         }
         opcode => unimplemented!("Opcode {:02X} not yet implemented.", opcode),
     }
