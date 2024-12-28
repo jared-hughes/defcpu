@@ -15,6 +15,11 @@ struct Lexer<'a> {
     prefix: Prefix,
     i: u64,
     i_start: u64,
+    rex_w_mattered: bool,
+    rex_r_mattered: bool,
+    rex_x_mattered: bool,
+    rex_b_mattered: bool,
+    rex_presence_mattered: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -24,11 +29,48 @@ impl<'a> Lexer<'a> {
             i,
             i_start: i,
             prefix: Prefix::new(),
+            rex_w_mattered: false,
+            rex_r_mattered: false,
+            rex_x_mattered: false,
+            rex_b_mattered: false,
+            rex_presence_mattered: false,
         }
     }
 
     fn len(&self) -> u64 {
         self.i - self.i_start
+    }
+
+    fn maybe_remove_rex(&mut self) {
+        if !self.should_show_rex() {
+            self.prefix.dis_prefix.remove_rex_prefix();
+        }
+    }
+
+    /// Do we want to show the REX in disassembly?
+    /// If the REX sets a bit that didn't actually affect anything, then yes.
+    /// If the REX's presense doesn't actually affect anything, then yes.
+    fn should_show_rex(&self) -> bool {
+        if let Some(rex) = self.prefix.rex {
+            if rex.w && !self.rex_w_mattered {
+                return true;
+            }
+            if rex.r && !self.rex_r_mattered {
+                return true;
+            }
+            if rex.x && !self.rex_x_mattered {
+                return true;
+            }
+            if rex.b && !self.rex_b_mattered {
+                return true;
+            }
+            let rex_presence_mattered = self.rex_presence_mattered;
+            let rex_blank = !rex.w && !rex.r && !rex.x && !rex.b;
+            if rex_blank && !rex_presence_mattered {
+                return true;
+            }
+        }
+        false
     }
 
     fn peek_u8(&self) -> u8 {
@@ -122,16 +164,11 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         0x88 | 0x8A => {
             let opcode = lex.next_u8();
             let modrm = lex.next_modrm();
-            let (reg, rex_b_matters0) = reg8_field_select(modrm.reg3, lex.prefix.rex.map(|x| x.r));
-            let (rm8, rex_b_matters1) = decode_rm8(lex, &modrm);
-            if let Some(rex) = lex.prefix.rex {
-                let rex_b_matters = rex_b_matters0 || rex_b_matters1;
-                if !rex.w && !rex.x && !rex.r && rex_b_matters {
-                    // REX prefix doesn't need to be printed separately,
-                    // since it is already the 'default' prefix for the inst.
-                    lex.prefix.dis_prefix.remove_rex_prefix();
-                }
-            };
+            let (reg, rex_r_matters) = reg8_field_select(modrm.reg3, lex.prefix.rex.map(|x| x.r));
+            lex.rex_r_mattered |= rex_r_matters;
+            lex.rex_presence_mattered |= rex_r_matters;
+            let rm8 = decode_rm8(lex, &modrm);
+            lex.maybe_remove_rex();
             if modrm.mod2 != 0b11 {
                 // mod2 == 0b11 means the r/m is a register. Otherwise
                 // it is a computed address, 32- or 64- bits.
@@ -149,13 +186,9 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             let opcode = lex.next_u8();
             let imm8 = lex.next_imm8();
             let (reg, rex_b_matters) = reg8_field_select(opcode, lex.prefix.rex.map(|r| r.b));
-            if let Some(rex) = lex.prefix.rex {
-                if !rex.w && !rex.x && !rex.r && rex_b_matters {
-                    // REX prefix doesn't need to be printed separately,
-                    // since it is already the 'default' prefix for the inst.
-                    lex.prefix.dis_prefix.remove_rex_prefix();
-                }
-            };
+            lex.rex_b_mattered |= rex_b_matters;
+            lex.rex_presence_mattered |= rex_b_matters;
+            lex.maybe_remove_rex();
             MovImm8(reg, imm8)
         }
         0xB8..=0xBF => {
@@ -164,17 +197,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             // instruction, so there is never a need to mention it.
             lex.prefix.dis_prefix.remove_last_operand_size_prefix();
             if let Some(rex) = lex.prefix.rex {
-                let no_silly_business = !rex.x && !rex.r;
-                let operand_size_influenced = rex.w;
-                if operand_size_influenced {
+                if rex.w {
                     operand_size = Data64
                 }
-                let reg_field_select_influenced = rex.b;
-                if no_silly_business && (operand_size_influenced || reg_field_select_influenced) {
-                    // REX prefix doesn't need to be printed separately,
-                    // since it is already the 'default' prefix for the inst.
-                    lex.prefix.dis_prefix.remove_rex_prefix();
-                };
+                lex.rex_w_mattered = true;
+                lex.rex_b_mattered = true;
+                lex.maybe_remove_rex();
             };
             match operand_size {
                 Data16 => {
@@ -208,15 +236,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     // C6 /0 ib; MOV r/m8, imm16
                     // REX + C6 /0 ib; MOV r/m8, imm16
                     let imm8 = lex.next_imm8();
-                    let (rm8, rex_b_matters) = decode_rm8(lex, &modrm);
-                    if let Some(rex) = lex.prefix.rex {
-                        let no_silly_business = !rex.x && !rex.r;
-                        if no_silly_business && !rex.w && rex_b_matters {
-                            // REX prefix doesn't need to be printed separately,
-                            // since it is already the 'default' prefix for the inst.
-                            lex.prefix.dis_prefix.remove_rex_prefix();
-                        };
-                    };
+                    let rm8 = decode_rm8(lex, &modrm);
+                    lex.maybe_remove_rex();
                     MovMI8(rm8, imm8)
                 }
                 _ => unimplemented!("Opcode {:02X} /{} not yet implemented.", opcode, modrm.reg3),
@@ -230,18 +251,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     // C7 /0
                     lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                     if let Some(rex) = lex.prefix.rex {
-                        let no_silly_business = !rex.x && !rex.r;
-                        let operand_size_influenced = rex.w;
-                        if operand_size_influenced {
+                        if rex.w {
                             operand_size = Data64
                         }
-                        // no reg field to influence
-                        if no_silly_business && operand_size_influenced {
-                            // REX prefix doesn't need to be printed separately,
-                            // since it is already the 'default' prefix for the inst.
-                            lex.prefix.dis_prefix.remove_rex_prefix();
-                        };
-                    };
+                        lex.rex_w_mattered = true;
+                        lex.maybe_remove_rex();
+                    }
                     match operand_size {
                         Data16 => {
                             // C7 /0 iw; MOV r/m16, imm16
@@ -291,14 +306,16 @@ fn modrm_decode(modrm: u8) -> ModRM {
     ModRM { mod2, reg3, rm3 }
 }
 
-// r/m8. The bool is true when REX.b matters.
-fn decode_rm8(lex: &mut Lexer, modrm: &ModRM) -> (RM8, bool) {
+// r/m8
+fn decode_rm8(lex: &mut Lexer, modrm: &ModRM) -> RM8 {
     match modrm.mod2 {
-        0b00..=0b10 => (RM8::Addr(decode_rm_00_01_10(lex, modrm)), false),
+        0b00..=0b10 => RM8::Addr(decode_rm_00_01_10(lex, modrm)),
         0b11 => {
             let rexb_opt = lex.prefix.rex.map(|r| r.b);
             let (reg, rex_b_matters) = reg8_field_select(modrm.rm3, rexb_opt);
-            (RM8::Reg(reg), rex_b_matters)
+            lex.rex_b_mattered |= rex_b_matters;
+            lex.rex_presence_mattered |= rex_b_matters;
+            RM8::Reg(reg)
         }
         _ => panic!("Missing match arm in modrm_decode_addr8."),
     }
@@ -346,6 +363,7 @@ fn decode_rm64(lex: &mut Lexer, modrm: &ModRM) -> RM64 {
 /// but with addresses 64-bit regs instead of 32-bit. However displacement remains the same size (8/32 bits).
 fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
     let rexb = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
+    lex.rex_b_mattered = true;
     let address_size = lex.prefix.address_size;
     if modrm.mod2 == 0b00 && (rexb, modrm.rm3) == (false, 0b101) {
         // Special case: Instead of encoding a plain [ebp],
@@ -450,6 +468,7 @@ fn decode_sib_addr32(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
     // TODO: Does REX.B, REX.W, REX factor in?
     // If so, use reg32_field_select.
     let rex_x = lex.prefix.rex.map(|r| r.x).unwrap_or(false);
+    lex.rex_x_mattered = true;
     let index_reg = match (rex_x, sib.index3) {
         (false, 0b000) => GPR32::eax,
         (false, 0b001) => GPR32::ecx,
@@ -525,6 +544,7 @@ fn decode_sib_addr64(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
     // TODO: Does REX.B, REX.W, REX factor in?
     // If so, use reg32_field_select.
     let rex_x = lex.prefix.rex.map(|r| r.x).unwrap_or(false);
+    lex.rex_x_mattered = true;
     let index_reg = match (rex_x, sib.index3) {
         (false, 0b000) => GPR64::rax,
         (false, 0b001) => GPR64::rcx,
