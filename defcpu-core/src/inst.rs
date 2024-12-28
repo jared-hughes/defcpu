@@ -41,7 +41,7 @@ impl Inst {
             inner: self,
         }
     }
-    fn fmt_operands(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt_operands(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RexNoop => Ok(()),
             MovMR8(addr, reg) => write!(f, "{}, {}", reg, addr),
@@ -83,7 +83,7 @@ pub struct FullInst {
     pub inner: Inst,
 }
 impl fmt::Display for FullInst {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mnem = self.inner.mnemonic();
         if !mnem.is_empty() {
             let prefix = format!("{}", self.prefix);
@@ -131,10 +131,10 @@ impl LowerHex for ReallySigned {
 }
 
 // TODO p 527
-fn format_addr<Reg: fmt::Display>(
-    f: &mut fmt::Formatter<'_>,
+fn format_addr<Base: fmt::Display, Reg: fmt::Display>(
+    f: &mut fmt::Formatter,
     disp: Option<i32>,
-    base: Option<Reg>,
+    base: Option<Base>,
     index: Option<Reg>,
     scale: Scale,
 ) -> fmt::Result {
@@ -156,28 +156,56 @@ fn format_addr<Reg: fmt::Display>(
     write!(f, ")")
 }
 
+#[derive(Clone, Copy)]
+pub enum Base32 {
+    GPR32(GPR32),
+    Eip,
+}
+impl fmt::Display for Base32 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Base32::GPR32(gpr32) => gpr32.fmt(f),
+            Base32::Eip => write!(f, "%eip"),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct SIDB32 {
     pub(crate) disp: Option<i32>,
-    pub(crate) base: Option<GPR32>,
+    pub(crate) base: Option<Base32>,
     pub(crate) index: Option<GPR32>,
     pub(crate) scale: Scale,
 }
 impl fmt::Display for SIDB32 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         format_addr(f, self.disp, self.base, self.index, self.scale)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum Base64 {
+    GPR64(GPR64),
+    Rip,
+}
+impl fmt::Display for Base64 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Base64::GPR64(gpr64) => gpr64.fmt(f),
+            Base64::Rip => write!(f, "%rip"),
+        }
     }
 }
 
 #[derive(Clone)]
 pub struct SIDB64 {
     pub(crate) disp: Option<i32>,
-    pub(crate) base: Option<GPR64>,
+    pub(crate) base: Option<Base64>,
     pub(crate) index: Option<GPR64>,
     pub(crate) scale: Scale,
 }
 impl fmt::Display for SIDB64 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         format_addr(f, self.disp, self.base, self.index, self.scale)
     }
 }
@@ -189,7 +217,7 @@ pub enum EffAddr {
     EffAddr64(SIDB64),
 }
 impl fmt::Display for EffAddr {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::EffAddr32(sidb) => write!(f, "{}", sidb),
             Self::EffAddr64(sidb) => write!(f, "{}", sidb),
@@ -200,7 +228,7 @@ impl EffAddr {
     pub fn from_base_reg32(base: GPR32) -> EffAddr {
         EffAddr::EffAddr32(SIDB32 {
             disp: None,
-            base: Some(base),
+            base: Some(Base32::GPR32(base)),
             index: None,
             scale: Scale::Scale1,
         })
@@ -209,7 +237,7 @@ impl EffAddr {
     pub fn from_base_reg64(base: GPR64) -> EffAddr {
         EffAddr::EffAddr64(SIDB64 {
             disp: None,
-            base: Some(base),
+            base: Some(Base64::GPR64(base)),
             index: None,
             scale: Scale::Scale1,
         })
@@ -238,7 +266,13 @@ impl EffAddr {
         match self {
             EffAddr::EffAddr32(sidb) => {
                 let disp = sidb.disp.unwrap_or(0);
-                let base = sidb.base.map(|b| regs.get_reg32(b)).unwrap_or(0);
+                let base = sidb
+                    .base
+                    .map(|b| match b {
+                        Base32::GPR32(gpr32) => regs.get_reg32(gpr32),
+                        Base32::Eip => regs.get_eip(),
+                    })
+                    .unwrap_or(0);
                 let scaled_index = sidb
                     .index
                     .map(|i| regs.get_reg32(i) * (sidb.scale as u32))
@@ -249,7 +283,13 @@ impl EffAddr {
             }
             EffAddr::EffAddr64(sidb) => {
                 let disp = sidb.disp.unwrap_or(0);
-                let base = sidb.base.map(|b| regs.get_reg64(b)).unwrap_or(0);
+                let base = sidb
+                    .base
+                    .map(|b| match b {
+                        Base64::GPR64(gpr64) => regs.get_reg64(gpr64),
+                        Base64::Rip => regs.get_rip(),
+                    })
+                    .unwrap_or(0);
                 let scaled_index = sidb
                     .index
                     .map(|i| regs.get_reg64(i) * (sidb.scale as u64))
@@ -266,7 +306,7 @@ pub enum RM8 {
     Reg(GPR8),
 }
 impl fmt::Display for RM8 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RM8::Addr(addr) => addr.fmt(f),
             RM8::Reg(gpr8) => gpr8.fmt(f),
@@ -279,7 +319,7 @@ pub enum RM16 {
     Reg(GPR16),
 }
 impl fmt::Display for RM16 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RM16::Addr(addr) => addr.fmt(f),
             RM16::Reg(gpr16) => gpr16.fmt(f),
@@ -292,7 +332,7 @@ pub enum RM32 {
     Reg(GPR32),
 }
 impl fmt::Display for RM32 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RM32::Addr(addr) => addr.fmt(f),
             RM32::Reg(gpr32) => gpr32.fmt(f),
@@ -305,7 +345,7 @@ pub enum RM64 {
     Reg(GPR64),
 }
 impl fmt::Display for RM64 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             RM64::Addr(addr) => addr.fmt(f),
             RM64::Reg(gpr64) => gpr64.fmt(f),

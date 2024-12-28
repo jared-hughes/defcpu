@@ -47,6 +47,7 @@ for source_path in sources/*.s; do
         | sed -E 's/,/, /g' \
         | sed -E 's/,  /, /g' \
         | sed -E 's/ *$//g' \
+        | sed -E 's/ *#.*//g' \
         > "$expected"
     
     longest_start=$(awk -F $"\t" '{ print length($1) }' "$expected" | sort -n | tail -1)

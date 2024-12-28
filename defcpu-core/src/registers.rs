@@ -333,6 +333,14 @@ impl Registers {
         let ind = gpr64.0.reg_index();
         self.regs[ind]
     }
+
+    pub fn get_eip(&self) -> u32 {
+        (self.rip & 0xFF_FF_FF_FF).try_into().unwrap()
+    }
+
+    pub fn get_rip(&self) -> u64 {
+        self.rip
+    }
 }
 
 // Ref https://en.wikipedia.org/wiki/FLAGS_register.

@@ -1,6 +1,6 @@
 use crate::{
     inst::{
-        EffAddr, FullInst,
+        Base32, Base64, EffAddr, FullInst,
         Inst::{self, *},
         Scale::{self, *},
         RM16, RM32, RM64, RM8, SIDB32, SIDB64,
@@ -367,19 +367,19 @@ fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
     let address_size = lex.prefix.address_size;
     if modrm.mod2 == 0b00 && (rexb, modrm.rm3) == (false, 0b101) {
         // Special case: Instead of encoding a plain [ebp],
-        // it encodes as disp32 instead.
-        // TODO: In 64-bit addressing, this might be RIP-relative.
+        // it encodes as disp32 instead. Since we are in 64-bit mode,
+        // it's actually RIP-relative.
         // See Vol 2A: 2.2.1.6 "RIP-Relative Addressing", and Table 2-7.
         return match address_size {
             Addr32 => EffAddr::EffAddr32(SIDB32 {
                 disp: Some(lex.next_i32()),
-                base: None,
+                base: Some(Base32::Eip),
                 index: None,
                 scale: Scale1,
             }),
             Addr64 => EffAddr::EffAddr64(SIDB64 {
                 disp: Some(lex.next_i32()),
-                base: None,
+                base: Some(Base64::Rip),
                 index: None,
                 scale: Scale1,
             }),
@@ -530,7 +530,7 @@ fn decode_sib_addr32(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
         _ => panic!("Missing match arm."),
     };
     EffAddr::EffAddr32(SIDB32 {
-        base: Some(base_reg),
+        base: Some(Base32::GPR32(base_reg)),
         // The callee fills in disp
         disp: None,
         index: Some(index_reg),
@@ -606,7 +606,7 @@ fn decode_sib_addr64(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
         _ => panic!("Missing match arm."),
     };
     EffAddr::EffAddr64(SIDB64 {
-        base: Some(base_reg),
+        base: Some(Base64::GPR64(base_reg)),
         // The callee fills in disp
         disp: None,
         index: Some(index_reg),
