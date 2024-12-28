@@ -1,22 +1,27 @@
 use std::fmt;
 
+#[derive(Clone, Copy)]
+enum VarDisPrefix {
+    AddressSize(AddressSizeAttribute),
+    OperandSize(OperandSizeAttribute),
+}
+
+#[derive(Clone)]
 pub struct DisassemblyPrefix {
-    pub address_size: Option<AddressSizeAttribute>,
-    pub operand_size: Option<OperandSizeAttribute>,
-    pub rex: Option<Rex>,
+    prefixes: Vec<VarDisPrefix>,
+    rex: Option<Rex>,
 }
 impl fmt::Display for DisassemblyPrefix {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut some = false;
-        if let Some(s) = &self.address_size {
-            s.fmt(f)?;
-            some = true;
-        }
-        if let Some(s) = &self.operand_size {
+        for vdp in &self.prefixes {
             if some {
                 write!(f, " ")?;
             }
-            s.fmt(f)?;
+            match vdp {
+                VarDisPrefix::AddressSize(s) => s.fmt(f)?,
+                VarDisPrefix::OperandSize(s) => s.fmt(f)?,
+            };
             some = true;
         }
         if let Some(rex) = &self.rex {
@@ -28,8 +33,63 @@ impl fmt::Display for DisassemblyPrefix {
         Ok(())
     }
 }
+impl DisassemblyPrefix {
+    pub fn new() -> DisassemblyPrefix {
+        DisassemblyPrefix {
+            prefixes: vec![],
+            rex: None,
+        }
+    }
 
-/// There are three relevant encodings of instructions
+    fn push_prefix(&mut self, prefix: VarDisPrefix) {
+        self.prefixes.push(prefix);
+    }
+
+    pub fn set_rex(&mut self, rex: Option<Rex>) {
+        self.rex = rex;
+    }
+
+    /// Delete the last AddressSize(_) prefix
+    pub fn remove_last_address_size_prefix(&mut self) {
+        for i in (0..self.prefixes.len()).rev() {
+            if let VarDisPrefix::AddressSize(_) = self.prefixes[i] {
+                let mut new_vec = vec![];
+                // splice
+                for j in 0..self.prefixes.len() {
+                    if j != i {
+                        new_vec.push(self.prefixes[j]);
+                    }
+                }
+                self.prefixes = new_vec;
+                return;
+            }
+        }
+    }
+
+    /// Delete the last OperandSize(_) prefix
+    pub fn remove_last_operand_size_prefix(&mut self) {
+        for i in (0..self.prefixes.len()).rev() {
+            if let VarDisPrefix::OperandSize(_) = self.prefixes[i] {
+                let mut new_vec = vec![];
+                // splice
+                for j in 0..self.prefixes.len() {
+                    if j != i {
+                        new_vec.push(self.prefixes[j]);
+                    }
+                }
+                self.prefixes = new_vec;
+                return;
+            }
+        }
+    }
+
+    /// Delete the Rex prefix
+    pub fn remove_rex_prefix(&mut self) {
+        self.rex = None;
+    }
+}
+
+/// There are three relevant encodings of instructions to Rex
 ///   A: Just has a ModR/M byte.
 ///      - Vol 2A: Figure 2-4. "Memory Addressing Without an SIB Byte; REX.X Not Used"
 ///      - Vol 2A: Figure 2-5. "Register-Register Addressing (No Memory Operand); REX.X Not Used"
@@ -37,16 +97,6 @@ impl fmt::Display for DisassemblyPrefix {
 ///      - Vol 2A: Figure 2-6. "Memory Addressing With a SIB Byte"
 ///   C: Has no ModR/M byte, but the lower 3 bits of the opcode are a reg field.
 ///      - Vol 2A: Figure 2-7. "Register Operand Coded in Opcode Byte; REX.X & REX.R Not Used"
-#[derive(Clone, Copy)]
-pub struct Prefix {
-    /// true if the Operand-Size Prefix 0x66 is present
-    pub operand_size_prefix: bool,
-    /// true if the Address-Size Prefix 0x67 is present.
-    pub address_size_prefix: bool,
-    /// If Some(Rex), a REX prefix is present.
-    pub rex: Option<Rex>,
-}
-
 #[derive(Clone, Copy)]
 pub struct Rex {
     /// If false, operand size is determined by CS.D
@@ -87,38 +137,58 @@ impl fmt::Display for Rex {
     }
 }
 
+#[derive(Clone)]
+pub struct Prefix {
+    /// Data16 if the Operand-Size Prefix 0x66 is present, otherwise Data32.
+    /// Unaffected by any REX bit.
+    pub operand_size: OperandSizeAttribute,
+    /// Addr32 if the Address-Size Prefix 0x67 is present, otherwise Addr64
+    /// Note this doesn't factor in the REX.W bit, since the behavior of that depends per-instruction.
+    pub address_size: AddressSizeAttribute,
+    /// If Some(Rex), a REX prefix is present.
+    pub rex: Option<Rex>,
+    /// For disassembly, provides the order of prefixes
+    pub dis_prefix: DisassemblyPrefix,
+}
+
 // TODO: test what happens with chains like 0x66 + 0x67 + REX + 0x67 + REX
 // Reference says only a single REX can influence, but I'm not sure about
 // the other prefixes.
 impl Prefix {
     pub fn new() -> Prefix {
         Prefix {
-            operand_size_prefix: false,
-            address_size_prefix: false,
+            operand_size: OperandSizeAttribute::Data32,
+            address_size: AddressSizeAttribute::Addr64,
             rex: None,
+            dis_prefix: DisassemblyPrefix::new(),
         }
     }
 
-    pub fn with_operand_size_prefix(self) -> Prefix {
-        let mut p = self;
-        p.operand_size_prefix = true;
+    pub fn with_operand_size_prefix(&self) -> Prefix {
+        let mut p = self.clone();
+        p.operand_size = OperandSizeAttribute::Data16;
+        p.dis_prefix
+            .push_prefix(VarDisPrefix::OperandSize(p.operand_size));
         p
     }
 
-    pub fn with_address_size_prefix(self) -> Prefix {
-        let mut p = self;
-        p.address_size_prefix = true;
+    pub fn with_address_size_prefix(&self) -> Prefix {
+        let mut p = self.clone();
+        p.address_size = AddressSizeAttribute::Addr32;
+        p.dis_prefix
+            .push_prefix(VarDisPrefix::AddressSize(p.address_size));
         p
     }
 
-    pub fn with_rex(self, rex: u8) -> Prefix {
-        let mut p = self;
+    pub fn with_rex(&self, rex: u8) -> Prefix {
+        let mut p = self.clone();
         p.rex = Some(Rex {
             w: rex & 0b1000 != 0,
             r: rex & 0b0100 != 0,
             x: rex & 0b0010 != 0,
             b: rex & 0b0001 != 0,
         });
+        p.dis_prefix.set_rex(p.rex);
         p
     }
 }
@@ -129,15 +199,6 @@ impl Prefix {
 pub enum AddressSizeAttribute {
     Addr64,
     Addr32,
-}
-impl AddressSizeAttribute {
-    pub fn from_prefix(p: Prefix) -> AddressSizeAttribute {
-        if p.address_size_prefix {
-            AddressSizeAttribute::Addr32
-        } else {
-            AddressSizeAttribute::Addr64
-        }
-    }
 }
 impl fmt::Display for AddressSizeAttribute {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -156,17 +217,6 @@ pub enum OperandSizeAttribute {
     Data64,
     Data32,
     Data16,
-}
-impl OperandSizeAttribute {
-    pub fn from_prefix(p: Prefix) -> OperandSizeAttribute {
-        // Note this doesn't factor in the rex.w bit.
-        // That should be done in each opcode where rex.w is used.
-        if p.operand_size_prefix {
-            OperandSizeAttribute::Data16
-        } else {
-            OperandSizeAttribute::Data32
-        }
-    }
 }
 impl fmt::Display for OperandSizeAttribute {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

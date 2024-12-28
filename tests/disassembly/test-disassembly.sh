@@ -37,7 +37,7 @@ for source_path in sources/*.s; do
     
     longest_start=$(awk -F $"\t" '{ print length($1) }' "$output" | sort -n | tail -1)
 
-    expand -t $(((longest_start + 3)/8*8 + 4)) "$output" | sponge "$output"
+    expand -t $(((longest_start + 4)/8*8 + 4)) "$output" | sponge "$output"
 
     output_dis=$(< "$output")
     exp_dis=$(< "$source_path")

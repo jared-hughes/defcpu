@@ -1,9 +1,6 @@
 use crate::{
     inst::{EffAddr, FullInst, Inst::*, RM16, RM32, RM64, RM8},
-    inst_prefixes::{
-        AddressSizeAttribute::{self, *},
-        DisassemblyPrefix, OperandSizeAttribute, Prefix,
-    },
+    inst_prefixes::{AddressSizeAttribute::*, OperandSizeAttribute::*, Prefix},
     memory::Memory,
     registers::{GPR16, GPR32, GPR64, GPR8},
 };
@@ -13,26 +10,14 @@ pub fn decode_inst(mem: &Memory, i: u64) -> (FullInst, u64) {
     decode_inst_inner(mem, i, Prefix::new())
 }
 
-fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
+fn decode_inst_inner(mem: &Memory, i: u64, mut prefix: Prefix) -> (FullInst, u64) {
     let b0 = mem.read_u8(i);
-    let mut operand_size = OperandSizeAttribute::from_prefix(prefix);
-    let address_size = AddressSizeAttribute::from_prefix(prefix);
-    let mut dis_prefix = DisassemblyPrefix {
-        operand_size: match prefix.operand_size_prefix {
-            true => Some(operand_size),
-            false => None,
-        },
-        address_size: match prefix.address_size_prefix {
-            true => Some(address_size),
-            false => None,
-        },
-        rex: prefix.rex,
-    };
+    let mut operand_size = prefix.operand_size;
     match b0 {
         0x40..=0x4F => {
             // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
             if prefix.rex.is_some() {
-                return (RexNoop.with_prefix(dis_prefix), 0);
+                return (RexNoop.with_prefix(prefix.dis_prefix), 0);
             }
             let (inst, len) = decode_inst_inner(mem, i + 1, prefix.with_rex(b0));
             (inst, len + 1)
@@ -40,7 +25,7 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
         0x66 => {
             // 0x66 Operand size prefix.
             if prefix.rex.is_some() {
-                return (RexNoop.with_prefix(dis_prefix), 0);
+                return (RexNoop.with_prefix(prefix.dis_prefix), 0);
             }
             let (inst, len) = decode_inst_inner(mem, i + 1, prefix.with_operand_size_prefix());
             (inst, len + 1)
@@ -48,33 +33,34 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
         0x67 => {
             // 0x67 Address size prefix.
             if prefix.rex.is_some() {
-                return (RexNoop.with_prefix(dis_prefix), 0);
+                return (RexNoop.with_prefix(prefix.dis_prefix), 0);
             }
             let (inst, len) = decode_inst_inner(mem, i + 1, prefix.with_address_size_prefix());
             (inst, len + 1)
         }
         0x88 | 0x8A => {
             let modrm = modrm_decode(mem.read_u8(i + 1));
-            let (reg, rex_b_matters) = reg8_field_select(modrm.reg3, prefix.rex.map(|x| x.r));
-            if let Some(rex) = dis_prefix.rex {
+            let (reg, rex_b_matters0) = reg8_field_select(modrm.reg3, prefix.rex.map(|x| x.r));
+            let (rm8, rex_b_matters1) = decode_rm8(&modrm, &prefix);
+            if let Some(rex) = prefix.rex {
+                let rex_b_matters = rex_b_matters0 || rex_b_matters1;
                 if !rex.w && !rex.x && !rex.r && rex_b_matters {
                     // REX prefix doesn't need to be printed separately,
                     // since it is already the 'default' prefix for the inst.
-                    dis_prefix.rex = None
+                    prefix.dis_prefix.remove_rex_prefix();
                 }
             };
-            let addr = decode_rm8(&modrm, prefix);
             if modrm.mod2 != 0b11 {
                 // mod2 == 0b11 means the r/m is a register. Otherwise
                 // it is a computed address, 32- or 64- bits.
-                dis_prefix.address_size = None;
+                prefix.dis_prefix.remove_last_address_size_prefix();
             }
             let inst = match b0 {
-                0x88 => MovMR8(addr, reg),
-                0x8A => MovRM8(reg, addr),
+                0x88 => MovMR8(rm8, reg),
+                0x8A => MovRM8(reg, rm8),
                 _ => panic!("Missing match arm in decode_inst_inner."),
             };
-            (inst.with_prefix(dis_prefix), 2)
+            (inst.with_prefix(prefix.dis_prefix), 2)
         }
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8
@@ -82,42 +68,42 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
 
             let imm8 = mem.read_u8(i + 1);
             let (reg, rex_b_matters) = reg8_field_select(b0, prefix.rex.map(|r| r.b));
-            if let Some(rex) = dis_prefix.rex {
+            if let Some(rex) = prefix.rex {
                 if !rex.w && !rex.x && !rex.r && rex_b_matters {
                     // REX prefix doesn't need to be printed separately,
                     // since it is already the 'default' prefix for the inst.
-                    dis_prefix.rex = None
+                    prefix.dis_prefix.remove_rex_prefix();
                 }
             };
-            (MovImm8(reg, imm8).with_prefix(dis_prefix), 2)
+            (MovImm8(reg, imm8).with_prefix(prefix.dis_prefix), 2)
         }
         0xB8..=0xBF => {
             // The operand size prefix always changes the shape of the mov
             // instruction, so there is never a need to mention it.
-            dis_prefix.operand_size = None;
-            if let Some(rex) = dis_prefix.rex {
+            prefix.dis_prefix.remove_last_operand_size_prefix();
+            if let Some(rex) = prefix.rex {
                 let no_silly_business = !rex.x && !rex.r;
                 let operand_size_influenced = rex.w;
                 if operand_size_influenced {
-                    operand_size = OperandSizeAttribute::Data64
+                    operand_size = Data64
                 }
                 let reg_field_select_influenced = rex.b;
                 if no_silly_business && (operand_size_influenced || reg_field_select_influenced) {
                     // REX prefix doesn't need to be printed separately,
                     // since it is already the 'default' prefix for the inst.
-                    dis_prefix.rex = None
+                    prefix.dis_prefix.remove_rex_prefix();
                 };
             };
             match operand_size {
-                OperandSizeAttribute::Data16 => {
+                Data16 => {
                     // B8+ rw iw; MOV r16, imm16
                     let d0 = mem.read_u8(i + 1) as u16;
                     let d1 = mem.read_u8(i + 2) as u16;
                     let imm16 = (d1 << 8) | d0;
                     let reg = reg16_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    (MovImm16(reg, imm16).with_prefix(dis_prefix), 3)
+                    (MovImm16(reg, imm16).with_prefix(prefix.dis_prefix), 3)
                 }
-                OperandSizeAttribute::Data32 => {
+                Data32 => {
                     // B8+ rd id; MOV r32, imm32
                     let d0 = mem.read_u8(i + 1) as u32;
                     let d1 = mem.read_u8(i + 2) as u32;
@@ -125,9 +111,9 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
                     let d3 = mem.read_u8(i + 4) as u32;
                     let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
                     let reg = reg32_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    (MovImm32(reg, imm32).with_prefix(dis_prefix), 5)
+                    (MovImm32(reg, imm32).with_prefix(prefix.dis_prefix), 5)
                 }
-                OperandSizeAttribute::Data64 => {
+                Data64 => {
                     // REX.W + B8+ rd io
                     let d0 = mem.read_u8(i + 1) as u64;
                     let d1 = mem.read_u8(i + 2) as u64;
@@ -146,8 +132,30 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
                         | (d1 << 8)
                         | d0;
                     let reg = reg64_field_select(b0, prefix.rex.map(|r| r.b).unwrap_or(false));
-                    (MovImm64(reg, imm64).with_prefix(dis_prefix), 9)
+                    (MovImm64(reg, imm64).with_prefix(prefix.dis_prefix), 9)
                 }
+            }
+        }
+        0xC6 => {
+            let modrm = modrm_decode(mem.read_u8(i + 1));
+            match modrm.reg3 {
+                0 => {
+                    // C6 /0 ib; MOV r/m8, imm16
+                    // REX + C6 /0 ib; MOV r/m8, imm16
+                    let modrm = modrm_decode(mem.read_u8(i + 1));
+                    let imm8 = mem.read_u8(i + 2);
+                    let (rm8, rex_b_matters) = decode_rm8(&modrm, &prefix);
+                    if let Some(rex) = prefix.rex {
+                        let no_silly_business = !rex.x && !rex.r;
+                        if no_silly_business && !rex.w && rex_b_matters {
+                            // REX prefix doesn't need to be printed separately,
+                            // since it is already the 'default' prefix for the inst.
+                            prefix.dis_prefix.remove_rex_prefix();
+                        };
+                    };
+                    (MovMI8(rm8, imm8).with_prefix(prefix.dis_prefix), 3)
+                }
+                _ => unimplemented!("Opcode {:02X} /{} not yet implemented.", b0, modrm.reg3),
             }
         }
         0xC7 => {
@@ -155,31 +163,31 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
             match modrm.reg3 {
                 0 => {
                     // C7 /0
-                    dis_prefix.operand_size = None;
-                    if let Some(rex) = dis_prefix.rex {
+                    prefix.dis_prefix.remove_last_operand_size_prefix();
+                    if let Some(rex) = prefix.rex {
                         let no_silly_business = !rex.x && !rex.r;
                         let operand_size_influenced = rex.w;
                         if operand_size_influenced {
-                            operand_size = OperandSizeAttribute::Data64
+                            operand_size = Data64
                         }
                         // no reg field to influence
                         if no_silly_business && operand_size_influenced {
                             // REX prefix doesn't need to be printed separately,
                             // since it is already the 'default' prefix for the inst.
-                            dis_prefix.rex = None
+                            prefix.dis_prefix.remove_rex_prefix();
                         };
                     };
                     match operand_size {
-                        OperandSizeAttribute::Data16 => {
+                        Data16 => {
                             // C7 /0 iw; MOV r/m16, imm16
                             let modrm = modrm_decode(mem.read_u8(i + 1));
                             let d0 = mem.read_u8(i + 2) as u16;
                             let d1 = mem.read_u8(i + 3) as u16;
                             let imm16 = (d1 << 8) | d0;
-                            let rm16 = decode_rm16(&modrm, prefix);
-                            (MovMI16(rm16, imm16).with_prefix(dis_prefix), 4)
+                            let rm16 = decode_rm16(&modrm, &prefix);
+                            (MovMI16(rm16, imm16).with_prefix(prefix.dis_prefix), 4)
                         }
-                        OperandSizeAttribute::Data32 => {
+                        Data32 => {
                             // C7 /0 id; MOV r/m32, imm32
                             let modrm = modrm_decode(mem.read_u8(i + 1));
                             let d0 = mem.read_u8(i + 2) as u32;
@@ -187,10 +195,10 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
                             let d2 = mem.read_u8(i + 4) as u32;
                             let d3 = mem.read_u8(i + 5) as u32;
                             let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
-                            let rm32 = decode_rm32(&modrm, prefix);
-                            (MovMI32(rm32, imm32).with_prefix(dis_prefix), 6)
+                            let rm32 = decode_rm32(&modrm, &prefix);
+                            (MovMI32(rm32, imm32).with_prefix(prefix.dis_prefix), 6)
                         }
-                        OperandSizeAttribute::Data64 => {
+                        Data64 => {
                             // REX.W + C7 /0 id; MOV r/m64, imm32
                             let modrm = modrm_decode(mem.read_u8(i + 1));
                             let d0 = mem.read_u8(i + 2) as u32;
@@ -198,8 +206,8 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
                             let d2 = mem.read_u8(i + 4) as u32;
                             let d3 = mem.read_u8(i + 5) as u32;
                             let imm32 = (d3 << 24) | (d2 << 16) | (d1 << 8) | d0;
-                            let rm64 = decode_rm64(&modrm, prefix);
-                            (MovMI32s64(rm64, imm32).with_prefix(dis_prefix), 6)
+                            let rm64 = decode_rm64(&modrm, &prefix);
+                            (MovMI32s64(rm64, imm32).with_prefix(prefix.dis_prefix), 6)
                         }
                     }
                 }
@@ -208,9 +216,9 @@ fn decode_inst_inner(mem: &Memory, i: u64, prefix: Prefix) -> (FullInst, u64) {
         }
         0xF4 => {
             if prefix.rex.is_some() {
-                return (RexNoop.with_prefix(dis_prefix), 0);
+                return (RexNoop.with_prefix(prefix.dis_prefix), 0);
             }
-            (Hlt.with_prefix(dis_prefix), 1)
+            (Hlt.with_prefix(prefix.dis_prefix), 1)
         }
         _ => unimplemented!("Opcode {:02X} not yet implemented.", b0),
     }
@@ -229,23 +237,22 @@ fn modrm_decode(modrm: u8) -> ModRM {
     ModRM { mod2, reg3, rm3 }
 }
 
-// r/m8
-fn decode_rm8(modrm: &ModRM, prefix: Prefix) -> RM8 {
+// r/m8. The bool is true when REX.b matters.
+fn decode_rm8(modrm: &ModRM, prefix: &Prefix) -> (RM8, bool) {
     match modrm.mod2 {
-        0b00 => RM8::Addr(decode_rm_00(modrm, prefix)),
+        0b00 => (RM8::Addr(decode_rm_00(modrm, prefix)), false),
         0b01 | 0b10 => todo!("ModR/M addressing mode not yet implemented."),
         0b11 => {
             let rexb_opt = prefix.rex.map(|r| r.b);
-            let (reg, _rex_b_matters) = reg8_field_select(modrm.rm3, rexb_opt);
-            // TODO: Handle rex_b_matters
-            RM8::Reg(reg)
+            let (reg, rex_b_matters) = reg8_field_select(modrm.rm3, rexb_opt);
+            (RM8::Reg(reg), rex_b_matters)
         }
         _ => panic!("Missing match arm in modrm_decode_addr8."),
     }
 }
 
 // r/m16
-fn decode_rm16(modrm: &ModRM, prefix: Prefix) -> RM16 {
+fn decode_rm16(modrm: &ModRM, prefix: &Prefix) -> RM16 {
     match modrm.mod2 {
         0b00 => RM16::Addr(decode_rm_00(modrm, prefix)),
         0b01 | 0b10 => todo!("ModR/M addressing mode not yet implemented."),
@@ -258,7 +265,7 @@ fn decode_rm16(modrm: &ModRM, prefix: Prefix) -> RM16 {
 }
 
 // r/m32
-fn decode_rm32(modrm: &ModRM, prefix: Prefix) -> RM32 {
+fn decode_rm32(modrm: &ModRM, prefix: &Prefix) -> RM32 {
     match modrm.mod2 {
         0b00 => RM32::Addr(decode_rm_00(modrm, prefix)),
         0b01 | 0b10 => todo!("ModR/M addressing mode not yet implemented."),
@@ -271,7 +278,7 @@ fn decode_rm32(modrm: &ModRM, prefix: Prefix) -> RM32 {
 }
 
 // r/m64
-fn decode_rm64(modrm: &ModRM, prefix: Prefix) -> RM64 {
+fn decode_rm64(modrm: &ModRM, prefix: &Prefix) -> RM64 {
     match modrm.mod2 {
         0b00 => RM64::Addr(decode_rm_00(modrm, prefix)),
         0b01 | 0b10 => todo!("ModR/M addressing mode not yet implemented."),
@@ -285,9 +292,9 @@ fn decode_rm64(modrm: &ModRM, prefix: Prefix) -> RM64 {
 
 /// Vol 2A: Table 2-2. "32-Bit Addressing Forms with the ModR/M Byte"
 /// The table only provides (address_size, rexb) = (Addr32, false). Rest are guesses.
-fn decode_rm_00(modrm: &ModRM, prefix: Prefix) -> EffAddr {
+fn decode_rm_00(modrm: &ModRM, prefix: &Prefix) -> EffAddr {
     let rexb = prefix.rex.map(|r| r.b).unwrap_or(false);
-    let address_size = AddressSizeAttribute::from_prefix(prefix);
+    let address_size = prefix.address_size;
     match (address_size, rexb, modrm.rm3) {
         (Addr32, false, 0b000) => EffAddr::Reg32(GPR32::eax),
         (Addr32, false, 0b001) => EffAddr::Reg32(GPR32::ecx),
