@@ -188,7 +188,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             lex.rex_b_mattered |= rex_b_matters;
             lex.rex_presence_mattered |= rex_b_matters;
             lex.maybe_remove_rex();
-            MovImm8(reg, imm8)
+            MovOI8(reg, imm8)
         }
         0xB8..=0xBF => {
             let opcode = lex.next_u8();
@@ -209,21 +209,21 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     let imm16 = lex.next_imm16();
                     let reg =
                         reg16_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
-                    MovImm16(reg, imm16)
+                    MovOI16(reg, imm16)
                 }
                 Data32 => {
                     // B8+ rd id; MOV r32, imm32
                     let imm32 = lex.next_imm32();
                     let reg =
                         reg32_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
-                    MovImm32(reg, imm32)
+                    MovOI32(reg, imm32)
                 }
                 Data64 => {
                     // REX.W + B8+ rd io
                     let imm64 = lex.next_imm64();
                     let reg =
                         reg64_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
-                    MovImm64(reg, imm64)
+                    MovOI64(reg, imm64)
                 }
             }
         }
@@ -276,7 +276,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                             // REX.W + C7 /0 id; MOV r/m64, imm32
                             let rm64 = decode_rm64(lex, &modrm);
                             let imm32 = lex.next_imm32();
-                            MovMI32s64(rm64, imm32)
+                            // Sign extend imm32 to u64.
+                            MovMI64(rm64, imm32 as i32 as u64)
                         }
                     }
                 }

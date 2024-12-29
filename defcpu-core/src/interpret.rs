@@ -54,16 +54,16 @@ impl Machine {
                 let val = self.get_rm8(rm8);
                 self.regs.set_reg8(gpr8, val);
             }
-            Inst::MovImm8(gpr8, imm8) => {
+            Inst::MovOI8(gpr8, imm8) => {
                 self.regs.set_reg8(gpr8, imm8);
             }
-            Inst::MovImm16(gpr16, imm16) => {
+            Inst::MovOI16(gpr16, imm16) => {
                 self.regs.set_reg16(gpr16, imm16);
             }
-            Inst::MovImm32(gpr32, imm32) => {
+            Inst::MovOI32(gpr32, imm32) => {
                 self.regs.set_reg32(gpr32, imm32);
             }
-            Inst::MovImm64(gpr64, imm64) => {
+            Inst::MovOI64(gpr64, imm64) => {
                 self.regs.set_reg64(gpr64, imm64);
             }
             Inst::MovMI8(rm8, imm8) => {
@@ -75,11 +75,8 @@ impl Machine {
             Inst::MovMI32(rm32, imm32) => {
                 self.set_rm32(rm32, imm32);
             }
-            Inst::MovMI32s64(rm64, imm32) => {
-                // `as i32` is a no-op since the i32 is 2's complement.
-                // `as u64` sign-extends, since the smaller integer is signed.
-                let sign_extended = (imm32 as i32) as u64;
-                self.set_rm64(rm64, sign_extended);
+            Inst::MovMI64(rm64, imm64) => {
+                self.set_rm64(rm64, imm64);
             }
             Inst::Hlt => {
                 eprintln!("{}", self.regs);

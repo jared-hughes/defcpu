@@ -7,6 +7,8 @@ use crate::{
 
 use Inst::*;
 /// Instructions. Tuple args are in Intel order.
+/// For valid opcodes, the name of each variant is the mnemonic,
+/// followed by the Op/En column then the operand size.
 pub enum Inst {
     /// Haven't yet implemented this. May or may not be a valid opcode.
     NotImplemented(u8),
@@ -20,13 +22,13 @@ pub enum Inst {
     /// 8A /r; MOV r8, r/m8; Move r/m8 to r8.
     MovRM8(GPR8, RM8),
     /// B0+ rb ib; MOV r8, imm8; Move imm8 to r8.
-    MovImm8(GPR8, u8),
+    MovOI8(GPR8, u8),
     /// B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
-    MovImm16(GPR16, u16),
+    MovOI16(GPR16, u16),
     /// B8+ rd id; MOV r32, imm32; Move imm32 to r32.
-    MovImm32(GPR32, u32),
+    MovOI32(GPR32, u32),
     /// REX.W + B8+ rd io; MOV r64, imm64; Move imm64 to r64.
-    MovImm64(GPR64, u64),
+    MovOI64(GPR64, u64),
     /// C6 /0 ib; MOV r/m8, imm8; Move imm8 to r/m8.
     MovMI8(RM8, u8),
     /// C7 /0 iw; MOV r/m16, imm16; Move imm16 to r/m16.
@@ -34,7 +36,7 @@ pub enum Inst {
     /// C7 /0 id; MOV r/m32, imm32; Move imm32 to r/m32.
     MovMI32(RM32, u32),
     /// REX.W + C7 /0 id; MOV r/m64, imm32; Move imm32 sign extended to 64-bits to r/m64.
-    MovMI32s64(RM64, u32),
+    MovMI64(RM64, u64),
     /// F4; HLT
     Hlt,
 }
@@ -51,15 +53,15 @@ impl Inst {
             NotImplemented(_) | NotImplementedOpext(_, _) | RexNoop => "".to_owned(),
             MovMR8(addr, reg) => format!("{}, {}", reg, addr),
             MovRM8(reg, addr) => format!("{}, {}", addr, reg),
-            MovImm8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
-            MovImm16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
-            MovImm32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
-            MovImm64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
+            MovOI8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
+            MovOI16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
+            MovOI32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
+            MovOI64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
             MovMI8(addr, imm8) => format!("${:#x}, {}", imm8, addr),
             MovMI16(addr, imm16) => format!("${:#x}, {}", imm16, addr),
             MovMI32(addr, imm32) => format!("${:#x}, {}", imm32, addr),
             // TODO: no way this is correct
-            MovMI32s64(addr, imm32) => format!("${:#x}, {}", imm32, addr),
+            MovMI64(addr, imm32) => format!("${:#x}, {}", imm32, addr),
             Hlt => String::new(),
         }
     }
@@ -70,9 +72,9 @@ impl Inst {
             RexNoop => "",
             MovMR8(_, _) => "mov",
             MovRM8(_, _) => "mov",
-            MovImm8(_, _) => "mov",
-            MovImm16(_, _) => "mov",
-            MovImm32(_, _) => "mov",
+            MovOI8(_, _) => "mov",
+            MovOI16(_, _) => "mov",
+            MovOI32(_, _) => "mov",
             MovMI8(rm8, _) => {
                 if rm8.is_reg() {
                     "mov"
@@ -94,7 +96,7 @@ impl Inst {
                     "movl"
                 }
             }
-            MovMI32s64(rm64, _) => {
+            MovMI64(rm64, _) => {
                 if rm64.is_reg() {
                     "mov"
                 } else {
@@ -102,7 +104,7 @@ impl Inst {
                 }
             }
             // movabs just does the same, idk why gdb dumps as movabs.
-            MovImm64(_, _) => "movabs",
+            MovOI64(_, _) => "movabs",
             Hlt => "hlt",
         }
     }
