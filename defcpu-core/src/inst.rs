@@ -19,8 +19,20 @@ pub enum Inst {
     RexNoop,
     /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
     MovMR8(RM8, GPR8),
+    /// 89 /r; MOV r/m16, r16; Move r16 to r/m16.
+    MovMR16(RM16, GPR16),
+    /// 89 /r; MOV r/m32, r32; Move r32 to r/m32.
+    MovMR32(RM32, GPR32),
+    /// REX.W + 89 /r; MOV r/m64, r64; Move r64 to r/m64.
+    MovMR64(RM64, GPR64),
     /// 8A /r; MOV r8, r/m8; Move r/m8 to r8.
     MovRM8(GPR8, RM8),
+    /// 8B /r; MOV r16, r/m16; Move r/m16 to r16.
+    MovRM16(GPR16, RM16),
+    /// 8B /r; MOV r32, r/m32; Move r/m32 to r32.
+    MovRM32(GPR32, RM32),
+    /// REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
+    MovRM64(GPR64, RM64),
     /// B0+ rb ib; MOV r8, imm8; Move imm8 to r8.
     MovOI8(GPR8, u8),
     /// B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
@@ -51,17 +63,23 @@ impl Inst {
     fn operands(&self) -> String {
         match self {
             NotImplemented(_) | NotImplementedOpext(_, _) | RexNoop => "".to_owned(),
-            MovMR8(addr, reg) => format!("{}, {}", reg, addr),
-            MovRM8(reg, addr) => format!("{}, {}", addr, reg),
+            MovMR8(rm, reg) => format!("{}, {}", reg, rm),
+            MovMR16(rm, reg) => format!("{}, {}", reg, rm),
+            MovMR32(rm, reg) => format!("{}, {}", reg, rm),
+            MovMR64(rm, reg) => format!("{}, {}", reg, rm),
+            MovRM8(reg, rm) => format!("{}, {}", rm, reg),
+            MovRM16(reg, rm) => format!("{}, {}", rm, reg),
+            MovRM32(reg, rm) => format!("{}, {}", rm, reg),
+            MovRM64(reg, rm) => format!("{}, {}", rm, reg),
             MovOI8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
             MovOI16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
             MovOI32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
             MovOI64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
-            MovMI8(addr, imm8) => format!("${:#x}, {}", imm8, addr),
-            MovMI16(addr, imm16) => format!("${:#x}, {}", imm16, addr),
-            MovMI32(addr, imm32) => format!("${:#x}, {}", imm32, addr),
+            MovMI8(rm, imm8) => format!("${:#x}, {}", imm8, rm),
+            MovMI16(rm, imm16) => format!("${:#x}, {}", imm16, rm),
+            MovMI32(rm, imm32) => format!("${:#x}, {}", imm32, rm),
             // TODO: no way this is correct
-            MovMI64(addr, imm32) => format!("${:#x}, {}", imm32, addr),
+            MovMI64(rm, imm32) => format!("${:#x}, {}", imm32, rm),
             Hlt => String::new(),
         }
     }
@@ -71,7 +89,13 @@ impl Inst {
             NotImplementedOpext(_, _) => "(bad)",
             RexNoop => "",
             MovMR8(_, _) => "mov",
+            MovMR16(_, _) => "mov",
+            MovMR32(_, _) => "mov",
+            MovMR64(_, _) => "mov",
             MovRM8(_, _) => "mov",
+            MovRM16(_, _) => "mov",
+            MovRM32(_, _) => "mov",
+            MovRM64(_, _) => "mov",
             MovOI8(_, _) => "mov",
             MovOI16(_, _) => "mov",
             MovOI32(_, _) => "mov",

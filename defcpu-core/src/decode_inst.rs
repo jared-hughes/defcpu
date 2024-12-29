@@ -179,6 +179,62 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 _ => panic!("Missing match arm in decode_inst_inner."),
             }
         }
+        0x89 | 0x8B => {
+            let opcode = lex.next_u8();
+            let modrm = lex.next_modrm();
+            if let Some(rex) = lex.prefix.rex {
+                if rex.w {
+                    operand_size = Data64
+                }
+                lex.rex_w_mattered = true;
+                lex.rex_b_mattered = true;
+                lex.rex_r_mattered = true;
+                lex.maybe_remove_rex();
+            };
+            match operand_size {
+                Data16 => {
+                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
+                    // 8B /r; MOV r16, r/m16; Move r/m16 to r16.
+                    let reg = reg16_field_select(
+                        modrm.reg3,
+                        lex.prefix.rex.map(|x| x.r).unwrap_or(false),
+                    );
+                    let rm16 = decode_rm16(lex, &modrm);
+                    match opcode {
+                        0x89 => MovMR16(rm16, reg),
+                        0x8B => MovRM16(reg, rm16),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                Data32 => {
+                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
+                    // 8B /r; MOV r32, r/m32; Move r/m32 to r32.
+                    let reg = reg32_field_select(
+                        modrm.reg3,
+                        lex.prefix.rex.map(|x| x.r).unwrap_or(false),
+                    );
+                    let rm32 = decode_rm32(lex, &modrm);
+                    match opcode {
+                        0x89 => MovMR32(rm32, reg),
+                        0x8B => MovRM32(reg, rm32),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                Data64 => {
+                    // REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
+                    let reg = reg64_field_select(
+                        modrm.reg3,
+                        lex.prefix.rex.map(|x| x.r).unwrap_or(false),
+                    );
+                    let rm64 = decode_rm64(lex, &modrm);
+                    match opcode {
+                        0x89 => MovMR64(rm64, reg),
+                        0x8B => MovRM64(reg, rm64),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+            }
+        }
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8
             // Move imm8 to r8.
@@ -192,9 +248,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         }
         0xB8..=0xBF => {
             let opcode = lex.next_u8();
-            // The operand size prefix always changes the shape of the mov
-            // instruction, so there is never a need to mention it.
-            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
             if let Some(rex) = lex.prefix.rex {
                 if rex.w {
                     operand_size = Data64
@@ -206,6 +259,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             match operand_size {
                 Data16 => {
                     // B8+ rw iw; MOV r16, imm16
+                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                     let imm16 = lex.next_imm16();
                     let reg =
                         reg16_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
@@ -213,6 +267,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
                 Data32 => {
                     // B8+ rd id; MOV r32, imm32
+                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                     let imm32 = lex.next_imm32();
                     let reg =
                         reg32_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));

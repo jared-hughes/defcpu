@@ -50,9 +50,33 @@ impl Machine {
                 let val = self.regs.get_reg8(gpr8);
                 self.set_rm8(rm8, val);
             }
+            Inst::MovMR16(rm16, gpr16) => {
+                let val = self.regs.get_reg16(gpr16);
+                self.set_rm16(rm16, val);
+            }
+            Inst::MovMR32(rm32, gpr32) => {
+                let val = self.regs.get_reg32(gpr32);
+                self.set_rm32(rm32, val);
+            }
+            Inst::MovMR64(rm64, gpr64) => {
+                let val = self.regs.get_reg64(gpr64);
+                self.set_rm64(rm64, val);
+            }
             Inst::MovRM8(gpr8, rm8) => {
                 let val = self.get_rm8(rm8);
                 self.regs.set_reg8(gpr8, val);
+            }
+            Inst::MovRM16(gpr16, rm16) => {
+                let val = self.get_rm16(rm16);
+                self.regs.set_reg16(gpr16, val);
+            }
+            Inst::MovRM32(gpr32, rm32) => {
+                let val = self.get_rm32(rm32);
+                self.regs.set_reg32(gpr32, val);
+            }
+            Inst::MovRM64(gpr64, rm64) => {
+                let val = self.get_rm64(rm64);
+                self.regs.set_reg64(gpr64, val);
             }
             Inst::MovOI8(gpr8, imm8) => {
                 self.regs.set_reg8(gpr8, imm8);
