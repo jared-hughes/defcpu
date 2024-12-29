@@ -19,7 +19,7 @@ impl ABCDReg {
 }
 
 use QReg::*;
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum QReg {
     Rax,
     Rbx,
@@ -120,7 +120,7 @@ impl fmt::Display for GPR8 {
 }
 
 // Word (16 bits)
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct GPR16(pub QReg);
 
 impl fmt::Display for GPR16 {
@@ -167,7 +167,7 @@ impl GPR16 {
 }
 
 /// Double word (32 bits)
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct GPR32(pub QReg);
 impl GPR32 {
     #![allow(non_upper_case_globals)]
@@ -213,7 +213,7 @@ impl fmt::Display for GPR32 {
 }
 
 /// Quadword (64 bits)
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct GPR64(pub QReg);
 impl GPR64 {
     #![allow(non_upper_case_globals)]

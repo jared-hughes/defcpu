@@ -1,6 +1,6 @@
 use crate::{
     inst::{
-        Base32, Base64, EffAddr, FullInst,
+        Base32, Base64, EffAddr, FullInst, Index32, Index64,
         Inst::{self, *},
         Scale::{self, *},
         RM16, RM32, RM64, RM8, SIDB32, SIDB64,
@@ -368,7 +368,7 @@ fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
     if modrm.mod2 == 0b00 && (rexb, modrm.rm3) == (false, 0b101) {
         // Special case: Instead of encoding a plain [ebp],
         // it encodes as disp32 instead. Since we are in 64-bit mode,
-        // it's actually RIP-relative.
+        // it's actually a RIP-relative disp32.
         // See Vol 2A: 2.2.1.6 "RIP-Relative Addressing", and Table 2-7.
         return match address_size {
             Addr32 => EffAddr::EffAddr32(SIDB32 {
@@ -470,26 +470,25 @@ fn decode_sib_addr32(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
     let rex_x = lex.prefix.rex.map(|r| r.x).unwrap_or(false);
     lex.rex_x_mattered = true;
     let index_reg = match (rex_x, sib.index3) {
-        (false, 0b000) => GPR32::eax,
-        (false, 0b001) => GPR32::ecx,
-        (false, 0b010) => GPR32::edx,
-        (false, 0b011) => GPR32::ebx,
+        (false, 0b000) => Index32::GPR32(GPR32::eax),
+        (false, 0b001) => Index32::GPR32(GPR32::ecx),
+        (false, 0b010) => Index32::GPR32(GPR32::edx),
+        (false, 0b011) => Index32::GPR32(GPR32::ebx),
         (false, 0b100) => {
-            // TODO: In 64-bit addressing, this might be RIP-relative.
-            // See Vol 2A: 2.2.1.6 "RIP-Relative Addressing", and Table 2-7.
-            todo!("'none' row. Is this RIP-relative?")
+            // 'none'
+            Index32::Eiz
         }
-        (false, 0b101) => GPR32::ebp,
-        (false, 0b110) => GPR32::esi,
-        (false, 0b111) => GPR32::edi,
-        (true, 0b000) => GPR32::r8d,
-        (true, 0b001) => GPR32::r9d,
-        (true, 0b010) => GPR32::r10d,
-        (true, 0b011) => GPR32::r11d,
-        (true, 0b100) => GPR32::r12d,
-        (true, 0b101) => GPR32::r13d,
-        (true, 0b110) => GPR32::r14d,
-        (true, 0b111) => GPR32::r15d,
+        (false, 0b101) => Index32::GPR32(GPR32::ebp),
+        (false, 0b110) => Index32::GPR32(GPR32::esi),
+        (false, 0b111) => Index32::GPR32(GPR32::edi),
+        (true, 0b000) => Index32::GPR32(GPR32::r8d),
+        (true, 0b001) => Index32::GPR32(GPR32::r9d),
+        (true, 0b010) => Index32::GPR32(GPR32::r10d),
+        (true, 0b011) => Index32::GPR32(GPR32::r11d),
+        (true, 0b100) => Index32::GPR32(GPR32::r12d),
+        (true, 0b101) => Index32::GPR32(GPR32::r13d),
+        (true, 0b110) => Index32::GPR32(GPR32::r14d),
+        (true, 0b111) => Index32::GPR32(GPR32::r15d),
         _ => panic!("Missing match arm."),
     };
     let rex_b = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
@@ -546,26 +545,25 @@ fn decode_sib_addr64(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
     let rex_x = lex.prefix.rex.map(|r| r.x).unwrap_or(false);
     lex.rex_x_mattered = true;
     let index_reg = match (rex_x, sib.index3) {
-        (false, 0b000) => GPR64::rax,
-        (false, 0b001) => GPR64::rcx,
-        (false, 0b010) => GPR64::rdx,
-        (false, 0b011) => GPR64::rbx,
+        (false, 0b000) => Index64::GPR64(GPR64::rax),
+        (false, 0b001) => Index64::GPR64(GPR64::rcx),
+        (false, 0b010) => Index64::GPR64(GPR64::rdx),
+        (false, 0b011) => Index64::GPR64(GPR64::rbx),
         (false, 0b100) => {
-            // TODO: In 64-bit addressing, this might be RIP-relative.
-            // See Vol 2A: 2.2.1.6 "RIP-Relative Addressing", and Table 2-7.
-            todo!("'none' row. Is this RIP-relative?")
+            // 'none'
+            Index64::Riz
         }
-        (false, 0b101) => GPR64::rbp,
-        (false, 0b110) => GPR64::rsi,
-        (false, 0b111) => GPR64::rdi,
-        (true, 0b000) => GPR64::r8,
-        (true, 0b001) => GPR64::r9,
-        (true, 0b010) => GPR64::r10,
-        (true, 0b011) => GPR64::r11,
-        (true, 0b100) => GPR64::r12,
-        (true, 0b101) => GPR64::r13,
-        (true, 0b110) => GPR64::r14,
-        (true, 0b111) => GPR64::r15,
+        (false, 0b101) => Index64::GPR64(GPR64::rbp),
+        (false, 0b110) => Index64::GPR64(GPR64::rsi),
+        (false, 0b111) => Index64::GPR64(GPR64::rdi),
+        (true, 0b000) => Index64::GPR64(GPR64::r8),
+        (true, 0b001) => Index64::GPR64(GPR64::r9),
+        (true, 0b010) => Index64::GPR64(GPR64::r10),
+        (true, 0b011) => Index64::GPR64(GPR64::r11),
+        (true, 0b100) => Index64::GPR64(GPR64::r12),
+        (true, 0b101) => Index64::GPR64(GPR64::r13),
+        (true, 0b110) => Index64::GPR64(GPR64::r14),
+        (true, 0b111) => Index64::GPR64(GPR64::r15),
         _ => panic!("Missing match arm."),
     };
     let rex_b = lex.prefix.rex.map(|r| r.b).unwrap_or(false);

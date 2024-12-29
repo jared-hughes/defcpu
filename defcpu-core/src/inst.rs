@@ -102,6 +102,7 @@ impl fmt::Display for FullInst {
     }
 }
 
+use Scale::*;
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum Scale {
     Scale1,
@@ -112,10 +113,10 @@ pub(crate) enum Scale {
 impl From<Scale> for u8 {
     fn from(val: Scale) -> Self {
         match val {
-            Scale::Scale1 => 1,
-            Scale::Scale2 => 2,
-            Scale::Scale4 => 4,
-            Scale::Scale8 => 8,
+            Scale1 => 1,
+            Scale2 => 2,
+            Scale4 => 4,
+            Scale8 => 8,
         }
     }
 }
@@ -143,21 +144,25 @@ fn format_addr<Base: fmt::Display, Reg: fmt::Display>(
             write!(f, "{:#x}", ReallySigned(disp))?;
         }
     }
-    write!(f, "(")?;
-    // disp(base, index, scale)
-    if let Some(base) = base {
-        base.fmt(f)?;
+    if base.is_some() || index.is_some() {
+        write!(f, "(")?;
+        // disp(base, index, scale)
+        if let Some(base) = base {
+            base.fmt(f)?;
+        }
+        if let Some(index) = index {
+            write!(f, ", {}", index)?;
+            let scale: u8 = scale.into();
+            write!(f, ", {}", scale)?;
+        }
+        write!(f, ")")?;
     }
-    if let Some(index) = index {
-        write!(f, ", {}", index)?;
-        let scale: u8 = scale.into();
-        write!(f, ", {}", scale)?;
-    }
-    write!(f, ")")
+    Ok(())
 }
 
 #[derive(Clone, Copy)]
 pub enum Base32 {
+    // EBP is actually unencodable afaict
     GPR32(GPR32),
     Eip,
 }
@@ -170,21 +175,49 @@ impl fmt::Display for Base32 {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum Index32 {
+    // ESP is actually unencodable afaict
+    GPR32(GPR32),
+    // Eiz is just a pseudo-register that GNU uses to represent zero
+    Eiz,
+}
+impl fmt::Display for Index32 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Index32::GPR32(gpr32) => gpr32.fmt(f),
+            Index32::Eiz => write!(f, "%eiz"),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct SIDB32 {
     pub(crate) disp: Option<i32>,
     pub(crate) base: Option<Base32>,
-    pub(crate) index: Option<GPR32>,
+    pub(crate) index: Option<Index32>,
     pub(crate) scale: Scale,
 }
 impl fmt::Display for SIDB32 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        format_addr(f, self.disp, self.base, self.index, self.scale)
+        let index = match (self.base, self.index, self.scale) {
+            (Some(Base32::GPR32(GPR32::esp)), Some(Index32::Eiz), Scale1) => {
+                // Special case: We don't want want to show
+                // (%esp, %eiz, 1) because the only way to encode it is via %eiz.
+                // We do show other cases, like (, %eiz, 1) and (%ebp, %eiz, 1) because
+                // they can be encoded without the %eiz; a plain (%ebp)
+                // has a distinct bit representation.
+                None
+            }
+            _ => self.index,
+        };
+        format_addr(f, self.disp, self.base, index, self.scale)
     }
 }
 
 #[derive(Clone, Copy)]
 pub enum Base64 {
+    // RBP is actually unencodable afaict
     GPR64(GPR64),
     Rip,
 }
@@ -197,16 +230,45 @@ impl fmt::Display for Base64 {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum Index64 {
+    // RSP is actually unencodable afaict
+    GPR64(GPR64),
+    // Riz is just a pseudo-register that GNU uses to represent zero
+    Riz,
+}
+impl fmt::Display for Index64 {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Index64::GPR64(gpr64) => gpr64.fmt(f),
+            Index64::Riz => write!(f, "%riz"),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct SIDB64 {
     pub(crate) disp: Option<i32>,
     pub(crate) base: Option<Base64>,
-    pub(crate) index: Option<GPR64>,
+    pub(crate) index: Option<Index64>,
     pub(crate) scale: Scale,
 }
 impl fmt::Display for SIDB64 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        format_addr(f, self.disp, self.base, self.index, self.scale)
+        let index = match (self.base, self.index, self.scale) {
+            (Some(Base64::GPR64(GPR64::rsp)), Some(Index64::Riz), Scale1)
+            | (None, Some(Index64::Riz), Scale1) => {
+                // Special case: We don't want want to show
+                // (%rsp, %riz, 1) or (, %riz, 1) because the only way to
+                // encode them is via %riz.
+                // We do show other cases, like (%rbp, %riz, 1) because
+                // they can be encoded without the %riz; a plain (%rbp)
+                // has a distinct bit representation.
+                None
+            }
+            _ => self.index,
+        };
+        format_addr(f, self.disp, self.base, index, self.scale)
     }
 }
 
@@ -230,7 +292,7 @@ impl EffAddr {
             disp: None,
             base: Some(Base32::GPR32(base)),
             index: None,
-            scale: Scale::Scale1,
+            scale: Scale1,
         })
     }
 
@@ -239,7 +301,7 @@ impl EffAddr {
             disp: None,
             base: Some(Base64::GPR64(base)),
             index: None,
-            scale: Scale::Scale1,
+            scale: Scale1,
         })
     }
 
@@ -273,10 +335,11 @@ impl EffAddr {
                         Base32::Eip => regs.get_eip(),
                     })
                     .unwrap_or(0);
-                let scaled_index = sidb
-                    .index
-                    .map(|i| regs.get_reg32(i) * (sidb.scale as u32))
-                    .unwrap_or(0);
+                let scaled_index = match sidb.index {
+                    Some(Index32::GPR32(i)) => regs.get_reg32(i) * (sidb.scale as u32),
+                    Some(Index32::Eiz) => 0,
+                    None => 0,
+                };
                 // TODO: Not sure how to interpret the wrapping here. May be something closer to
                 //  (base as u64) + (scaled_index as u64) + (disp as u64)
                 base.wrapping_add(scaled_index).wrapping_add(disp as u32) as u64
@@ -290,10 +353,11 @@ impl EffAddr {
                         Base64::Rip => regs.get_rip(),
                     })
                     .unwrap_or(0);
-                let scaled_index = sidb
-                    .index
-                    .map(|i| regs.get_reg64(i) * (sidb.scale as u64))
-                    .unwrap_or(0);
+                let scaled_index = match sidb.index {
+                    Some(Index64::GPR64(i)) => regs.get_reg64(i) * (sidb.scale as u64),
+                    Some(Index64::Riz) => 0,
+                    None => 0,
+                };
                 // The `as u64` sign-extends an i32 to u64.
                 base.wrapping_add(scaled_index).wrapping_add(disp as u64)
             }
