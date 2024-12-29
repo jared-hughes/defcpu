@@ -39,6 +39,12 @@ impl Machine {
 
     pub fn run_inst(&mut self, inst: Inst) {
         match inst {
+            Inst::NotImplemented(opcode) => {
+                panic!("Not yet implemented opcode {opcode:02x}.")
+            }
+            Inst::NotImplementedOpext(opcode, sub) => {
+                panic!("Not yet implemented opcode {opcode:02x} /{sub}.")
+            }
             Inst::RexNoop => {}
             Inst::MovMR8(rm8, gpr8) => {
                 let val = self.regs.get_reg8(gpr8);

@@ -77,6 +77,10 @@ impl<'a> Lexer<'a> {
         self.mem.read_u8(self.i)
     }
 
+    fn rollback(&mut self) {
+        self.i -= 1;
+    }
+
     fn next_u8(&mut self) -> u8 {
         let out = self.mem.read_u8(self.i);
         self.i += 1;
@@ -169,11 +173,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             lex.rex_presence_mattered |= rex_r_matters;
             let rm8 = decode_rm8(lex, &modrm);
             lex.maybe_remove_rex();
-            if modrm.mod2 != 0b11 {
-                // mod2 == 0b11 means the r/m is a register. Otherwise
-                // it is a computed address, 32- or 64- bits.
-                lex.prefix.dis_prefix.remove_last_address_size_prefix();
-            }
             match opcode {
                 0x88 => MovMR8(rm8, reg),
                 0x8A => MovRM8(reg, rm8),
@@ -235,12 +234,15 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 0 => {
                     // C6 /0 ib; MOV r/m8, imm16
                     // REX + C6 /0 ib; MOV r/m8, imm16
-                    let imm8 = lex.next_imm8();
                     let rm8 = decode_rm8(lex, &modrm);
+                    let imm8 = lex.next_imm8();
                     lex.maybe_remove_rex();
                     MovMI8(rm8, imm8)
                 }
-                _ => unimplemented!("Opcode {:02X} /{} not yet implemented.", opcode, modrm.reg3),
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
             }
         }
         0xC7 => {
@@ -260,25 +262,28 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     match operand_size {
                         Data16 => {
                             // C7 /0 iw; MOV r/m16, imm16
-                            let imm16 = lex.next_imm16();
                             let rm16 = decode_rm16(lex, &modrm);
+                            let imm16 = lex.next_imm16();
                             MovMI16(rm16, imm16)
                         }
                         Data32 => {
                             // C7 /0 id; MOV r/m32, imm32
-                            let imm32 = lex.next_imm32();
                             let rm32 = decode_rm32(lex, &modrm);
+                            let imm32 = lex.next_imm32();
                             MovMI32(rm32, imm32)
                         }
                         Data64 => {
                             // REX.W + C7 /0 id; MOV r/m64, imm32
-                            let imm32 = lex.next_imm32();
                             let rm64 = decode_rm64(lex, &modrm);
+                            let imm32 = lex.next_imm32();
                             MovMI32s64(rm64, imm32)
                         }
                     }
                 }
-                _ => unimplemented!("Opcode {:02X} /{} not yet implemented.", opcode, modrm.reg3),
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
             }
         }
         0xF4 => {
@@ -288,7 +293,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             let _opcode = lex.next_u8();
             Hlt
         }
-        opcode => unimplemented!("Opcode {:02X} not yet implemented.", opcode),
+        opcode => NotImplemented(opcode),
     }
 }
 
@@ -364,6 +369,8 @@ fn decode_rm64(lex: &mut Lexer, modrm: &ModRM) -> RM64 {
 fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
     let rexb = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
     lex.rex_b_mattered = true;
+    // Address size matters, so we don't need to show it.
+    lex.prefix.dis_prefix.remove_last_address_size_prefix();
     let address_size = lex.prefix.address_size;
     if modrm.mod2 == 0b00 && (rexb, modrm.rm3) == (false, 0b101) {
         // Special case: Instead of encoding a plain [ebp],

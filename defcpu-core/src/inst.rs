@@ -8,29 +8,34 @@ use crate::{
 use Inst::*;
 /// Instructions. Tuple args are in Intel order.
 pub enum Inst {
+    /// Haven't yet implemented this. May or may not be a valid opcode.
+    NotImplemented(u8),
+    /// Haven't yet implemented this. May or may not be a valid opcode.
+    /// Has an opcode extension: (a,b) represents a with the 3-byte b extension.
+    NotImplementedOpext(u8, u8),
     /// A no-op stemming from REX not being followed by a valid expression.
     RexNoop,
-    // 88 /r; MOV r/m8, r8; Move r8 to r/m8.
+    /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
     MovMR8(RM8, GPR8),
-    // 8A /r; MOV r8, r/m8; Move r/m8 to r8.
+    /// 8A /r; MOV r8, r/m8; Move r/m8 to r8.
     MovRM8(GPR8, RM8),
-    // B0+ rb ib; MOV r8, imm8; Move imm8 to r8.
+    /// B0+ rb ib; MOV r8, imm8; Move imm8 to r8.
     MovImm8(GPR8, u8),
-    // B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
+    /// B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
     MovImm16(GPR16, u16),
-    // B8+ rd id; MOV r32, imm32; Move imm32 to r32.
+    /// B8+ rd id; MOV r32, imm32; Move imm32 to r32.
     MovImm32(GPR32, u32),
-    // REX.W + B8+ rd io; MOV r64, imm64; Move imm64 to r64.
+    /// REX.W + B8+ rd io; MOV r64, imm64; Move imm64 to r64.
     MovImm64(GPR64, u64),
-    // C6 /0 ib; MOV r/m8, imm8; Move imm8 to r/m8.
+    /// C6 /0 ib; MOV r/m8, imm8; Move imm8 to r/m8.
     MovMI8(RM8, u8),
-    // C7 /0 iw; MOV r/m16, imm16; Move imm16 to r/m16.
+    /// C7 /0 iw; MOV r/m16, imm16; Move imm16 to r/m16.
     MovMI16(RM16, u16),
-    // C7 /0 id; MOV r/m32, imm32; Move imm32 to r/m32.
+    /// C7 /0 id; MOV r/m32, imm32; Move imm32 to r/m32.
     MovMI32(RM32, u32),
-    // REX.W + C7 /0 id; MOV r/m64, imm32; Move imm32 sign extended to 64-bits to r/m64.
+    /// REX.W + C7 /0 id; MOV r/m64, imm32; Move imm32 sign extended to 64-bits to r/m64.
     MovMI32s64(RM64, u32),
-    // F4; HLT
+    /// F4; HLT
     Hlt,
 }
 
@@ -41,34 +46,61 @@ impl Inst {
             inner: self,
         }
     }
-    fn fmt_operands(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn operands(&self) -> String {
         match self {
-            RexNoop => Ok(()),
-            MovMR8(addr, reg) => write!(f, "{}, {}", reg, addr),
-            MovRM8(reg, addr) => write!(f, "{}, {}", addr, reg),
-            MovImm8(gpr8, imm8) => write!(f, "${:#x}, {}", imm8, gpr8),
-            MovImm16(gpr16, imm16) => write!(f, "${:#x}, {}", imm16, gpr16),
-            MovImm32(gpr32, imm32) => write!(f, "${:#x}, {}", imm32, gpr32),
-            MovImm64(gpr64, imm64) => write!(f, "${:#x}, {}", imm64, gpr64),
-            MovMI8(addr, imm8) => write!(f, "${:#x}, {}", imm8, addr),
-            MovMI16(addr, imm16) => write!(f, "${:#x}, {}", imm16, addr),
-            MovMI32(addr, imm32) => write!(f, "${:#x}, {}", imm32, addr),
-            MovMI32s64(addr, imm32) => write!(f, "${:#x}, {}", imm32, addr),
-            Hlt => write!(f, ""),
+            NotImplemented(_) | NotImplementedOpext(_, _) | RexNoop => "".to_owned(),
+            MovMR8(addr, reg) => format!("{}, {}", reg, addr),
+            MovRM8(reg, addr) => format!("{}, {}", addr, reg),
+            MovImm8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
+            MovImm16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
+            MovImm32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
+            MovImm64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
+            MovMI8(addr, imm8) => format!("${:#x}, {}", imm8, addr),
+            MovMI16(addr, imm16) => format!("${:#x}, {}", imm16, addr),
+            MovMI32(addr, imm32) => format!("${:#x}, {}", imm32, addr),
+            // TODO: no way this is correct
+            MovMI32s64(addr, imm32) => format!("${:#x}, {}", imm32, addr),
+            Hlt => String::new(),
         }
     }
     fn mnemonic(&self) -> &str {
         match self {
+            NotImplemented(_) => "(bad)",
+            NotImplementedOpext(_, _) => "(bad)",
             RexNoop => "",
             MovMR8(_, _) => "mov",
             MovRM8(_, _) => "mov",
             MovImm8(_, _) => "mov",
             MovImm16(_, _) => "mov",
             MovImm32(_, _) => "mov",
-            MovMI8(_, _) => "mov",
-            MovMI16(_, _) => "mov",
-            MovMI32(_, _) => "mov",
-            MovMI32s64(_, _) => "mov",
+            MovMI8(rm8, _) => {
+                if rm8.is_reg() {
+                    "mov"
+                } else {
+                    "movb"
+                }
+            }
+            MovMI16(rm16, _) => {
+                if rm16.is_reg() {
+                    "mov"
+                } else {
+                    "movw"
+                }
+            }
+            MovMI32(rm32, _) => {
+                if rm32.is_reg() {
+                    "mov"
+                } else {
+                    "movl"
+                }
+            }
+            MovMI32s64(rm64, _) => {
+                if rm64.is_reg() {
+                    "mov"
+                } else {
+                    "movq"
+                }
+            }
             // movabs just does the same, idk why gdb dumps as movabs.
             MovImm64(_, _) => "movabs",
             Hlt => "hlt",
@@ -92,9 +124,14 @@ impl fmt::Display for FullInst {
             } else {
                 mnem.to_string()
             };
-            // The prefix and mnemonic together get a budget of 6 spaces.
-            write!(f, "{:6} ", prefix_plus_mnemonic)?;
-            self.inner.fmt_operands(f)
+            let operands = self.inner.operands();
+            if operands.is_empty() {
+                write!(f, "{}", prefix_plus_mnemonic)?;
+            } else {
+                // The prefix and mnemonic together get a budget of 6 spaces.
+                write!(f, "{prefix_plus_mnemonic:6} {operands}")?;
+            }
+            Ok(())
         } else {
             // Just prefixes, e.g. due to REX no-op.
             write!(f, "{}", self.prefix)
@@ -369,6 +406,11 @@ pub enum RM8 {
     Addr(EffAddr),
     Reg(GPR8),
 }
+impl RM8 {
+    fn is_reg(&self) -> bool {
+        matches!(self, RM8::Reg(_))
+    }
+}
 impl fmt::Display for RM8 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -381,6 +423,11 @@ impl fmt::Display for RM8 {
 pub enum RM16 {
     Addr(EffAddr),
     Reg(GPR16),
+}
+impl RM16 {
+    fn is_reg(&self) -> bool {
+        matches!(self, RM16::Reg(_))
+    }
 }
 impl fmt::Display for RM16 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -395,6 +442,11 @@ pub enum RM32 {
     Addr(EffAddr),
     Reg(GPR32),
 }
+impl RM32 {
+    fn is_reg(&self) -> bool {
+        matches!(self, RM32::Reg(_))
+    }
+}
 impl fmt::Display for RM32 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -407,6 +459,11 @@ impl fmt::Display for RM32 {
 pub enum RM64 {
     Addr(EffAddr),
     Reg(GPR64),
+}
+impl RM64 {
+    fn is_reg(&self) -> bool {
+        matches!(self, RM64::Reg(_))
+    }
 }
 impl fmt::Display for RM64 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
