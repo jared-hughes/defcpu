@@ -73,10 +73,6 @@ impl<'a> Lexer<'a> {
         false
     }
 
-    fn peek_u8(&self) -> u8 {
-        self.mem.read_u8(self.i)
-    }
-
     fn rollback(&mut self) {
         self.i -= 1;
     }
@@ -137,36 +133,36 @@ pub fn decode_inst(mem: &Memory, i: u64) -> (FullInst, u64) {
 
 fn decode_inst_inner(lex: &mut Lexer) -> Inst {
     let mut operand_size = lex.prefix.operand_size;
-    match lex.peek_u8() {
+    let opcode = lex.next_u8();
+    match opcode {
         0x40..=0x4F => {
             // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
             if lex.prefix.rex.is_some() {
+                lex.rollback();
                 return RexNoop;
             }
-            let opcode = lex.next_u8();
             lex.prefix = lex.prefix.with_rex(opcode);
             decode_inst_inner(lex)
         }
         0x66 => {
             // 0x66 Operand size prefix.
             if lex.prefix.rex.is_some() {
+                lex.rollback();
                 return RexNoop;
             }
-            let _opcode = lex.next_u8();
             lex.prefix = lex.prefix.with_operand_size_prefix();
             decode_inst_inner(lex)
         }
         0x67 => {
             // 0x67 Address size prefix.
             if lex.prefix.rex.is_some() {
+                lex.rollback();
                 return RexNoop;
             }
-            let _opcode = lex.next_u8();
             lex.prefix = lex.prefix.with_address_size_prefix();
             decode_inst_inner(lex)
         }
         0x88 | 0x8A => {
-            let opcode = lex.next_u8();
             let modrm = lex.next_modrm();
             let (reg, rex_r_matters) = reg8_field_select(modrm.reg3, lex.prefix.rex.map(|x| x.r));
             lex.rex_r_mattered |= rex_r_matters;
@@ -180,7 +176,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             }
         }
         0x89 | 0x8B => {
-            let opcode = lex.next_u8();
             let modrm = lex.next_modrm();
             if let Some(rex) = lex.prefix.rex {
                 if rex.w {
@@ -238,7 +233,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8
             // Move imm8 to r8.
-            let opcode = lex.next_u8();
             let imm8 = lex.next_imm8();
             let (reg, rex_b_matters) = reg8_field_select(opcode, lex.prefix.rex.map(|r| r.b));
             lex.rex_b_mattered |= rex_b_matters;
@@ -247,7 +241,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             MovOI8(reg, imm8)
         }
         0xB8..=0xBF => {
-            let opcode = lex.next_u8();
             if let Some(rex) = lex.prefix.rex {
                 if rex.w {
                     operand_size = Data64
@@ -283,7 +276,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             }
         }
         0xC6 => {
-            let opcode = lex.next_u8();
             let modrm = lex.next_modrm();
             match modrm.reg3 {
                 0 => {
@@ -301,7 +293,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             }
         }
         0xC7 => {
-            let opcode = lex.next_u8();
             let modrm = lex.next_modrm();
             match modrm.reg3 {
                 0 => {
@@ -344,9 +335,9 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         }
         0xF4 => {
             if lex.prefix.rex.is_some() {
+                lex.rollback();
                 return RexNoop;
             }
-            let _opcode = lex.next_u8();
             Hlt
         }
         opcode => NotImplemented(opcode),
