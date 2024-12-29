@@ -96,13 +96,13 @@ impl Memory {
     }
 
     pub fn read_u16(&self, i: u64) -> u16 {
-        let d0 = self.read_u8(i + 0) as u16;
+        let d0 = self.read_u8(i) as u16;
         let d1 = self.read_u8(i + 1) as u16;
         (d1 << 8) | d0
     }
 
     pub fn read_u32(&self, i: u64) -> u32 {
-        let d0 = self.read_u8(i + 0) as u32;
+        let d0 = self.read_u8(i) as u32;
         let d1 = self.read_u8(i + 1) as u32;
         let d2 = self.read_u8(i + 2) as u32;
         let d3 = self.read_u8(i + 3) as u32;
@@ -110,7 +110,7 @@ impl Memory {
     }
 
     pub fn read_u64(&self, i: u64) -> u64 {
-        let d0 = self.read_u8(i + 0) as u64;
+        let d0 = self.read_u8(i) as u64;
         let d1 = self.read_u8(i + 1) as u64;
         let d2 = self.read_u8(i + 2) as u64;
         let d3 = self.read_u8(i + 3) as u64;
@@ -130,19 +130,19 @@ impl Memory {
     }
 
     pub fn write_u16(&mut self, i: u64, val: u16) {
-        self.write_u8(i + 0, (val & 0xFF).try_into().unwrap());
+        self.write_u8(i, (val & 0xFF).try_into().unwrap());
         self.write_u8(i + 1, (val >> 8).try_into().unwrap());
     }
 
     pub fn write_u32(&mut self, i: u64, val: u32) {
-        self.write_u8(i + 0, (val & 0xFF).try_into().unwrap());
+        self.write_u8(i, (val & 0xFF).try_into().unwrap());
         self.write_u8(i + 1, (val >> 8 & 0xFF).try_into().unwrap());
         self.write_u8(i + 2, (val >> 16 & 0xFF).try_into().unwrap());
         self.write_u8(i + 3, (val >> 24 & 0xFF).try_into().unwrap());
     }
 
     pub fn write_u64(&mut self, i: u64, val: u64) {
-        self.write_u8(i + 0, (val & 0xFF).try_into().unwrap());
+        self.write_u8(i, (val & 0xFF).try_into().unwrap());
         self.write_u8(i + 1, (val >> 8 & 0xFF).try_into().unwrap());
         self.write_u8(i + 2, (val >> 16 & 0xFF).try_into().unwrap());
         self.write_u8(i + 3, (val >> 24 & 0xFF).try_into().unwrap());
