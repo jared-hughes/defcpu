@@ -12,11 +12,15 @@ use Inst::*;
 pub enum Inst {
     /// Haven't yet implemented this. May or may not be a valid opcode.
     NotImplemented(u8),
+    /// Haven't yet implemented this 2-byte opcode.
+    NotImplemented2(u8, u8),
     /// Haven't yet implemented this. May or may not be a valid opcode.
     /// Has an opcode extension: (a,b) represents a with the 3-byte b extension.
     NotImplementedOpext(u8, u8),
     /// A no-op stemming from REX not being followed by a valid expression.
     RexNoop,
+    /// 0F 05; SYSCALL; Fast call to privilege level 0 system procedures.
+    Syscall,
     /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
     MovMR8(RM8, GPR8),
     /// 89 /r; MOV r/m16, r16; Move r16 to r/m16.
@@ -62,7 +66,11 @@ impl Inst {
     }
     fn operands(&self) -> String {
         match self {
-            NotImplemented(_) | NotImplementedOpext(_, _) | RexNoop => "".to_owned(),
+            NotImplemented(_)
+            | NotImplemented2(_, _)
+            | NotImplementedOpext(_, _)
+            | RexNoop
+            | Syscall => String::new(),
             MovMR8(rm, reg) => format!("{}, {}", reg, rm),
             MovMR16(rm, reg) => format!("{}, {}", reg, rm),
             MovMR32(rm, reg) => format!("{}, {}", reg, rm),
@@ -85,9 +93,9 @@ impl Inst {
     }
     fn mnemonic(&self) -> &str {
         match self {
-            NotImplemented(_) => "(bad)",
-            NotImplementedOpext(_, _) => "(bad)",
+            NotImplemented(_) | NotImplemented2(_, _) | NotImplementedOpext(_, _) => "(bad)",
             RexNoop => "",
+            Syscall => "syscall",
             MovMR8(_, _) => "mov",
             MovMR16(_, _) => "mov",
             MovMR32(_, _) => "mov",

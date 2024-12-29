@@ -341,6 +341,10 @@ impl Registers {
     pub fn get_rip(&self) -> u64 {
         self.rip
     }
+
+    pub fn get_rflags(&self) -> u64 {
+        self.rflags
+    }
 }
 
 // Ref https://en.wikipedia.org/wiki/FLAGS_register.

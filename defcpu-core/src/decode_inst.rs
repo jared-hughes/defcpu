@@ -135,6 +135,13 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
     let mut operand_size = lex.prefix.operand_size;
     let opcode = lex.next_u8();
     match opcode {
+        0x0F => {
+            let opcode2 = lex.next_u8();
+            match opcode2 {
+                0x05 => Syscall,
+                _ => NotImplemented2(opcode, opcode2),
+            }
+        }
         0x40..=0x4F => {
             // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
             if lex.prefix.rex.is_some() {

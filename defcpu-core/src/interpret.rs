@@ -3,7 +3,8 @@ use crate::{
     inst::{Inst, RM16, RM32, RM64, RM8},
     memory::Memory,
     parse_elf::SimpleElfFile,
-    registers::Registers,
+    read_write::File,
+    registers::{Registers, GPR32, GPR64},
 };
 
 pub struct Machine {
@@ -33,8 +34,8 @@ impl Machine {
             panic!("Unexpected step in a halt state.")
         }
         let (inst, len) = decode_inst(&self.mem, self.regs.rip);
-        self.run_inst(inst.inner);
         self.regs.rip += len;
+        self.run_inst(inst.inner);
     }
 
     pub fn run_inst(&mut self, inst: Inst) {
@@ -42,10 +43,14 @@ impl Machine {
             Inst::NotImplemented(opcode) => {
                 panic!("Not yet implemented opcode {opcode:02x}.")
             }
+            Inst::NotImplemented2(opcode, opcode2) => {
+                panic!("Not yet implemented opcode {opcode:02x} {opcode2:02x}.")
+            }
             Inst::NotImplementedOpext(opcode, sub) => {
                 panic!("Not yet implemented opcode {opcode:02x} /{sub}.")
             }
             Inst::RexNoop => {}
+            Inst::Syscall => self.syscall(),
             Inst::MovMR8(rm8, gpr8) => {
                 let val = self.regs.get_reg8(gpr8);
                 self.set_rm8(rm8, val);
@@ -107,6 +112,38 @@ impl Machine {
                 self.halt = true;
             }
         }
+    }
+
+    fn syscall(&mut self) {
+        let rax = self.regs.get_reg64(GPR64::rax);
+        self.regs.set_reg64(GPR64::rcx, self.regs.get_rip());
+        self.regs.set_reg64(GPR64::r11, self.regs.get_rflags());
+        let ret = match rax {
+            1 => self.sys_write(),
+            60 => self.sys_exit(),
+            _ => panic!("Unimplemented syscall {}", rax),
+        };
+        self.regs.set_reg64(GPR64::rax, ret);
+    }
+
+    fn sys_write(&mut self) -> u64 {
+        // SYSCALL_DEFINE3(write,
+        //     unsigned int, fd,
+        //     const char __user *, buf,
+        //     size_t, count)
+        let fd = self.regs.get_reg32(GPR32::edi);
+        let buf = self.regs.get_reg64(GPR64::rsi);
+        let count = self.regs.get_reg64(GPR64::rdx);
+        let file = File::from_fd(fd);
+        for i in 0..count {
+            file.write_byte(self.mem.read_u8(buf + i));
+        }
+        0
+    }
+
+    fn sys_exit(&mut self) -> u64 {
+        self.halt = true;
+        0
     }
 
     fn get_rm8(&mut self, addr: RM8) -> u8 {
