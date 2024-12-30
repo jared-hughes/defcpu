@@ -8,3 +8,7 @@ cargo test
     cd tests/disassembly
     ./test-disassembly.sh
 )
+(
+    cd tests/integration
+    ./test-run.sh
+)

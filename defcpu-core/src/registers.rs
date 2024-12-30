@@ -445,7 +445,7 @@ impl fmt::Display for Registers {
                 "1 (down)        "
             }
         )?;
-        writeln!(
+        write!(
             f,
             "   Parity = {}",
             if self.rflags & PF_MASK == 0 {

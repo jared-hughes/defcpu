@@ -5,6 +5,16 @@ mkdir -p expected
 
 # TODO remove old expected
 
+unescape() {
+    sed "s/&#39;/'/g" < "$1" | sponge "$1";
+}
+
+add_trailing_newline_if_missing() {
+    if [ -s "$1" ] && [ "$(tail -c1 "$1"; echo x)" != $'\nx' ]; then
+        echo "" >>"$1"
+    fi
+}
+
 # Turn sources/* into expected/* by running on code.golf servers
 for source_file in sources/*.s; do
     base="${source_file##sources/}"
@@ -13,7 +23,8 @@ for source_file in sources/*.s; do
 
     # Check if it's already ran
     sha="$(sha256sum "$source_file")"
-    old_sha="$(cat "./expected/${base}/sha256sum" 2>/dev/null || true)"
+    sha_file="${out_dir}/sha256sum"
+    old_sha="$(cat "$sha_file"  2>/dev/null || true)"
     if [[ "$old_sha" == "$sha" ]]; then
         continue
     fi
@@ -22,7 +33,6 @@ for source_file in sources/*.s; do
     echo "Updating ${base}."
     rm -r "${out_dir}" 2> /dev/null || true
     mkdir -p "${out_dir}"
-    echo "$sha" > "${out_dir}/sha256sum"
 
     # Detect hole
     first_line="$(head -n 1 "$source_file")"
@@ -40,4 +50,10 @@ for source_file in sources/*.s; do
         -i "$source_file" --no-auth -o "${run_tmp_dir}"
     cp "${run_tmp_dir}"/{output,errors} "${out_dir}"
     rm -r "${run_tmp_dir}"
+
+    unescape "$out_dir/errors"
+    add_trailing_newline_if_missing "$out_dir/errors"
+
+    # Only update SHA if successful
+    echo "$sha" > "$sha_file"
 done

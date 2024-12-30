@@ -1,4 +1,4 @@
-Signal: segmentation fault on line 3 (%rip was 0000000000400005)
+Signal: segmentation fault on line 4 (%rip was 000000000040000F)
 Registers:
     %rax = 0000000000000000        %r8  = 0000000000000000
     %rbx = 00000000DEADBEEF        %r9  = 0000000000000000
@@ -9,6 +9,6 @@ Registers:
     %rsp = 00007FFCD4A9D8F0        %r14 = 0000000000000000
     %rbp = 0000000000000000        %r15 = 0000000000000000
 Flags (0000000000010202):
-    Carry     = 0 (no carry)       Zero   = 0 (isn&#39;t zero)
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 0 (positive)
     Direction = 0 (up)             Parity = 0 (odd)

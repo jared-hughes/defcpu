@@ -4,8 +4,8 @@ set -euo pipefail
 # A "make" script-ish.
 (
     cd tests/integration
-    ./build-elfs.sh
     ./run-sources.sh
+    ./build-elfs.sh
 )
 (
     cd tests/disassembly

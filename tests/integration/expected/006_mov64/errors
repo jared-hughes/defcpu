@@ -9,6 +9,6 @@ Registers:
     %rsp = 87654321DEA4BEEB        %r14 = 87654321DEAEBEE1
     %rbp = 87654321DEA5BEEA        %r15 = 87654321DEAFBEE0
 Flags (0000000000010202):
-    Carry     = 0 (no carry)       Zero   = 0 (isn&#39;t zero)
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 0 (positive)
     Direction = 0 (up)             Parity = 0 (odd)

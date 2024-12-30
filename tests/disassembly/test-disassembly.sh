@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # Script pre-req: compile to release target (cargo build --release)
+# Will exit with a nonzero exit code if there's any test failure.
 
 # Ensure `cargo dis` matches the disasembly in sources/a.s.
 # The source of truth is the hexdump bytes on the left.
@@ -12,6 +13,7 @@ mkdir elfs
 rm -r output 2> /dev/null || true
 mkdir output
 
+exit_code=0
 for source_path in sources/*.s; do
     base="${source_path##sources/}"
     base="${base%.s}"
@@ -42,7 +44,9 @@ for source_path in sources/*.s; do
     output_dis=$(< "$output")
     exp_dis=$(< "$source_path")
     if [[ "$exp_dis" != "$output_dis" ]]; then
+        exit_code=1
         echo "Test failure from '$source_path'."
         git --no-pager diff --no-index "$output" "$source_path" || true
     fi
 done
+exit "$exit_code"

@@ -1,4 +1,5 @@
 # hole: fibonacci
+mov $0x00007FFCA2C2BEEB, %rsp
 mov $0xBEEF, %ax
 mov $0xBEEE, %cx
 mov $0xBEED, %dx
