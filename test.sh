@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-
+./make.sh apply
 cargo build --release
 cargo test
 (
