@@ -313,7 +313,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     // REX + C6 /0 ib; MOV r/m8, imm16
                     let rm8 = decode_rm8(lex, &modrm);
                     let imm8 = lex.next_imm8();
-                    lex.maybe_remove_rex();
                     MovMI8(rm8, imm8)
                 }
                 _ => {
@@ -331,21 +330,18 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                         Data16 => {
                             // C7 /0 iw; MOV r/m16, imm16
                             let rm16 = decode_rm16(lex, &modrm);
-                            lex.maybe_remove_rex();
                             let imm16 = lex.next_imm16();
                             MovMI16(rm16, imm16)
                         }
                         Data32 => {
                             // C7 /0 id; MOV r/m32, imm32
                             let rm32 = decode_rm32(lex, &modrm);
-                            lex.maybe_remove_rex();
                             let imm32 = lex.next_imm32();
                             MovMI32(rm32, imm32)
                         }
                         Data64 => {
                             // REX.W + C7 /0 id; MOV r/m64, imm32
                             let rm64 = decode_rm64(lex, &modrm);
-                            lex.maybe_remove_rex();
                             let imm32 = lex.next_imm32();
                             // Sign extend imm32 to u64.
                             MovMI64(rm64, imm32 as i32 as u64)
@@ -368,11 +364,15 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         0xFE => {
             let modrm = lex.next_modrm();
             match modrm.reg3 {
-                0 => {
+                0 | 1 => {
                     // FE /0; INC r/m8; Increment r/m byte by 1.
+                    // FE /1; Dec r/m8; Decrement r/m byte by 1.
                     let rm8 = decode_rm8(lex, &modrm);
-                    lex.maybe_remove_rex();
-                    IncM8(rm8)
+                    match modrm.reg3 {
+                        0 => IncM8(rm8),
+                        1 => DecM8(rm8),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
                 }
                 _ => {
                     lex.rollback();
@@ -383,26 +383,38 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         0xFF => {
             let modrm = lex.next_modrm();
             match modrm.reg3 {
-                0 => {
-                    // FF /0
+                0 | 1 => {
+                    // FF /0, FF /1
                     match lex.get_operand_size() {
                         Data16 => {
                             // FF /0; INC r/m16; Increment r/m word by 1.
+                            // FF /1; DEC r/m16; Decrement r/m word by 1.
                             let rm16 = decode_rm16(lex, &modrm);
-                            lex.maybe_remove_rex();
-                            IncM16(rm16)
+                            match modrm.reg3 {
+                                0 => IncM16(rm16),
+                                1 => DecM16(rm16),
+                                _ => panic!("Missing match arm in decode_inst_inner."),
+                            }
                         }
                         Data32 => {
                             // FF /0; INC r/m32; Increment r/m doubleword by 1.
+                            // FF /1; DEC r/m32; Decrement r/m doubleword by 1.
                             let rm32 = decode_rm32(lex, &modrm);
-                            lex.maybe_remove_rex();
-                            IncM32(rm32)
+                            match modrm.reg3 {
+                                0 => IncM32(rm32),
+                                1 => DecM32(rm32),
+                                _ => panic!("Missing match arm in decode_inst_inner."),
+                            }
                         }
                         Data64 => {
                             // REX.W + FF /0; INC r/m64; Increment r/m quadword by 1.
+                            // REX.W + FF /1; DEC r/m64; Decrement r/m quadword by 1.
                             let rm64 = decode_rm64(lex, &modrm);
-                            lex.maybe_remove_rex();
-                            IncM64(rm64)
+                            match modrm.reg3 {
+                                0 => IncM64(rm64),
+                                1 => DecM64(rm64),
+                                _ => panic!("Missing match arm in decode_inst_inner."),
+                            }
                         }
                     }
                 }

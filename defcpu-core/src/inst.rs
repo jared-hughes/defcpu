@@ -63,6 +63,14 @@ pub enum Inst {
     IncM32(RM32),
     /// REX.W + FF /0; INC r/m64; Increment r/m quadword by 1.
     IncM64(RM64),
+    /// FE /1; DEC r/m8; Decrement r/m byte by 1.
+    DecM8(RM8),
+    /// FF /1; DEC r/m16; Decrement r/m word by 1.
+    DecM16(RM16),
+    /// FF /1; DEC r/m32; Decrement r/m doubleword by 1.
+    DecM32(RM32),
+    /// REX.W + FF /1; DEC r/m64; Decrement r/m quadword by 1.
+    DecM64(RM64),
 }
 
 impl Inst {
@@ -96,10 +104,10 @@ impl Inst {
             MovMI32(rm, imm32) => format!("${:#x}, {}", imm32, rm),
             MovMI64(rm, imm32) => format!("${:#x}, {}", imm32, rm),
             Hlt => String::new(),
-            IncM8(rm8) => format!("{}", rm8),
-            IncM16(rm16) => format!("{}", rm16),
-            IncM32(rm32) => format!("{}", rm32),
-            IncM64(rm64) => format!("{}", rm64),
+            IncM8(rm8) | DecM8(rm8) => format!("{}", rm8),
+            IncM16(rm16) | DecM16(rm16) => format!("{}", rm16),
+            IncM32(rm32) | DecM32(rm32) => format!("{}", rm32),
+            IncM64(rm64) | DecM64(rm64) => format!("{}", rm64),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -129,6 +137,10 @@ impl Inst {
             IncM16(rm16) => rm16.either("inc", "incw"),
             IncM32(rm32) => rm32.either("inc", "incl"),
             IncM64(rm64) => rm64.either("inc", "incq"),
+            DecM8(rm8) => rm8.either("dec", "decb"),
+            DecM16(rm16) => rm16.either("dec", "decw"),
+            DecM32(rm32) => rm32.either("dec", "decl"),
+            DecM64(rm64) => rm64.either("dec", "decq"),
         }
     }
 }

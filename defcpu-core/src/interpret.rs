@@ -115,6 +115,10 @@ impl Machine {
             Inst::IncM16(rm16) => todo!(),
             Inst::IncM32(rm32) => todo!(),
             Inst::IncM64(rm64) => todo!(),
+            Inst::DecM8(rm8) => todo!(),
+            Inst::DecM16(rm16) => todo!(),
+            Inst::DecM32(rm32) => todo!(),
+            Inst::DecM64(rm64) => todo!(),
         }
     }
 
