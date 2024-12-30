@@ -5,7 +5,11 @@ use crate::{
         Scale::{self, *},
         RM16, RM32, RM64, RM8, SIDB32, SIDB64,
     },
-    inst_prefixes::{AddressSizeAttribute::*, OperandSizeAttribute::*, Prefix},
+    inst_prefixes::{
+        AddressSizeAttribute::*,
+        OperandSizeAttribute::{self, *},
+        Prefix,
+    },
     memory::Memory,
     registers::{GPR16, GPR32, GPR64, GPR8},
 };
@@ -45,6 +49,20 @@ impl<'a> Lexer<'a> {
         if !self.should_show_rex() {
             self.prefix.dis_prefix.remove_rex_prefix();
         }
+    }
+
+    /// Only use in places where REX.W matters, and 16/32/64 are all valid sizes.
+    /// Call only once per instruction decode, since this mutates operand size.
+    fn get_operand_size(&mut self) -> OperandSizeAttribute {
+        if let Some(rex) = self.prefix.rex {
+            self.rex_w_mattered = true;
+            self.maybe_remove_rex();
+            if rex.w {
+                return Data64;
+            }
+        }
+        self.prefix.dis_prefix.remove_last_operand_size_prefix();
+        self.prefix.operand_size
     }
 
     /// Do we want to show the REX in disassembly?
@@ -132,7 +150,6 @@ pub fn decode_inst(mem: &Memory, i: u64) -> (FullInst, u64) {
 }
 
 fn decode_inst_inner(lex: &mut Lexer) -> Inst {
-    let mut operand_size = lex.prefix.operand_size;
     let opcode = lex.next_u8();
     match opcode {
         0x0F => {
@@ -184,18 +201,13 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         }
         0x89 | 0x8B => {
             let modrm = lex.next_modrm();
-            if let Some(rex) = lex.prefix.rex {
-                if rex.w {
-                    operand_size = Data64
-                }
-                lex.rex_w_mattered = true;
+            if lex.prefix.rex.is_some() {
                 lex.rex_b_mattered = true;
                 lex.rex_r_mattered = true;
                 lex.maybe_remove_rex();
             };
-            match operand_size {
+            match lex.get_operand_size() {
                 Data16 => {
-                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                     // 8B /r; MOV r16, r/m16; Move r/m16 to r16.
                     let reg = reg16_field_select(
                         modrm.reg3,
@@ -209,7 +221,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     }
                 }
                 Data32 => {
-                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                     // 8B /r; MOV r32, r/m32; Move r/m32 to r32.
                     let reg = reg32_field_select(
                         modrm.reg3,
@@ -248,18 +259,13 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             MovOI8(reg, imm8)
         }
         0xB8..=0xBF => {
-            if let Some(rex) = lex.prefix.rex {
-                if rex.w {
-                    operand_size = Data64
-                }
-                lex.rex_w_mattered = true;
+            if lex.prefix.rex.is_some() {
                 lex.rex_b_mattered = true;
                 lex.maybe_remove_rex();
             };
-            match operand_size {
+            match lex.get_operand_size() {
                 Data16 => {
                     // B8+ rw iw; MOV r16, imm16
-                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                     let imm16 = lex.next_imm16();
                     let reg =
                         reg16_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
@@ -267,7 +273,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
                 Data32 => {
                     // B8+ rd id; MOV r32, imm32
-                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                     let imm32 = lex.next_imm32();
                     let reg =
                         reg32_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
@@ -304,16 +309,9 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             match modrm.reg3 {
                 0 => {
                     // C7 /0
-                    if let Some(rex) = lex.prefix.rex {
-                        if rex.w {
-                            operand_size = Data64
-                        }
-                        lex.rex_w_mattered = true;
-                    }
-                    match operand_size {
+                    match lex.get_operand_size() {
                         Data16 => {
                             // C7 /0 iw; MOV r/m16, imm16
-                            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                             let rm16 = decode_rm16(lex, &modrm);
                             lex.maybe_remove_rex();
                             let imm16 = lex.next_imm16();
@@ -321,7 +319,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                         }
                         Data32 => {
                             // C7 /0 id; MOV r/m32, imm32
-                            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                             let rm32 = decode_rm32(lex, &modrm);
                             lex.maybe_remove_rex();
                             let imm32 = lex.next_imm32();
@@ -370,25 +367,19 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             match modrm.reg3 {
                 0 => {
                     // C7 /0
-                    if let Some(rex) = lex.prefix.rex {
-                        if rex.w {
-                            operand_size = Data64
-                        }
+                    if lex.prefix.rex.is_some() {
                         lex.rex_b_mattered = true;
-                        lex.rex_w_mattered = true;
                     }
-                    match operand_size {
+                    match lex.get_operand_size() {
                         Data16 => {
                             // FF /0; INC r/m16; Increment r/m word by 1.
                             let rm16 = decode_rm16(lex, &modrm);
-                            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                             lex.maybe_remove_rex();
                             IncM16(rm16)
                         }
                         Data32 => {
                             // FF /0; INC r/m32; Increment r/m doubleword by 1.
                             let rm32 = decode_rm32(lex, &modrm);
-                            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                             lex.maybe_remove_rex();
                             IncM32(rm32)
                         }
