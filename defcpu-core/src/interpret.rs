@@ -111,6 +111,10 @@ impl Machine {
                 eprintln!("{}", self.regs);
                 self.halt = true;
             }
+            Inst::IncM8(rm8) => todo!(),
+            Inst::IncM16(rm16) => todo!(),
+            Inst::IncM32(rm32) => todo!(),
+            Inst::IncM64(rm64) => todo!(),
         }
     }
 

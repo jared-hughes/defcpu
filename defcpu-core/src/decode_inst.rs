@@ -304,30 +304,33 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             match modrm.reg3 {
                 0 => {
                     // C7 /0
-                    lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                     if let Some(rex) = lex.prefix.rex {
                         if rex.w {
                             operand_size = Data64
                         }
                         lex.rex_w_mattered = true;
-                        lex.maybe_remove_rex();
                     }
                     match operand_size {
                         Data16 => {
                             // C7 /0 iw; MOV r/m16, imm16
+                            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                             let rm16 = decode_rm16(lex, &modrm);
+                            lex.maybe_remove_rex();
                             let imm16 = lex.next_imm16();
                             MovMI16(rm16, imm16)
                         }
                         Data32 => {
                             // C7 /0 id; MOV r/m32, imm32
+                            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
                             let rm32 = decode_rm32(lex, &modrm);
+                            lex.maybe_remove_rex();
                             let imm32 = lex.next_imm32();
                             MovMI32(rm32, imm32)
                         }
                         Data64 => {
                             // REX.W + C7 /0 id; MOV r/m64, imm32
                             let rm64 = decode_rm64(lex, &modrm);
+                            lex.maybe_remove_rex();
                             let imm32 = lex.next_imm32();
                             // Sign extend imm32 to u64.
                             MovMI64(rm64, imm32 as i32 as u64)
@@ -346,6 +349,62 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 return RexNoop;
             }
             Hlt
+        }
+        0xFE => {
+            let modrm = lex.next_modrm();
+            match modrm.reg3 {
+                0 => {
+                    // FE /0; INC r/m8; Increment r/m byte by 1.
+                    let rm8 = decode_rm8(lex, &modrm);
+                    lex.maybe_remove_rex();
+                    IncM8(rm8)
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
+        0xFF => {
+            let modrm = lex.next_modrm();
+            match modrm.reg3 {
+                0 => {
+                    // C7 /0
+                    if let Some(rex) = lex.prefix.rex {
+                        if rex.w {
+                            operand_size = Data64
+                        }
+                        lex.rex_b_mattered = true;
+                        lex.rex_w_mattered = true;
+                    }
+                    match operand_size {
+                        Data16 => {
+                            // FF /0; INC r/m16; Increment r/m word by 1.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
+                            lex.maybe_remove_rex();
+                            IncM16(rm16)
+                        }
+                        Data32 => {
+                            // FF /0; INC r/m32; Increment r/m doubleword by 1.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            lex.prefix.dis_prefix.remove_last_operand_size_prefix();
+                            lex.maybe_remove_rex();
+                            IncM32(rm32)
+                        }
+                        Data64 => {
+                            // REX.W + FF /0; INC r/m64; Increment r/m quadword by 1.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            lex.maybe_remove_rex();
+                            IncM64(rm64)
+                        }
+                    }
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
         }
         opcode => NotImplemented(opcode),
     }
@@ -426,8 +485,8 @@ fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
     // Address size matters, so we don't need to show it.
     lex.prefix.dis_prefix.remove_last_address_size_prefix();
     let address_size = lex.prefix.address_size;
-    if modrm.mod2 == 0b00 && (rexb, modrm.rm3) == (false, 0b101) {
-        // Special case: Instead of encoding a plain [ebp],
+    if modrm.mod2 == 0b00 && modrm.rm3 == 0b101 {
+        // Special case: Instead of encoding a plain [ebp] (rexb=0) or [r13] (rexb=1),
         // it encodes as disp32 instead. Since we are in 64-bit mode,
         // it's actually a RIP-relative disp32.
         // See Vol 2A: 2.2.1.6 "RIP-Relative Addressing", and Table 2-7.

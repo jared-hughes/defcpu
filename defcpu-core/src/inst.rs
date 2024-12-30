@@ -55,6 +55,14 @@ pub enum Inst {
     MovMI64(RM64, u64),
     /// F4; HLT
     Hlt,
+    /// FE /0; INC r/m8; Increment r/m byte by 1.
+    IncM8(RM8),
+    /// FF /0; INC r/m16; Increment r/m word by 1.
+    IncM16(RM16),
+    /// FF /0; INC r/m32; Increment r/m doubleword by 1.
+    IncM32(RM32),
+    /// REX.W + FF /0; INC r/m64; Increment r/m quadword by 1.
+    IncM64(RM64),
 }
 
 impl Inst {
@@ -86,9 +94,12 @@ impl Inst {
             MovMI8(rm, imm8) => format!("${:#x}, {}", imm8, rm),
             MovMI16(rm, imm16) => format!("${:#x}, {}", imm16, rm),
             MovMI32(rm, imm32) => format!("${:#x}, {}", imm32, rm),
-            // TODO: no way this is correct
             MovMI64(rm, imm32) => format!("${:#x}, {}", imm32, rm),
             Hlt => String::new(),
+            IncM8(rm8) => format!("{}", rm8),
+            IncM16(rm16) => format!("{}", rm16),
+            IncM32(rm32) => format!("{}", rm32),
+            IncM64(rm64) => format!("{}", rm64),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -107,37 +118,17 @@ impl Inst {
             MovOI8(_, _) => "mov",
             MovOI16(_, _) => "mov",
             MovOI32(_, _) => "mov",
-            MovMI8(rm8, _) => {
-                if rm8.is_reg() {
-                    "mov"
-                } else {
-                    "movb"
-                }
-            }
-            MovMI16(rm16, _) => {
-                if rm16.is_reg() {
-                    "mov"
-                } else {
-                    "movw"
-                }
-            }
-            MovMI32(rm32, _) => {
-                if rm32.is_reg() {
-                    "mov"
-                } else {
-                    "movl"
-                }
-            }
-            MovMI64(rm64, _) => {
-                if rm64.is_reg() {
-                    "mov"
-                } else {
-                    "movq"
-                }
-            }
+            MovMI8(rm8, _) => rm8.either("mov", "movb"),
+            MovMI16(rm16, _) => rm16.either("mov", "movw"),
+            MovMI32(rm32, _) => rm32.either("mov", "movl"),
+            MovMI64(rm64, _) => rm64.either("mov", "movq"),
             // movabs just does the same, idk why gdb dumps as movabs.
             MovOI64(_, _) => "movabs",
             Hlt => "hlt",
+            IncM8(rm8) => rm8.either("inc", "incb"),
+            IncM16(rm16) => rm16.either("inc", "incw"),
+            IncM32(rm32) => rm32.either("inc", "incl"),
+            IncM64(rm64) => rm64.either("inc", "incq"),
         }
     }
 }
@@ -328,6 +319,7 @@ impl fmt::Display for SIDB64 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let index = match (self.base, self.index, self.scale) {
             (Some(Base64::GPR64(GPR64::rsp)), Some(Index64::Riz), Scale1)
+            | (Some(Base64::GPR64(GPR64::r12)), Some(Index64::Riz), Scale1)
             | (None, Some(Index64::Riz), Scale1) => {
                 // Special case: We don't want want to show
                 // (%rsp, %riz, 1) or (, %riz, 1) because the only way to
@@ -441,8 +433,11 @@ pub enum RM8 {
     Reg(GPR8),
 }
 impl RM8 {
-    fn is_reg(&self) -> bool {
-        matches!(self, RM8::Reg(_))
+    fn either<'a>(&self, if_reg: &'a str, if_addr: &'a str) -> &'a str {
+        match self {
+            RM8::Reg(_) => if_reg,
+            RM8::Addr(_) => if_addr,
+        }
     }
 }
 impl fmt::Display for RM8 {
@@ -459,8 +454,11 @@ pub enum RM16 {
     Reg(GPR16),
 }
 impl RM16 {
-    fn is_reg(&self) -> bool {
-        matches!(self, RM16::Reg(_))
+    fn either<'a>(&self, if_reg: &'a str, if_addr: &'a str) -> &'a str {
+        match self {
+            RM16::Reg(_) => if_reg,
+            RM16::Addr(_) => if_addr,
+        }
     }
 }
 impl fmt::Display for RM16 {
@@ -477,8 +475,11 @@ pub enum RM32 {
     Reg(GPR32),
 }
 impl RM32 {
-    fn is_reg(&self) -> bool {
-        matches!(self, RM32::Reg(_))
+    fn either<'a>(&self, if_reg: &'a str, if_addr: &'a str) -> &'a str {
+        match self {
+            RM32::Reg(_) => if_reg,
+            RM32::Addr(_) => if_addr,
+        }
     }
 }
 impl fmt::Display for RM32 {
@@ -495,8 +496,11 @@ pub enum RM64 {
     Reg(GPR64),
 }
 impl RM64 {
-    fn is_reg(&self) -> bool {
-        matches!(self, RM64::Reg(_))
+    fn either<'a>(&self, if_reg: &'a str, if_addr: &'a str) -> &'a str {
+        match self {
+            RM64::Reg(_) => if_reg,
+            RM64::Addr(_) => if_addr,
+        }
     }
 }
 impl fmt::Display for RM64 {
