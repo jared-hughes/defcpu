@@ -65,7 +65,6 @@ impl<'a> Lexer<'a> {
         self.prefix.operand_size
     }
 
-    /// Call only once per instruction decode, since this mutates operand size.
     fn reg8_field_select_r(&mut self, op: u8) -> GPR8 {
         let (reg, rex_r_matters) = reg8_field_select(op, self.prefix.rex.map(|x| x.r));
         self.rex_r_mattered |= rex_r_matters;
@@ -74,13 +73,39 @@ impl<'a> Lexer<'a> {
         reg
     }
 
-    /// Call only once per instruction decode, since this mutates operand size.
     fn reg8_field_select_b(&mut self, op: u8) -> GPR8 {
         let (reg, rex_b_matters) = reg8_field_select(op, self.prefix.rex.map(|x| x.b));
         self.rex_b_mattered |= rex_b_matters;
         self.rex_presence_mattered |= rex_b_matters;
         self.maybe_remove_rex();
         reg
+    }
+
+    /// Gives the the REX.X bit and marks it as relevant.
+    /// Do not use this method if it's possible for REX.X=0 and REX.X=1
+    /// to lead to the same behavior in the callee.
+    fn get_rex_r_matters(&mut self) -> bool {
+        self.rex_r_mattered = true;
+        self.maybe_remove_rex();
+        self.prefix.rex.map(|r| r.r).unwrap_or(false)
+    }
+
+    /// Gives the the REX.X bit and marks it as relevant.
+    /// Do not use this method if it's possible for REX.X=0 and REX.X=1
+    /// to lead to the same behavior in the callee.
+    fn get_rex_x_matters(&mut self) -> bool {
+        self.rex_x_mattered = true;
+        self.maybe_remove_rex();
+        self.prefix.rex.map(|r| r.x).unwrap_or(false)
+    }
+
+    /// Gives the the REX.B bit and marks it as relevant.
+    /// Do not use this method if it's possible for REX.B=0 and REX.B=1
+    /// to lead to the same behavior in the callee.
+    fn get_rex_b_matters(&mut self) -> bool {
+        self.rex_b_mattered = true;
+        self.maybe_remove_rex();
+        self.prefix.rex.map(|r| r.b).unwrap_or(false)
     }
 
     /// Do we want to show the REX in disassembly?
@@ -216,18 +241,11 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         }
         0x89 | 0x8B => {
             let modrm = lex.next_modrm();
-            if lex.prefix.rex.is_some() {
-                lex.rex_b_mattered = true;
-                lex.rex_r_mattered = true;
-                lex.maybe_remove_rex();
-            };
+            let rex_r = lex.get_rex_r_matters();
             match lex.get_operand_size() {
                 Data16 => {
                     // 8B /r; MOV r16, r/m16; Move r/m16 to r16.
-                    let reg = reg16_field_select(
-                        modrm.reg3,
-                        lex.prefix.rex.map(|x| x.r).unwrap_or(false),
-                    );
+                    let reg = reg16_field_select(modrm.reg3, rex_r);
                     let rm16 = decode_rm16(lex, &modrm);
                     match opcode {
                         0x89 => MovMR16(rm16, reg),
@@ -237,10 +255,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
                 Data32 => {
                     // 8B /r; MOV r32, r/m32; Move r/m32 to r32.
-                    let reg = reg32_field_select(
-                        modrm.reg3,
-                        lex.prefix.rex.map(|x| x.r).unwrap_or(false),
-                    );
+                    let reg = reg32_field_select(modrm.reg3, rex_r);
                     let rm32 = decode_rm32(lex, &modrm);
                     match opcode {
                         0x89 => MovMR32(rm32, reg),
@@ -250,10 +265,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
                 Data64 => {
                     // REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
-                    let reg = reg64_field_select(
-                        modrm.reg3,
-                        lex.prefix.rex.map(|x| x.r).unwrap_or(false),
-                    );
+                    let reg = reg64_field_select(modrm.reg3, rex_r);
                     let rm64 = decode_rm64(lex, &modrm);
                     match opcode {
                         0x89 => MovMR64(rm64, reg),
@@ -271,30 +283,24 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             MovOI8(reg, imm8)
         }
         0xB8..=0xBF => {
-            if lex.prefix.rex.is_some() {
-                lex.rex_b_mattered = true;
-                lex.maybe_remove_rex();
-            };
+            let rex_b = lex.get_rex_b_matters();
             match lex.get_operand_size() {
                 Data16 => {
                     // B8+ rw iw; MOV r16, imm16
                     let imm16 = lex.next_imm16();
-                    let reg =
-                        reg16_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
+                    let reg = reg16_field_select(opcode, rex_b);
                     MovOI16(reg, imm16)
                 }
                 Data32 => {
                     // B8+ rd id; MOV r32, imm32
                     let imm32 = lex.next_imm32();
-                    let reg =
-                        reg32_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
+                    let reg = reg32_field_select(opcode, rex_b);
                     MovOI32(reg, imm32)
                 }
                 Data64 => {
                     // REX.W + B8+ rd io
                     let imm64 = lex.next_imm64();
-                    let reg =
-                        reg64_field_select(opcode, lex.prefix.rex.map(|r| r.b).unwrap_or(false));
+                    let reg = reg64_field_select(opcode, rex_b);
                     MovOI64(reg, imm64)
                 }
             }
@@ -378,10 +384,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             let modrm = lex.next_modrm();
             match modrm.reg3 {
                 0 => {
-                    // C7 /0
-                    if lex.prefix.rex.is_some() {
-                        lex.rex_b_mattered = true;
-                    }
+                    // FF /0
                     match lex.get_operand_size() {
                         Data16 => {
                             // FF /0; INC r/m16; Increment r/m word by 1.
@@ -444,7 +447,7 @@ fn decode_rm16(lex: &mut Lexer, modrm: &ModRM) -> RM16 {
     match modrm.mod2 {
         0b00..=0b10 => RM16::Addr(decode_rm_00_01_10(lex, modrm)),
         0b11 => {
-            let rexb = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
+            let rexb = lex.get_rex_b_matters();
             RM16::Reg(reg16_field_select(modrm.rm3, rexb))
         }
         _ => panic!("Missing match arm in modrm_decode_addr16."),
@@ -456,7 +459,7 @@ fn decode_rm32(lex: &mut Lexer, modrm: &ModRM) -> RM32 {
     match modrm.mod2 {
         0b00..=0b10 => RM32::Addr(decode_rm_00_01_10(lex, modrm)),
         0b11 => {
-            let rexb = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
+            let rexb = lex.get_rex_b_matters();
             RM32::Reg(reg32_field_select(modrm.rm3, rexb))
         }
         _ => panic!("Missing match arm in modrm_decode_addr32."),
@@ -468,8 +471,8 @@ fn decode_rm64(lex: &mut Lexer, modrm: &ModRM) -> RM64 {
     match modrm.mod2 {
         0b00..=0b10 => RM64::Addr(decode_rm_00_01_10(lex, modrm)),
         0b11 => {
-            let rexb = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
-            RM64::Reg(reg64_field_select(modrm.rm3, rexb))
+            let rex_b = lex.get_rex_b_matters();
+            RM64::Reg(reg64_field_select(modrm.rm3, rex_b))
         }
         _ => panic!("Missing match arm in modrm_decode_addr64."),
     }
@@ -480,9 +483,7 @@ fn decode_rm64(lex: &mut Lexer, modrm: &ModRM) -> RM64 {
 /// 2.2.1.3 Displacement specifies address_size == Addr64 uses the same encodings,
 /// but with addresses 64-bit regs instead of 32-bit. However displacement remains the same size (8/32 bits).
 fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
-    let rexb = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
-    lex.rex_b_mattered = true;
-    lex.maybe_remove_rex();
+    let rex_b = lex.get_rex_b_matters();
     // Address size matters, so we don't need to show it.
     lex.prefix.dis_prefix.remove_last_address_size_prefix();
     let address_size = lex.prefix.address_size;
@@ -507,7 +508,7 @@ fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
         };
     }
     // Here, sidb always has no displacement, so the "d" is a bit misleading.
-    let sidb = match (address_size, rexb, modrm.rm3) {
+    let sidb = match (address_size, rex_b, modrm.rm3) {
         (Addr32, false, 0b000) => EffAddr::from_base_reg32(GPR32::eax),
         (Addr64, false, 0b000) => EffAddr::from_base_reg64(GPR64::rax),
         (Addr32, false, 0b001) => EffAddr::from_base_reg32(GPR32::ecx),
@@ -586,10 +587,7 @@ fn sib_decode(sib: u8) -> SIB {
 
 /// Vol 2A: Table 2-3. 32-Bit Addressing Forms with the SIB Byte
 fn decode_sib_addr32(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
-    let rex_x = lex.prefix.rex.map(|r| r.x).unwrap_or(false);
-    lex.rex_x_mattered = true;
-    lex.maybe_remove_rex();
-    let index_reg = reg32_field_select(sib.index3, rex_x);
+    let index_reg = reg32_field_select(sib.index3, lex.get_rex_x_matters());
     let index_reg = match index_reg {
         GPR32::esp => {
             // 'none' row (REX.X=0, sib.index3=0b100)
@@ -597,7 +595,7 @@ fn decode_sib_addr32(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
         }
         _ => Index32::GPR32(index_reg),
     };
-    let rex_b = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
+    let rex_b = lex.get_rex_b_matters();
     let base_reg = reg32_field_select(sib.base3, rex_b);
     if let (0b00, GPR32::ebp) = (modrm.mod2, base_reg) {
         // Very special case: [*] in the table (REX.b=0, sib.base3=0b101)
@@ -622,10 +620,7 @@ fn decode_sib_addr32(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
 /// 64-bit address mode variation on the 32-bit analog:
 /// Vol 2A: Table 2-3. 32-Bit Addressing Forms with the SIB Byte
 fn decode_sib_addr64(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
-    let rex_x = lex.prefix.rex.map(|r| r.x).unwrap_or(false);
-    lex.rex_x_mattered = true;
-    lex.maybe_remove_rex();
-    let index_reg = reg64_field_select(sib.index3, rex_x);
+    let index_reg = reg64_field_select(sib.index3, lex.get_rex_x_matters());
     let index_reg = match index_reg {
         GPR64::rsp => {
             // 'none' row (REX.X=0, sib.index3=0b100)
@@ -633,7 +628,7 @@ fn decode_sib_addr64(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
         }
         _ => Index64::GPR64(index_reg),
     };
-    let rex_b = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
+    let rex_b = lex.get_rex_b_matters();
     let base_reg = reg64_field_select(sib.base3, rex_b);
     if let (0b00, GPR64::rbp) = (modrm.mod2, base_reg) {
         // Very special case: [*] in the table (REX.b=0, sib.base3=0b101)
