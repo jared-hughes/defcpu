@@ -47,7 +47,7 @@ Run `./test.sh` to run all test files. Currently this only runs disassembly test
 
 The script `build-elfs.sh` uses DefAssembler to make ELF files from the x86 asm in `sources/*.s`. These are NOT checked into git because there's no point. DefAssembler is fast enough, and they're binary files.
 
-The script `run-sources.sh` uses the code.golf servers to run the assembly and put the outputs in the `outputs` directory. Out of respect for the servers, these are checked into git and cached using the `sha256sum` of the sources as the sole cache key.
+The script `run-sources.sh` uses the code.golf servers to run the assembly and put the outputs in the `expected` directory. Out of respect for the servers, these are checked into git and cached using the `sha256sum` of the sources as the sole cache key.
 
 ### Disassembly Tests
 
