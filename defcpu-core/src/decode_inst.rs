@@ -65,6 +65,24 @@ impl<'a> Lexer<'a> {
         self.prefix.operand_size
     }
 
+    /// Call only once per instruction decode, since this mutates operand size.
+    fn reg8_field_select_r(&mut self, op: u8) -> GPR8 {
+        let (reg, rex_r_matters) = reg8_field_select(op, self.prefix.rex.map(|x| x.r));
+        self.rex_r_mattered |= rex_r_matters;
+        self.rex_presence_mattered |= rex_r_matters;
+        self.maybe_remove_rex();
+        reg
+    }
+
+    /// Call only once per instruction decode, since this mutates operand size.
+    fn reg8_field_select_b(&mut self, op: u8) -> GPR8 {
+        let (reg, rex_b_matters) = reg8_field_select(op, self.prefix.rex.map(|x| x.b));
+        self.rex_b_mattered |= rex_b_matters;
+        self.rex_presence_mattered |= rex_b_matters;
+        self.maybe_remove_rex();
+        reg
+    }
+
     /// Do we want to show the REX in disassembly?
     /// If the REX sets a bit that didn't actually affect anything, then yes.
     /// If the REX's presense doesn't actually affect anything, then yes.
@@ -188,11 +206,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         }
         0x88 | 0x8A => {
             let modrm = lex.next_modrm();
-            let (reg, rex_r_matters) = reg8_field_select(modrm.reg3, lex.prefix.rex.map(|x| x.r));
-            lex.rex_r_mattered |= rex_r_matters;
-            lex.rex_presence_mattered |= rex_r_matters;
+            let reg = lex.reg8_field_select_r(modrm.reg3);
             let rm8 = decode_rm8(lex, &modrm);
-            lex.maybe_remove_rex();
             match opcode {
                 0x88 => MovMR8(rm8, reg),
                 0x8A => MovRM8(reg, rm8),
@@ -252,10 +267,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             // B0+ rb ib; MOV r8, imm8
             // Move imm8 to r8.
             let imm8 = lex.next_imm8();
-            let (reg, rex_b_matters) = reg8_field_select(opcode, lex.prefix.rex.map(|r| r.b));
-            lex.rex_b_mattered |= rex_b_matters;
-            lex.rex_presence_mattered |= rex_b_matters;
-            lex.maybe_remove_rex();
+            let reg = lex.reg8_field_select_b(opcode);
             MovOI8(reg, imm8)
         }
         0xB8..=0xBF => {
@@ -420,10 +432,7 @@ fn decode_rm8(lex: &mut Lexer, modrm: &ModRM) -> RM8 {
     match modrm.mod2 {
         0b00..=0b10 => RM8::Addr(decode_rm_00_01_10(lex, modrm)),
         0b11 => {
-            let rexb_opt = lex.prefix.rex.map(|r| r.b);
-            let (reg, rex_b_matters) = reg8_field_select(modrm.rm3, rexb_opt);
-            lex.rex_b_mattered |= rex_b_matters;
-            lex.rex_presence_mattered |= rex_b_matters;
+            let reg = lex.reg8_field_select_b(modrm.rm3);
             RM8::Reg(reg)
         }
         _ => panic!("Missing match arm in modrm_decode_addr8."),
@@ -473,6 +482,7 @@ fn decode_rm64(lex: &mut Lexer, modrm: &ModRM) -> RM64 {
 fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
     let rexb = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
     lex.rex_b_mattered = true;
+    lex.maybe_remove_rex();
     // Address size matters, so we don't need to show it.
     lex.prefix.dis_prefix.remove_last_address_size_prefix();
     let address_size = lex.prefix.address_size;
@@ -576,69 +586,30 @@ fn sib_decode(sib: u8) -> SIB {
 
 /// Vol 2A: Table 2-3. 32-Bit Addressing Forms with the SIB Byte
 fn decode_sib_addr32(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
-    // TODO: Does REX.B, REX.W, REX factor in?
-    // If so, use reg32_field_select.
     let rex_x = lex.prefix.rex.map(|r| r.x).unwrap_or(false);
     lex.rex_x_mattered = true;
-    let index_reg = match (rex_x, sib.index3) {
-        (false, 0b000) => Index32::GPR32(GPR32::eax),
-        (false, 0b001) => Index32::GPR32(GPR32::ecx),
-        (false, 0b010) => Index32::GPR32(GPR32::edx),
-        (false, 0b011) => Index32::GPR32(GPR32::ebx),
-        (false, 0b100) => {
-            // 'none'
+    lex.maybe_remove_rex();
+    let index_reg = reg32_field_select(sib.index3, rex_x);
+    let index_reg = match index_reg {
+        GPR32::esp => {
+            // 'none' row (REX.X=0, sib.index3=0b100)
             Index32::Eiz
         }
-        (false, 0b101) => Index32::GPR32(GPR32::ebp),
-        (false, 0b110) => Index32::GPR32(GPR32::esi),
-        (false, 0b111) => Index32::GPR32(GPR32::edi),
-        (true, 0b000) => Index32::GPR32(GPR32::r8d),
-        (true, 0b001) => Index32::GPR32(GPR32::r9d),
-        (true, 0b010) => Index32::GPR32(GPR32::r10d),
-        (true, 0b011) => Index32::GPR32(GPR32::r11d),
-        (true, 0b100) => Index32::GPR32(GPR32::r12d),
-        (true, 0b101) => Index32::GPR32(GPR32::r13d),
-        (true, 0b110) => Index32::GPR32(GPR32::r14d),
-        (true, 0b111) => Index32::GPR32(GPR32::r15d),
-        _ => panic!("Missing match arm."),
+        _ => Index32::GPR32(index_reg),
     };
     let rex_b = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
-    let base_reg = match (rex_b, sib.base3) {
-        (false, 0b000) => GPR32::eax,
-        (false, 0b001) => GPR32::ecx,
-        (false, 0b010) => GPR32::edx,
-        (false, 0b011) => GPR32::ebx,
-        (false, 0b100) => GPR32::esp,
-        (false, 0b101) => match modrm.mod2 {
-            0b00 => {
-                // Very special case: [*] in the table
-                // (Vol 2A: Table 2-3 "32-Bit Addressing Forms with the SIB Byte")
-                // [*] when the MOD is 0b00 means disp32 with no base.
-                return EffAddr::EffAddr32(SIDB32 {
-                    base: None,
-                    disp: Some(lex.next_i32()),
-                    index: Some(index_reg),
-                    scale: sib.scale,
-                });
-            }
-            // If the mod is 01 or 10, the base is [ebp], and the mod
-            // bits will automatically leads to adding a disp8 or disp32.
-            0b01 | 0b10 => GPR32::ebp,
-            _ => panic!("Missing match arm."),
-        },
-        (false, 0b110) => GPR32::esi,
-        (false, 0b111) => GPR32::edi,
-        (true, 0b000) => GPR32::r8d,
-        (true, 0b001) => GPR32::r9d,
-        (true, 0b010) => GPR32::r10d,
-        (true, 0b011) => GPR32::r11d,
-        (true, 0b100) => GPR32::r12d,
-        // TODO: not sure if the (true, 0b101) case should be the same.
-        (true, 0b101) => GPR32::r13d,
-        (true, 0b110) => GPR32::r14d,
-        (true, 0b111) => GPR32::r15d,
-        _ => panic!("Missing match arm."),
-    };
+    let base_reg = reg32_field_select(sib.base3, rex_b);
+    if let (0b00, GPR32::ebp) = (modrm.mod2, base_reg) {
+        // Very special case: [*] in the table (REX.b=0, sib.base3=0b101)
+        // (Vol 2A: Table 2-3 "32-Bit Addressing Forms with the SIB Byte")
+        // [*] when the MOD is 0b00 means disp32 with no base.
+        return EffAddr::EffAddr32(SIDB32 {
+            base: None,
+            disp: Some(lex.next_i32()),
+            index: Some(index_reg),
+            scale: sib.scale,
+        });
+    }
     EffAddr::EffAddr32(SIDB32 {
         base: Some(Base32::GPR32(base_reg)),
         // The callee fills in disp
@@ -651,69 +622,31 @@ fn decode_sib_addr32(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
 /// 64-bit address mode variation on the 32-bit analog:
 /// Vol 2A: Table 2-3. 32-Bit Addressing Forms with the SIB Byte
 fn decode_sib_addr64(lex: &mut Lexer, sib: &SIB, modrm: &ModRM) -> EffAddr {
-    // TODO: Does REX.B, REX.W, REX factor in?
-    // If so, use reg32_field_select.
     let rex_x = lex.prefix.rex.map(|r| r.x).unwrap_or(false);
     lex.rex_x_mattered = true;
-    let index_reg = match (rex_x, sib.index3) {
-        (false, 0b000) => Index64::GPR64(GPR64::rax),
-        (false, 0b001) => Index64::GPR64(GPR64::rcx),
-        (false, 0b010) => Index64::GPR64(GPR64::rdx),
-        (false, 0b011) => Index64::GPR64(GPR64::rbx),
-        (false, 0b100) => {
-            // 'none'
+    lex.maybe_remove_rex();
+    let index_reg = reg64_field_select(sib.index3, rex_x);
+    let index_reg = match index_reg {
+        GPR64::rsp => {
+            // 'none' row (REX.X=0, sib.index3=0b100)
             Index64::Riz
         }
-        (false, 0b101) => Index64::GPR64(GPR64::rbp),
-        (false, 0b110) => Index64::GPR64(GPR64::rsi),
-        (false, 0b111) => Index64::GPR64(GPR64::rdi),
-        (true, 0b000) => Index64::GPR64(GPR64::r8),
-        (true, 0b001) => Index64::GPR64(GPR64::r9),
-        (true, 0b010) => Index64::GPR64(GPR64::r10),
-        (true, 0b011) => Index64::GPR64(GPR64::r11),
-        (true, 0b100) => Index64::GPR64(GPR64::r12),
-        (true, 0b101) => Index64::GPR64(GPR64::r13),
-        (true, 0b110) => Index64::GPR64(GPR64::r14),
-        (true, 0b111) => Index64::GPR64(GPR64::r15),
-        _ => panic!("Missing match arm."),
+        _ => Index64::GPR64(index_reg),
     };
     let rex_b = lex.prefix.rex.map(|r| r.b).unwrap_or(false);
-    let base_reg = match (rex_b, sib.base3) {
-        (false, 0b000) => GPR64::rax,
-        (false, 0b001) => GPR64::rcx,
-        (false, 0b010) => GPR64::rdx,
-        (false, 0b011) => GPR64::rbx,
-        (false, 0b100) => GPR64::rsp,
-        (false, 0b101) => match modrm.mod2 {
-            0b00 => {
-                // Very special case: [*] in the table
-                // (Vol 2A: Table 2-3 "32-Bit Addressing Forms with the SIB Byte")
-                // [*] when the MOD is 0b00 means disp32 with no base.
-                return EffAddr::EffAddr64(SIDB64 {
-                    base: None,
-                    disp: Some(lex.next_i32()),
-                    index: Some(index_reg),
-                    scale: sib.scale,
-                });
-            }
-            // If the mod is 01 or 10, the base is [ebp], and the mod
-            // bits will automatically leads to adding a disp8 or disp32.
-            0b01 | 0b10 => GPR64::rbp,
-            _ => panic!("Missing match arm."),
-        },
-        (false, 0b110) => GPR64::rsi,
-        (false, 0b111) => GPR64::rdi,
-        (true, 0b000) => GPR64::r8,
-        (true, 0b001) => GPR64::r9,
-        (true, 0b010) => GPR64::r10,
-        (true, 0b011) => GPR64::r11,
-        (true, 0b100) => GPR64::r12,
-        // TODO: not sure if the (true, 0b101) case should be the same.
-        (true, 0b101) => GPR64::r13,
-        (true, 0b110) => GPR64::r14,
-        (true, 0b111) => GPR64::r15,
-        _ => panic!("Missing match arm."),
-    };
+    let base_reg = reg64_field_select(sib.base3, rex_b);
+    if let (0b00, GPR64::rbp) = (modrm.mod2, base_reg) {
+        // Very special case: [*] in the table (REX.b=0, sib.base3=0b101)
+        // (Vol 2A: Table 2-3 "32-Bit Addressing Forms with the SIB Byte")
+        // [*] when the MOD is 0b00 means disp32 with no base.
+        return EffAddr::EffAddr64(SIDB64 {
+            base: None,
+            // The disp is still 32-bit despite being 64-bit addressing.
+            disp: Some(lex.next_i32()),
+            index: Some(index_reg),
+            scale: sib.scale,
+        });
+    }
     EffAddr::EffAddr64(SIDB64 {
         base: Some(Base64::GPR64(base_reg)),
         // The callee fills in disp
