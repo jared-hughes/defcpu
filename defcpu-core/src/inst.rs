@@ -58,16 +58,20 @@ pub enum Inst {
     /// FE /0; INC r/m8; Increment r/m byte by 1.
     IncM8(RM8),
     /// FF /0; INC r/m16; Increment r/m word by 1.
+    /// Note the 40+rw increment isn't encodeable in 64-bit mode.
     IncM16(RM16),
     /// FF /0; INC r/m32; Increment r/m doubleword by 1.
+    /// Note the 40+rd increment isn't encodeable in 64-bit mode.
     IncM32(RM32),
     /// REX.W + FF /0; INC r/m64; Increment r/m quadword by 1.
     IncM64(RM64),
     /// FE /1; DEC r/m8; Decrement r/m byte by 1.
     DecM8(RM8),
     /// FF /1; DEC r/m16; Decrement r/m word by 1.
+    /// Note the 48+rw decrement isn't encodeable in 64-bit mode.
     DecM16(RM16),
     /// FF /1; DEC r/m32; Decrement r/m doubleword by 1.
+    /// Note the 48+rd decrement isn't encodeable in 64-bit mode.
     DecM32(RM32),
     /// REX.W + FF /1; DEC r/m64; Decrement r/m quadword by 1.
     DecM64(RM64),
@@ -406,12 +410,12 @@ impl EffAddr {
                 let base = sidb
                     .base
                     .map(|b| match b {
-                        Base32::GPR32(gpr32) => regs.get_reg32(gpr32),
+                        Base32::GPR32(gpr32) => regs.get_reg32(&gpr32),
                         Base32::Eip => regs.get_eip(),
                     })
                     .unwrap_or(0);
                 let scaled_index = match sidb.index {
-                    Some(Index32::GPR32(i)) => regs.get_reg32(i) * (sidb.scale as u32),
+                    Some(Index32::GPR32(gpr32)) => regs.get_reg32(&gpr32) * (sidb.scale as u32),
                     Some(Index32::Eiz) => 0,
                     None => 0,
                 };
@@ -424,12 +428,12 @@ impl EffAddr {
                 let base = sidb
                     .base
                     .map(|b| match b {
-                        Base64::GPR64(gpr64) => regs.get_reg64(gpr64),
+                        Base64::GPR64(gpr64) => regs.get_reg64(&gpr64),
                         Base64::Rip => regs.get_rip(),
                     })
                     .unwrap_or(0);
                 let scaled_index = match sidb.index {
-                    Some(Index64::GPR64(i)) => regs.get_reg64(i) * (sidb.scale as u64),
+                    Some(Index64::GPR64(gpr64)) => regs.get_reg64(&gpr64) * (sidb.scale as u64),
                     Some(Index64::Riz) => 0,
                     None => 0,
                 };

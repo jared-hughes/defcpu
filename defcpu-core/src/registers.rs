@@ -258,20 +258,150 @@ impl fmt::Display for GPR64 {
     }
 }
 
+/// Vol 1: 3.4.3.1 "Status Flags" and 3.4.3.2 "DF Flag".
+pub struct Flags {
+    /// CF (bit 0): Carry Flag (carry or borrow out of the most-significant bit).
+    /// Also used in multiple-precision arithmetic.
+    /// Can be modified directly (STC, CLC, CMC) or copied into (BT, BTS, BTR, BTC).
+    pub(crate) cf: bool,
+    /// PF (bit 2): Parity Flag (least-significant byte (u8) contains an even number of 1 bits).
+    pub(crate) pf: bool,
+    /// AF (bit 4): Auxiliary Carry Flag (carry or borrow out of bit 3 of the result, for BCD).
+    pub(crate) af: bool,
+    /// ZF (bit 6): Zero Flag (result is zero)
+    pub(crate) zf: bool,
+    /// SF (bit 7): Sign Flag (most-significant bit of the result)
+    pub(crate) sf: bool,
+    /// OF (bit 11): Overflow flag (overflow for two's complement arithmetic)
+    pub(crate) of: bool,
+    /// DF (bit 10): Direction flag: Controls string instructions (MOVS, CMPS, SCS, LODS, STOS).
+    /// When true, auto-decrement (high addresses to low addresses).
+    /// WHen false, auto-increment (low addresses to high addresses).
+    pub(crate) df: bool,
+}
+
+impl Flags {
+    pub(crate) fn new() -> Flags {
+        Flags {
+            cf: false,
+            pf: false,
+            af: false,
+            zf: false,
+            sf: false,
+            of: false,
+            df: false,
+        }
+    }
+
+    pub(crate) fn to_rflags_u64(&self) -> u64 {
+        0x0000000000010202
+            | if self.cf { 1 } else { 0 }
+            | if self.pf { 1 << 2 } else { 0 }
+            | if self.af { 1 << 4 } else { 0 }
+            | if self.zf { 1 << 6 } else { 0 }
+            | if self.sf { 1 << 7 } else { 0 }
+            | if self.df { 1 << 10 } else { 0 }
+            | if self.of { 1 << 11 } else { 0 }
+    }
+
+    pub(crate) fn add_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
+        let (result, carry) = x.overflowing_add(y);
+        let carry_out_of_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.pf = result.count_ones() % 2 == 0;
+        self.af = carry_out_of_bit_3 == 1;
+        self.zf = result == 0;
+        let bm1 = u8::BITS - 1;
+        self.sf = result >> bm1 & 1 == 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos + pos = neg
+            (0, 0, 1) => true,
+            // neg + neg = pos
+            (1, 1, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    pub(crate) fn add_16(&mut self, x: u16, y: u16, update_cf: bool) -> u16 {
+        let (result, carry) = x.overflowing_add(y);
+        let carry_out_of_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.pf = (result as u8).count_ones() % 2 == 0;
+        self.af = carry_out_of_bit_3 == 1;
+        self.zf = result == 0;
+        let bm1 = u16::BITS - 1;
+        self.sf = result >> bm1 & 1 == 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos + pos = neg
+            (0, 0, 1) => true,
+            // neg + neg = pos
+            (1, 1, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    pub(crate) fn add_32(&mut self, x: u32, y: u32, update_cf: bool) -> u32 {
+        let (result, carry) = x.overflowing_add(y);
+        let carry_out_of_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.pf = (result as u8).count_ones() % 2 == 0;
+        self.af = carry_out_of_bit_3 == 1;
+        self.zf = result == 0;
+        let bm1 = u32::BITS - 1;
+        self.sf = result >> bm1 & 1 == 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos + pos = neg
+            (0, 0, 1) => true,
+            // neg + neg = pos
+            (1, 1, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    pub(crate) fn add_64(&mut self, x: u64, y: u64, update_cf: bool) -> u64 {
+        let (result, carry) = x.overflowing_add(y);
+        let carry_out_of_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.pf = (result as u8).count_ones() % 2 == 0;
+        self.af = carry_out_of_bit_3 == 1;
+        self.zf = result == 0;
+        let bm1 = u64::BITS - 1;
+        self.sf = result >> bm1 & 1 == 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos + pos = neg
+            (0, 0, 1) => true,
+            // neg + neg = pos
+            (1, 1, 0) => true,
+            _ => false,
+        };
+        result
+    }
+}
+
 pub struct Registers {
     /// rax, rbx, rcx, rdx, rsi, rdi, rsp, rbp,
     /// r8, r9, r10, r11, r12, r13, r14, r15
     pub regs: [u64; 16],
     /// flags register
-    // TODO: consider just tossing this and using a bunch of bits. Would be easier.
-    pub rflags: u64,
+    pub flags: Flags,
     /// instruction pointer register
     pub rip: u64,
 }
 
 impl Registers {
     /// Set 8 bits in a register without affecting any other bits.
-    pub fn set_reg8(&mut self, gpr8: GPR8, imm8: u8) {
+    pub fn set_reg8(&mut self, gpr8: &GPR8, imm8: u8) {
         match gpr8 {
             GPR8::Low(qreg) => {
                 let ind = qreg.reg_index();
@@ -287,26 +417,26 @@ impl Registers {
     }
 
     /// Set the low 16 bits of a register without affecting any other bits.
-    pub fn set_reg16(&mut self, gpr16: GPR16, imm16: u16) {
+    pub fn set_reg16(&mut self, gpr16: &GPR16, imm16: u16) {
         let ind = gpr16.0.reg_index();
         self.regs[ind] &= !0xFF_FF;
         self.regs[ind] |= imm16 as u64;
     }
 
     /// Set the low 32 bits of a register without affecting any other bits.
-    pub fn set_reg32(&mut self, gpr32: GPR32, imm32: u32) {
+    pub fn set_reg32(&mut self, gpr32: &GPR32, imm32: u32) {
         let ind = gpr32.0.reg_index();
         self.regs[ind] &= !0xFF_FF_FF_FF;
         self.regs[ind] |= imm32 as u64;
     }
 
     /// Set a full register.
-    pub fn set_reg64(&mut self, gpr64: GPR64, imm64: u64) {
+    pub fn set_reg64(&mut self, gpr64: &GPR64, imm64: u64) {
         let ind = gpr64.0.reg_index();
         self.regs[ind] = imm64;
     }
 
-    pub fn get_reg8(&self, gpr8: GPR8) -> u8 {
+    pub fn get_reg8(&self, gpr8: &GPR8) -> u8 {
         match gpr8 {
             GPR8::Low(qreg) => {
                 let ind = qreg.reg_index();
@@ -319,17 +449,17 @@ impl Registers {
         }
     }
 
-    pub fn get_reg16(&self, gpr16: GPR16) -> u16 {
+    pub fn get_reg16(&self, gpr16: &GPR16) -> u16 {
         let ind = gpr16.0.reg_index();
         (self.regs[ind] & 0xFF_FF).try_into().unwrap()
     }
 
-    pub fn get_reg32(&self, gpr32: GPR32) -> u32 {
+    pub fn get_reg32(&self, gpr32: &GPR32) -> u32 {
         let ind = gpr32.0.reg_index();
         (self.regs[ind] & 0xFF_FF_FF_FF).try_into().unwrap()
     }
 
-    pub fn get_reg64(&self, gpr64: GPR64) -> u64 {
+    pub fn get_reg64(&self, gpr64: &GPR64) -> u64 {
         let ind = gpr64.0.reg_index();
         self.regs[ind]
     }
@@ -343,17 +473,9 @@ impl Registers {
     }
 
     pub fn get_rflags(&self) -> u64 {
-        self.rflags
+        self.flags.to_rflags_u64()
     }
 }
-
-// Ref https://en.wikipedia.org/wiki/FLAGS_register.
-const CF_MASK: u64 = 0x0001;
-const PF_MASK: u64 = 0x0004;
-const ZF_MASK: u64 = 0x0040;
-const SF_MASK: u64 = 0x0080;
-const DF_MASK: u64 = 0x0400;
-const OF_MASK: u64 = 0x0800;
 
 impl fmt::Display for Registers {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -399,11 +521,11 @@ impl fmt::Display for Registers {
             "    %rbp = {:016X}        %r15 = {:016X}",
             self.regs[7], self.regs[15]
         )?;
-        writeln!(f, "Flags ({:016X}):", self.rflags)?;
+        writeln!(f, "Flags ({:016X}):", self.flags.to_rflags_u64())?;
         write!(
             f,
             "    Carry     = {}",
-            if self.rflags & CF_MASK == 0 {
+            if !self.flags.cf {
                 "0 (no carry)    "
             } else {
                 "1 (carry)       "
@@ -412,7 +534,7 @@ impl fmt::Display for Registers {
         writeln!(
             f,
             "   Zero   = {}",
-            if self.rflags & ZF_MASK == 0 {
+            if !self.flags.zf {
                 "0 (isn't zero)"
             } else {
                 "1 (is zero)"
@@ -421,7 +543,7 @@ impl fmt::Display for Registers {
         write!(
             f,
             "    Overflow  = {}",
-            if self.rflags & OF_MASK == 0 {
+            if !self.flags.of {
                 "0 (no overflow) "
             } else {
                 "1 (overflow)    "
@@ -430,7 +552,7 @@ impl fmt::Display for Registers {
         writeln!(
             f,
             "   Sign   = {}",
-            if self.rflags & SF_MASK == 0 {
+            if !self.flags.sf {
                 "0 (positive)"
             } else {
                 "1 (negative)"
@@ -439,7 +561,7 @@ impl fmt::Display for Registers {
         write!(
             f,
             "    Direction = {}",
-            if self.rflags & DF_MASK == 0 {
+            if !self.flags.df {
                 "0 (up)          "
             } else {
                 "1 (down)        "
@@ -448,7 +570,7 @@ impl fmt::Display for Registers {
         write!(
             f,
             "   Parity = {}",
-            if self.rflags & PF_MASK == 0 {
+            if !self.flags.pf {
                 "0 (odd)"
             } else {
                 "1 (even)"

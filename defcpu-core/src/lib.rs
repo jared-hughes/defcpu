@@ -1,3 +1,6 @@
+// Every time I switch to `matches!`, I end up switching back.
+#![allow(clippy::match_like_matches_macro)]
+
 pub(crate) mod decode_inst;
 pub(crate) mod inst;
 pub(crate) mod inst_prefixes;

@@ -4,7 +4,7 @@ use crate::{
     memory::Memory,
     parse_elf::SimpleElfFile,
     read_write::File,
-    registers::{Registers, GPR32, GPR64},
+    registers::{Flags, Registers, GPR32, GPR64},
 };
 
 pub struct Machine {
@@ -18,8 +18,7 @@ impl Machine {
         let mem = Memory::from_segments(&file.segments);
         let regs = Registers {
             regs: [0_u64; 16],
-            // Initialize some misc flags to match the code.golf dump.
-            rflags: 0x0000000000010202,
+            flags: Flags::new(),
             rip: file.e_entry,
         };
         Machine {
@@ -52,86 +51,118 @@ impl Machine {
             Inst::RexNoop => {}
             Inst::Syscall => self.syscall(),
             Inst::MovMR8(rm8, gpr8) => {
-                let val = self.regs.get_reg8(gpr8);
-                self.set_rm8(rm8, val);
+                let val = self.regs.get_reg8(&gpr8);
+                self.set_rm8(&rm8, val);
             }
             Inst::MovMR16(rm16, gpr16) => {
-                let val = self.regs.get_reg16(gpr16);
-                self.set_rm16(rm16, val);
+                let val = self.regs.get_reg16(&gpr16);
+                self.set_rm16(&rm16, val);
             }
             Inst::MovMR32(rm32, gpr32) => {
-                let val = self.regs.get_reg32(gpr32);
-                self.set_rm32(rm32, val);
+                let val = self.regs.get_reg32(&gpr32);
+                self.set_rm32(&rm32, val);
             }
             Inst::MovMR64(rm64, gpr64) => {
-                let val = self.regs.get_reg64(gpr64);
-                self.set_rm64(rm64, val);
+                let val = self.regs.get_reg64(&gpr64);
+                self.set_rm64(&rm64, val);
             }
             Inst::MovRM8(gpr8, rm8) => {
-                let val = self.get_rm8(rm8);
-                self.regs.set_reg8(gpr8, val);
+                let val = self.get_rm8(&rm8);
+                self.regs.set_reg8(&gpr8, val);
             }
             Inst::MovRM16(gpr16, rm16) => {
-                let val = self.get_rm16(rm16);
-                self.regs.set_reg16(gpr16, val);
+                let val = self.get_rm16(&rm16);
+                self.regs.set_reg16(&gpr16, val);
             }
             Inst::MovRM32(gpr32, rm32) => {
-                let val = self.get_rm32(rm32);
-                self.regs.set_reg32(gpr32, val);
+                let val = self.get_rm32(&rm32);
+                self.regs.set_reg32(&gpr32, val);
             }
             Inst::MovRM64(gpr64, rm64) => {
-                let val = self.get_rm64(rm64);
-                self.regs.set_reg64(gpr64, val);
+                let val = self.get_rm64(&rm64);
+                self.regs.set_reg64(&gpr64, val);
             }
             Inst::MovOI8(gpr8, imm8) => {
-                self.regs.set_reg8(gpr8, imm8);
+                self.regs.set_reg8(&gpr8, imm8);
             }
             Inst::MovOI16(gpr16, imm16) => {
-                self.regs.set_reg16(gpr16, imm16);
+                self.regs.set_reg16(&gpr16, imm16);
             }
             Inst::MovOI32(gpr32, imm32) => {
-                self.regs.set_reg32(gpr32, imm32);
+                self.regs.set_reg32(&gpr32, imm32);
             }
             Inst::MovOI64(gpr64, imm64) => {
-                self.regs.set_reg64(gpr64, imm64);
+                self.regs.set_reg64(&gpr64, imm64);
             }
             Inst::MovMI8(rm8, imm8) => {
-                self.set_rm8(rm8, imm8);
+                self.set_rm8(&rm8, imm8);
             }
             Inst::MovMI16(rm16, imm16) => {
-                self.set_rm16(rm16, imm16);
+                self.set_rm16(&rm16, imm16);
             }
             Inst::MovMI32(rm32, imm32) => {
-                self.set_rm32(rm32, imm32);
+                self.set_rm32(&rm32, imm32);
             }
             Inst::MovMI64(rm64, imm64) => {
-                self.set_rm64(rm64, imm64);
+                self.set_rm64(&rm64, imm64);
             }
             Inst::Hlt => {
                 eprintln!("{}", self.regs);
                 self.halt = true;
             }
-            Inst::IncM8(rm8) => todo!(),
-            Inst::IncM16(rm16) => todo!(),
-            Inst::IncM32(rm32) => todo!(),
-            Inst::IncM64(rm64) => todo!(),
-            Inst::DecM8(rm8) => todo!(),
-            Inst::DecM16(rm16) => todo!(),
-            Inst::DecM32(rm32) => todo!(),
-            Inst::DecM64(rm64) => todo!(),
+            Inst::IncM8(rm8) => {
+                let old = self.get_rm8(&rm8);
+                let new = self.regs.flags.add_8(old, 1, false);
+                self.set_rm8(&rm8, new);
+            }
+            Inst::IncM16(rm16) => {
+                let old = self.get_rm16(&rm16);
+                let new = self.regs.flags.add_16(old, 1, false);
+                self.set_rm16(&rm16, new);
+            }
+            Inst::IncM32(rm32) => {
+                let old = self.get_rm32(&rm32);
+                let new = self.regs.flags.add_32(old, 1, false);
+                self.set_rm32(&rm32, new);
+            }
+            Inst::IncM64(rm64) => {
+                let old = self.get_rm64(&rm64);
+                let new = self.regs.flags.add_64(old, 1, false);
+                self.set_rm64(&rm64, new);
+            }
+            Inst::DecM8(rm8) => {
+                let old = self.get_rm8(&rm8);
+                let new = self.regs.flags.add_8(old, u8::MAX, false);
+                self.set_rm8(&rm8, new);
+            }
+            Inst::DecM16(rm16) => {
+                let old = self.get_rm16(&rm16);
+                let new = self.regs.flags.add_16(old, u16::MAX, false);
+                self.set_rm16(&rm16, new);
+            }
+            Inst::DecM32(rm32) => {
+                let old = self.get_rm32(&rm32);
+                let new = self.regs.flags.add_32(old, u32::MAX, false);
+                self.set_rm32(&rm32, new);
+            }
+            Inst::DecM64(rm64) => {
+                let old = self.get_rm64(&rm64);
+                let new = self.regs.flags.add_64(old, u64::MAX, false);
+                self.set_rm64(&rm64, new);
+            }
         }
     }
 
     fn syscall(&mut self) {
-        let rax = self.regs.get_reg64(GPR64::rax);
-        self.regs.set_reg64(GPR64::rcx, self.regs.get_rip());
-        self.regs.set_reg64(GPR64::r11, self.regs.get_rflags());
+        let rax = self.regs.get_reg64(&GPR64::rax);
+        self.regs.set_reg64(&GPR64::rcx, self.regs.get_rip());
+        self.regs.set_reg64(&GPR64::r11, self.regs.get_rflags());
         let ret = match rax {
             1 => self.sys_write(),
             60 => self.sys_exit(),
             _ => panic!("Unimplemented syscall {}", rax),
         };
-        self.regs.set_reg64(GPR64::rax, ret);
+        self.regs.set_reg64(&GPR64::rax, ret);
     }
 
     fn sys_write(&mut self) -> u64 {
@@ -139,9 +170,9 @@ impl Machine {
         //     unsigned int, fd,
         //     const char __user *, buf,
         //     size_t, count)
-        let fd = self.regs.get_reg32(GPR32::edi);
-        let buf = self.regs.get_reg64(GPR64::rsi);
-        let count = self.regs.get_reg64(GPR64::rdx);
+        let fd = self.regs.get_reg32(&GPR32::edi);
+        let buf = self.regs.get_reg64(&GPR64::rsi);
+        let count = self.regs.get_reg64(&GPR64::rdx);
         let file = File::from_fd(fd);
         for i in 0..count {
             file.write_byte(self.mem.read_u8(buf + i));
@@ -154,8 +185,8 @@ impl Machine {
         0
     }
 
-    fn get_rm8(&mut self, addr: RM8) -> u8 {
-        match addr {
+    fn get_rm8(&mut self, rm8: &RM8) -> u8 {
+        match rm8 {
             RM8::Addr(eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.mem.read_u8(a)
@@ -164,8 +195,8 @@ impl Machine {
         }
     }
 
-    fn get_rm16(&mut self, addr: RM16) -> u16 {
-        match addr {
+    fn get_rm16(&mut self, rm16: &RM16) -> u16 {
+        match rm16 {
             RM16::Addr(eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.mem.read_u16(a)
@@ -174,8 +205,8 @@ impl Machine {
         }
     }
 
-    fn get_rm32(&mut self, addr: RM32) -> u32 {
-        match addr {
+    fn get_rm32(&mut self, rm32: &RM32) -> u32 {
+        match rm32 {
             RM32::Addr(eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.mem.read_u32(a)
@@ -184,8 +215,8 @@ impl Machine {
         }
     }
 
-    fn get_rm64(&mut self, addr: RM64) -> u64 {
-        match addr {
+    fn get_rm64(&mut self, rm64: &RM64) -> u64 {
+        match rm64 {
             RM64::Addr(eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.mem.read_u64(a)
@@ -194,8 +225,8 @@ impl Machine {
         }
     }
 
-    fn set_rm8(&mut self, addr: RM8, val: u8) {
-        match addr {
+    fn set_rm8(&mut self, rm8: &RM8, val: u8) {
+        match rm8 {
             RM8::Addr(eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.mem.write_u8(a, val);
@@ -206,8 +237,8 @@ impl Machine {
         }
     }
 
-    fn set_rm16(&mut self, addr: RM16, val: u16) {
-        match addr {
+    fn set_rm16(&mut self, rm16: &RM16, val: u16) {
+        match rm16 {
             RM16::Addr(eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.mem.write_u16(a, val);
@@ -218,8 +249,8 @@ impl Machine {
         }
     }
 
-    fn set_rm32(&mut self, addr: RM32, val: u32) {
-        match addr {
+    fn set_rm32(&mut self, rm32: &RM32, val: u32) {
+        match rm32 {
             RM32::Addr(eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.mem.write_u32(a, val);
@@ -230,8 +261,8 @@ impl Machine {
         }
     }
 
-    fn set_rm64(&mut self, addr: RM64, val: u64) {
-        match addr {
+    fn set_rm64(&mut self, rm64: &RM64, val: u64) {
+        match rm64 {
             RM64::Addr(eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.mem.write_u64(a, val);
