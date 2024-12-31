@@ -178,3 +178,93 @@
 67 48 2b 23                 sub    (%ebx), %rsp
 66 48 2b 23                 data16 sub (%rbx), %rsp
 66 67 48 2b 23              data16 sub (%ebx), %rsp
+3c 12                       cmp    $0x12, %al
+66 3d 12 34                 cmp    $0x3412, %ax
+3d 12 34 56 78              cmp    $0x78563412, %eax
+41 3d 12 34 56 78           rex.B cmp $0x78563412, %eax
+41 3d 12 34 56 88           rex.B cmp $0x88563412, %eax
+48 3d 12 34 56 78           cmp    $0x78563412, %rax
+48 3d 12 34 56 88           cmp    $0xffffffff88563412, %rax
+49 3d 12 34 56 78           rex.WB cmp $0x78563412, %rax
+49 3d 12 34 56 88           rex.WB cmp $0xffffffff88563412, %rax
+80 f8 12                    cmp    $0x12, %al
+80 fe 12                    cmp    $0x12, %dh
+40 80 fe 12                 cmp    $0x12, %sil
+66 81 fe 12 34              cmp    $0x3412, %si
+81 fe 12 34 56 78           cmp    $0x78563412, %esi
+48 81 fe 12 34 56 78        cmp    $0x78563412, %rsi
+48 81 fe 12 34 56 88        cmp    $0xffffffff88563412, %rsi
+66 83 fe 12                 cmp    $0x12, %si
+66 83 fe 82                 cmp    $0xff82, %si
+83 fe 12                    cmp    $0x12, %esi
+83 fe 82                    cmp    $0xffffff82, %esi
+41 83 fe 12                 cmp    $0x12, %r14d
+41 83 fe 82                 cmp    $0xffffff82, %r14d
+48 83 fe 12                 cmp    $0x12, %rsi
+48 83 fe 82                 cmp    $0xffffffffffffff82, %rsi
+49 83 fe 12                 cmp    $0x12, %r14
+49 83 fe 82                 cmp    $0xffffffffffffff82, %r14
+38 23                       cmp    %ah, (%rbx)
+66 38 23                    data16 cmp %ah, (%rbx)
+67 38 23                    cmp    %ah, (%ebx)
+66 67 38 23                 data16 cmp %ah, (%ebx)
+40 38 23                    cmp    %spl, (%rbx)
+67 40 38 23                 cmp    %spl, (%ebx)
+66 40 38 23                 data16 cmp %spl, (%rbx)
+66 67 40 38 23              data16 cmp %spl, (%ebx)
+41 38 23                    cmp    %spl, (%r11)
+67 41 38 23                 cmp    %spl, (%r11d)
+66 41 38 23                 data16 cmp %spl, (%r11)
+66 67 41 38 23              data16 cmp %spl, (%r11d)
+48 38 23                    rex.W cmp %spl, (%rbx)
+67 48 38 23                 rex.W cmp %spl, (%ebx)
+66 48 38 23                 data16 rex.W cmp %spl, (%rbx)
+66 67 48 38 23              data16 rex.W cmp %spl, (%ebx)
+39 23                       cmp    %esp, (%rbx)
+66 39 23                    cmp    %sp, (%rbx)
+67 39 23                    cmp    %esp, (%ebx)
+66 67 39 23                 cmp    %sp, (%ebx)
+40 39 23                    rex cmp %esp, (%rbx)
+67 40 39 23                 rex cmp %esp, (%ebx)
+66 40 39 23                 rex cmp %sp, (%rbx)
+66 67 40 39 23              rex cmp %sp, (%ebx)
+41 39 23                    cmp    %esp, (%r11)
+67 41 39 23                 cmp    %esp, (%r11d)
+66 41 39 23                 cmp    %sp, (%r11)
+66 67 41 39 23              cmp    %sp, (%r11d)
+48 39 23                    cmp    %rsp, (%rbx)
+67 48 39 23                 cmp    %rsp, (%ebx)
+66 48 39 23                 data16 cmp %rsp, (%rbx)
+66 67 48 39 23              data16 cmp %rsp, (%ebx)
+3a 23                       cmp    (%rbx), %ah
+66 3a 23                    data16 cmp (%rbx), %ah
+67 3a 23                    cmp    (%ebx), %ah
+66 67 3a 23                 data16 cmp (%ebx), %ah
+40 3a 23                    cmp    (%rbx), %spl
+67 40 3a 23                 cmp    (%ebx), %spl
+66 40 3a 23                 data16 cmp (%rbx), %spl
+66 67 40 3a 23              data16 cmp (%ebx), %spl
+41 3a 23                    cmp    (%r11), %spl
+67 41 3a 23                 cmp    (%r11d), %spl
+66 41 3a 23                 data16 cmp (%r11), %spl
+66 67 41 3a 23              data16 cmp (%r11d), %spl
+48 3a 23                    rex.W cmp (%rbx), %spl
+67 48 3a 23                 rex.W cmp (%ebx), %spl
+66 48 3a 23                 data16 rex.W cmp (%rbx), %spl
+66 67 48 3a 23              data16 rex.W cmp (%ebx), %spl
+3b 23                       cmp    (%rbx), %esp
+66 3b 23                    cmp    (%rbx), %sp
+67 3b 23                    cmp    (%ebx), %esp
+66 67 3b 23                 cmp    (%ebx), %sp
+40 3b 23                    rex cmp (%rbx), %esp
+67 40 3b 23                 rex cmp (%ebx), %esp
+66 40 3b 23                 rex cmp (%rbx), %sp
+66 67 40 3b 23              rex cmp (%ebx), %sp
+41 3b 23                    cmp    (%r11), %esp
+67 41 3b 23                 cmp    (%r11d), %esp
+66 41 3b 23                 cmp    (%r11), %sp
+66 67 41 3b 23              cmp    (%r11d), %sp
+48 3b 23                    cmp    (%rbx), %rsp
+67 48 3b 23                 cmp    (%ebx), %rsp
+66 48 3b 23                 data16 cmp (%rbx), %rsp
+66 67 48 3b 23              data16 cmp (%ebx), %rsp

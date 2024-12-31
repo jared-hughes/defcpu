@@ -137,6 +137,37 @@ pub enum Inst {
     SubRM32(GPR32, RM32),
     /// REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
     SubRM64(GPR64, RM64),
+    /// 3C ib; CMP AL, imm8; Compare imm8 with AL.
+    /// 80 /7 ib; CMP r/m8, imm8; Compare imm8 with r/m8.
+    CmpMI8(RM8, u8),
+    /// 3D iw; CMP AX, imm16; Compare imm16 with AX.
+    /// 81 /7 iw; CMP r/m16, imm16; Compare imm16 with r/m16.
+    /// 83 /7 ib; CMP r/m16, imm8; Compare sign-extended imm8 with r/m16.
+    CmpMI16(RM16, u16),
+    /// 3D id; CMP EAX, imm32; Compare imm32 with EAX.
+    /// 81 /7 id; CMP r/m32, imm32; Compare imm32 with r/m32.
+    /// 83 /7 ib; CMP r/m32, imm8; Compare sign-extended imm8 with r/m32.
+    CmpMI32(RM32, u32),
+    /// REX.W + 3D id; CMP RAX, imm32; Compare imm32 sign-extended to 64-bits with RAX.
+    /// REX.W + 81 /7 id; CMP r/m64, imm32; Compare imm32 sign-extended to 64-bits with r/m64.
+    /// REX.W + 83 /7 ib; CMP r/m64, imm8; Compare sign-extended imm8 with r/m64.
+    CmpMI64(RM64, u64),
+    /// 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
+    CmpMR8(RM8, GPR8),
+    /// 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
+    CmpMR16(RM16, GPR16),
+    /// 39 /r; CMP r/m32, r32; Compare r32 with r/m32.
+    CmpMR32(RM32, GPR32),
+    /// REX.W + 39 /r; CMP r/m64, r64; Compare r64 with r/m64.
+    CmpMR64(RM64, GPR64),
+    /// 3A /r; CMP r8, r/m8; Compare r/m8 with r8.
+    CmpRM8(GPR8, RM8),
+    /// 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
+    CmpRM16(GPR16, RM16),
+    /// 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
+    CmpRM32(GPR32, RM32),
+    /// REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
+    CmpRM64(GPR64, RM64),
 }
 
 impl Inst {
@@ -153,44 +184,71 @@ impl Inst {
             | NotImplementedOpext(_, _)
             | RexNoop
             | Syscall => String::new(),
-            MovMR8(rm8, gpr8) | AddMR8(rm8, gpr8) | SubMR8(rm8, gpr8) => {
+            MovMR8(rm8, gpr8) | AddMR8(rm8, gpr8) | SubMR8(rm8, gpr8) | CmpMR8(rm8, gpr8) => {
                 format!("{}, {}", gpr8, rm8)
             }
-            MovMR16(rm16, gpr16) | AddMR16(rm16, gpr16) | SubMR16(rm16, gpr16) => {
+            MovMR16(rm16, gpr16)
+            | AddMR16(rm16, gpr16)
+            | SubMR16(rm16, gpr16)
+            | CmpMR16(rm16, gpr16) => {
                 format!("{}, {}", gpr16, rm16)
             }
-            MovMR32(rm32, gpr32) | AddMR32(rm32, gpr32) | SubMR32(rm32, gpr32) => {
+            MovMR32(rm32, gpr32)
+            | AddMR32(rm32, gpr32)
+            | SubMR32(rm32, gpr32)
+            | CmpMR32(rm32, gpr32) => {
                 format!("{}, {}", gpr32, rm32)
             }
-            MovMR64(rm64, gpr64) | AddMR64(rm64, gpr64) | SubMR64(rm64, gpr64) => {
+            MovMR64(rm64, gpr64)
+            | AddMR64(rm64, gpr64)
+            | SubMR64(rm64, gpr64)
+            | CmpMR64(rm64, gpr64) => {
                 format!("{}, {}", gpr64, rm64)
             }
-            MovRM8(gpr8, rm8) | AddRM8(gpr8, rm8) | SubRM8(gpr8, rm8) => {
+            MovRM8(gpr8, rm8) | AddRM8(gpr8, rm8) | SubRM8(gpr8, rm8) | CmpRM8(gpr8, rm8) => {
                 format!("{}, {}", rm8, gpr8)
             }
-            MovRM16(gpr16, rm16) | AddRM16(gpr16, rm16) | SubRM16(gpr16, rm16) => {
+            MovRM16(gpr16, rm16)
+            | AddRM16(gpr16, rm16)
+            | SubRM16(gpr16, rm16)
+            | CmpRM16(gpr16, rm16) => {
                 format!("{}, {}", rm16, gpr16)
             }
-            MovRM32(gpr32, rm32) | AddRM32(gpr32, rm32) | SubRM32(gpr32, rm32) => {
+            MovRM32(gpr32, rm32)
+            | AddRM32(gpr32, rm32)
+            | SubRM32(gpr32, rm32)
+            | CmpRM32(gpr32, rm32) => {
                 format!("{}, {}", rm32, gpr32)
             }
-            MovRM64(gpr64, rm64) | AddRM64(gpr64, rm64) | SubRM64(gpr64, rm64) => {
+            MovRM64(gpr64, rm64)
+            | AddRM64(gpr64, rm64)
+            | SubRM64(gpr64, rm64)
+            | CmpRM64(gpr64, rm64) => {
                 format!("{}, {}", rm64, gpr64)
             }
             MovOI8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
             MovOI16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
             MovOI32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
             MovOI64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
-            MovMI8(rm8, imm8) | AddMI8(rm8, imm8) | SubMI8(rm8, imm8) => {
+            MovMI8(rm8, imm8) | AddMI8(rm8, imm8) | SubMI8(rm8, imm8) | CmpMI8(rm8, imm8) => {
                 format!("${:#x}, {}", imm8, rm8)
             }
-            MovMI16(rm16, imm16) | AddMI16(rm16, imm16) | SubMI16(rm16, imm16) => {
+            MovMI16(rm16, imm16)
+            | AddMI16(rm16, imm16)
+            | SubMI16(rm16, imm16)
+            | CmpMI16(rm16, imm16) => {
                 format!("${:#x}, {}", imm16, rm16)
             }
-            MovMI32(rm32, imm32) | AddMI32(rm32, imm32) | SubMI32(rm32, imm32) => {
+            MovMI32(rm32, imm32)
+            | AddMI32(rm32, imm32)
+            | SubMI32(rm32, imm32)
+            | CmpMI32(rm32, imm32) => {
                 format!("${:#x}, {}", imm32, rm32)
             }
-            MovMI64(rm64, imm64) | AddMI64(rm64, imm64) | SubMI64(rm64, imm64) => {
+            MovMI64(rm64, imm64)
+            | AddMI64(rm64, imm64)
+            | SubMI64(rm64, imm64)
+            | CmpMI64(rm64, imm64) => {
                 format!("${:#x}, {}", imm64, rm64)
             }
             Hlt => String::new(),
@@ -255,6 +313,18 @@ impl Inst {
             | SubRM16(_, _)
             | SubRM32(_, _)
             | SubRM64(_, _) => "sub",
+            CmpMI8(rm8, _) => rm8.either("cmp", "cmpb"),
+            CmpMI16(rm16, _) => rm16.either("cmp", "cmpw"),
+            CmpMI32(rm32, _) => rm32.either("cmp", "cmpl"),
+            CmpMI64(rm64, _) => rm64.either("cmp", "cmpq"),
+            CmpMR8(_, _)
+            | CmpMR16(_, _)
+            | CmpMR32(_, _)
+            | CmpMR64(_, _)
+            | CmpRM8(_, _)
+            | CmpRM16(_, _)
+            | CmpRM32(_, _)
+            | CmpRM64(_, _) => "cmp",
         }
     }
 }

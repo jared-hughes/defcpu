@@ -348,6 +348,79 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 SubMI64(RM64::Reg(GPR64::rax), imm32 as i32 as u64)
             }
         },
+        0x3C => {
+            // 3C ib; CMP AL, imm8; Compare imm8 with AL.
+            let imm8 = lex.next_imm8();
+            CmpMI8(RM8::Reg(GPR8::al), imm8)
+        }
+        0x3D => match lex.get_operand_size() {
+            Data16 => {
+                // 3D iw; CMP AX, imm16; Compare imm16 with AX.
+                let imm16 = lex.next_imm16();
+                CmpMI16(RM16::Reg(GPR16::ax), imm16)
+            }
+            Data32 => {
+                // 3D id; CMP EAX, imm32; Compare imm32 with EAX.
+                let imm32 = lex.next_imm32();
+                CmpMI32(RM32::Reg(GPR32::eax), imm32)
+            }
+            Data64 => {
+                // REX.W + 3D id; CMP RAX, imm32; Compare imm32 sign-extended to 64-bits with RAX.
+                let imm32 = lex.next_imm32();
+                CmpMI64(RM64::Reg(GPR64::rax), imm32 as i32 as u64)
+            }
+        },
+        0x38 | 0x3A => {
+            // 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
+            // 3A /r; CMP r8, r/m8; Compare r/m8 with r8.
+            let modrm = lex.next_modrm();
+            let reg = lex.reg8_field_select_r(modrm.reg3);
+            let rm8 = decode_rm8(lex, &modrm);
+            match opcode {
+                0x38 => CmpMR8(rm8, reg),
+                0x3A => CmpRM8(reg, rm8),
+                _ => panic!("Missing match arm in decode_inst_inner."),
+            }
+        }
+        0x39 | 0x3B => {
+            let modrm = lex.next_modrm();
+            let rex_r = lex.get_rex_r_matters();
+            match lex.get_operand_size() {
+                Data16 => {
+                    // 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
+                    // 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
+                    let reg = reg16_field_select(modrm.reg3, rex_r);
+                    let rm16 = decode_rm16(lex, &modrm);
+                    match opcode {
+                        0x39 => CmpMR16(rm16, reg),
+                        0x3B => CmpRM16(reg, rm16),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                Data32 => {
+                    // 39 /r; CMP r/m32, r32; Compare r32 with r/m32.
+                    // 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
+                    let reg = reg32_field_select(modrm.reg3, rex_r);
+                    let rm32 = decode_rm32(lex, &modrm);
+                    match opcode {
+                        0x39 => CmpMR32(rm32, reg),
+                        0x3B => CmpRM32(reg, rm32),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                Data64 => {
+                    // REX.W + 39 /r; CMP r/m64, r64; Compare r64 with r/m64.
+                    // REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
+                    let reg = reg64_field_select(modrm.reg3, rex_r);
+                    let rm64 = decode_rm64(lex, &modrm);
+                    match opcode {
+                        0x39 => CmpMR64(rm64, reg),
+                        0x3B => CmpRM64(reg, rm64),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+            }
+        }
         0x40..=0x4F => {
             // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
             if lex.prefix.rex.is_some() {
@@ -389,6 +462,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     let rm8 = decode_rm8(lex, &modrm);
                     let imm8 = lex.next_imm8();
                     SubMI8(rm8, imm8)
+                }
+                7 => {
+                    // 80 /7 ib; CMP r/m8, imm8; Compare imm8 with r/m8.
+                    let rm8 = decode_rm8(lex, &modrm);
+                    let imm8 = lex.next_imm8();
+                    CmpMI8(rm8, imm8)
                 }
                 _ => {
                     lex.rollback();
@@ -447,6 +526,30 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                         }
                     }
                 }
+                7 => {
+                    // 81 /7
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 81 /7 iw; CMP r/m16, imm16; Compare imm16 with r/m16.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            let imm16 = lex.next_imm16();
+                            CmpMI16(rm16, imm16)
+                        }
+                        Data32 => {
+                            // 81 /7 id; CMP r/m32, imm32; Compare imm32 with r/m32.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            let imm32 = lex.next_imm32();
+                            CmpMI32(rm32, imm32)
+                        }
+                        Data64 => {
+                            // REX.W + 81 /7 id; CMP r/m64, imm32; Compare imm32 sign-extended to 64-bits with r/m64.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            let imm32 = lex.next_imm32();
+                            // Sign extend imm32 to u64.
+                            CmpMI64(rm64, imm32 as i32 as u64)
+                        }
+                    }
+                }
                 _ => {
                     lex.rollback();
                     NotImplementedOpext(opcode, modrm.reg3)
@@ -499,6 +602,29 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                             let rm64 = decode_rm64(lex, &modrm);
                             let imm8 = lex.next_imm8();
                             SubMI64(rm64, imm8 as i8 as u64)
+                        }
+                    }
+                }
+                7 => {
+                    // 83 /7
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 83 /7 ib; CMP r/m16, imm8; Compare sign-extended imm8 with r/m16.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            CmpMI16(rm16, imm8 as i8 as u16)
+                        }
+                        Data32 => {
+                            // 83 /7 ib; CMP r/m32, imm8; Compare sign-extended imm8 with r/m32.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            CmpMI32(rm32, imm8 as i8 as u32)
+                        }
+                        Data64 => {
+                            // REX.W + 83 /7 ib; CMP r/m64, imm8; Compare sign-extended imm8 with r/m64.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            CmpMI64(rm64, imm8 as i8 as u64)
                         }
                     }
                 }
