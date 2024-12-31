@@ -1,6 +1,8 @@
 # hole: fibonacci
 .comm x, 0xf78000000
 
+mov $0, %rsp # just so test files line up
+
 mov $123456789, %eax
 
 # SUB: print decimal followed by newline
@@ -29,3 +31,5 @@ mov %eax, %edi # fd = %rdi
 # buf = %rsi
 sub %esi, %edx # cnt = rdx
 syscall
+
+hlt

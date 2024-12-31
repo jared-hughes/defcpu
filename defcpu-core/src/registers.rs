@@ -304,59 +304,44 @@ impl Flags {
             | if self.of { 1 << 11 } else { 0 }
     }
 
-    pub(crate) fn add_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
-        let (result, carry) = x.overflowing_add(y);
-        let carry_out_of_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
+    fn result_flags_8(&mut self, result: u8) {
         self.pf = result.count_ones() % 2 == 0;
-        self.af = carry_out_of_bit_3 == 1;
         self.zf = result == 0;
         let bm1 = u8::BITS - 1;
         self.sf = result >> bm1 & 1 == 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
-            // pos + pos = neg
-            (0, 0, 1) => true,
-            // neg + neg = pos
-            (1, 1, 0) => true,
-            _ => false,
-        };
-        result
     }
 
-    pub(crate) fn add_16(&mut self, x: u16, y: u16, update_cf: bool) -> u16 {
-        let (result, carry) = x.overflowing_add(y);
-        let carry_out_of_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.pf = (result as u8).count_ones() % 2 == 0;
-        self.af = carry_out_of_bit_3 == 1;
+    fn result_flags_16(&mut self, result: u16) {
+        self.pf = result.count_ones() % 2 == 0;
         self.zf = result == 0;
         let bm1 = u16::BITS - 1;
         self.sf = result >> bm1 & 1 == 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
-            // pos + pos = neg
-            (0, 0, 1) => true,
-            // neg + neg = pos
-            (1, 1, 0) => true,
-            _ => false,
-        };
-        result
     }
 
-    pub(crate) fn add_32(&mut self, x: u32, y: u32, update_cf: bool) -> u32 {
-        let (result, carry) = x.overflowing_add(y);
-        let carry_out_of_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.pf = (result as u8).count_ones() % 2 == 0;
-        self.af = carry_out_of_bit_3 == 1;
+    fn result_flags_32(&mut self, result: u32) {
+        self.pf = result.count_ones() % 2 == 0;
         self.zf = result == 0;
         let bm1 = u32::BITS - 1;
         self.sf = result >> bm1 & 1 == 1;
+    }
+
+    fn result_flags_64(&mut self, result: u64) {
+        self.pf = result.count_ones() % 2 == 0;
+        self.zf = result == 0;
+        let bm1 = u64::BITS - 1;
+        self.sf = result >> bm1 & 1 == 1;
+    }
+
+    /// Add two numbers, update flags, and return the sum.
+    pub(crate) fn add_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
+        let (result, carry) = x.overflowing_add(y);
+        self.result_flags_8(result);
+        let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.af = carry_out_of_bit_3 == 1;
+        let bm1 = u8::BITS - 1;
         self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
             // pos + pos = neg
             (0, 0, 1) => true,
@@ -367,22 +352,149 @@ impl Flags {
         result
     }
 
-    pub(crate) fn add_64(&mut self, x: u64, y: u64, update_cf: bool) -> u64 {
+    /// Add two numbers, update flags, and return the sum.
+    pub(crate) fn add_16(&mut self, x: u16, y: u16, update_cf: bool) -> u16 {
         let (result, carry) = x.overflowing_add(y);
-        let carry_out_of_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        self.result_flags_16(result);
+        let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
         if update_cf {
             self.cf = carry;
         }
-        self.pf = (result as u8).count_ones() % 2 == 0;
         self.af = carry_out_of_bit_3 == 1;
-        self.zf = result == 0;
-        let bm1 = u64::BITS - 1;
-        self.sf = result >> bm1 & 1 == 1;
+        let bm1 = u16::BITS - 1;
         self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
             // pos + pos = neg
             (0, 0, 1) => true,
             // neg + neg = pos
             (1, 1, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    /// Add two numbers, update flags, and return the sum.
+    pub(crate) fn add_32(&mut self, x: u32, y: u32, update_cf: bool) -> u32 {
+        let (result, carry) = x.overflowing_add(y);
+        self.result_flags_32(result);
+        let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.af = carry_out_of_bit_3 == 1;
+        let bm1 = u32::BITS - 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos + pos = neg
+            (0, 0, 1) => true,
+            // neg + neg = pos
+            (1, 1, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    /// Add two numbers, update flags, and return the sum.
+    pub(crate) fn add_64(&mut self, x: u64, y: u64, update_cf: bool) -> u64 {
+        let (result, carry) = x.overflowing_add(y);
+        self.result_flags_64(result);
+        let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.af = carry_out_of_bit_3 == 1;
+        let bm1 = u64::BITS - 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos + pos = neg
+            (0, 0, 1) => true,
+            // neg + neg = pos
+            (1, 1, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    /// Subtract two numbers, update flags, and return the difference.
+    /// Note this isn't just `self.add_8(x, -y)` because CF/OF/AF depend
+    /// on the path, and negating u8::MIN overflows.
+    pub(crate) fn sub_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
+        let (result, carry) = x.overflowing_sub(y);
+        self.result_flags_8(result);
+        let borrow_into_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.af = borrow_into_bit_3 == 1;
+        let bm1 = u8::BITS - 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos - neg = neg
+            (0, 1, 1) => true,
+            // neg - pos = pos
+            (1, 0, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    /// Subtract two numbers, update flags, and return the difference.
+    /// Note this isn't just `self.add_16(x, -y)` because CF/OF/AF depend
+    /// on the path, and negating u16::MIN overflows.
+    pub(crate) fn sub_16(&mut self, x: u16, y: u16, update_cf: bool) -> u16 {
+        let (result, carry) = x.overflowing_sub(y);
+        self.result_flags_16(result);
+        let borrow_into_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.af = borrow_into_bit_3 == 1;
+        let bm1 = u16::BITS - 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos - neg = neg
+            (0, 1, 1) => true,
+            // neg - pos = pos
+            (1, 0, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    /// Subtract two numbers, update flags, and return the difference.
+    /// Note this isn't just `self.add_32(x, -y)` because CF/OF/AF depend
+    /// on the path, and negating u32::MIN overflows.
+    pub(crate) fn sub_32(&mut self, x: u32, y: u32, update_cf: bool) -> u32 {
+        let (result, carry) = x.overflowing_sub(y);
+        self.result_flags_32(result);
+        let borrow_into_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.af = borrow_into_bit_3 == 1;
+        let bm1 = u32::BITS - 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos - neg = neg
+            (0, 1, 1) => true,
+            // neg - pos = pos
+            (1, 0, 0) => true,
+            _ => false,
+        };
+        result
+    }
+
+    /// Subtract two numbers, update flags, and return the difference.
+    /// Note this isn't just `self.add_64(x, -y)` because CF/OF/AF depend
+    /// on the path, and negating u64::MIN overflows.
+    pub(crate) fn sub_64(&mut self, x: u64, y: u64, update_cf: bool) -> u64 {
+        let (result, carry) = x.overflowing_sub(y);
+        self.result_flags_64(result);
+        let borrow_into_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        if update_cf {
+            self.cf = carry;
+        }
+        self.af = borrow_into_bit_3 == 1;
+        let bm1 = u64::BITS - 1;
+        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+            // pos - neg = neg
+            (0, 1, 1) => true,
+            // neg - pos = pos
+            (1, 0, 0) => true,
             _ => false,
         };
         result

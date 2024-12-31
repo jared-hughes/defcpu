@@ -81,9 +81,10 @@ impl Memory {
             if page_addr(segment.p_vaddr) != segment.p_vaddr {
                 panic!("Virtual address is not page-aligned. Haven't thought that out yet.")
             }
+            let memsz = segment.memsz.next_multiple_of(PAGE_SIZE as u64);
             let mut new_seg = MemSegment {
                 start: segment.p_vaddr,
-                end: segment.p_vaddr + segment.memsz,
+                end: segment.p_vaddr + memsz,
                 flags: segment.flags,
                 page_table: HashMap::new(),
             };
