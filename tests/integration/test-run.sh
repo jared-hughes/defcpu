@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-echo "Testing 'defcpu run'"
+echo
+echo "[Testing 'defcpu run']"
 
 # Script pre-req: build-elfs.sh built into `elfs/`.
 # Script pre-req: run-sources.sh ran and put results into `output/`

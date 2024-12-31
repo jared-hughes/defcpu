@@ -12,6 +12,7 @@ pub(crate) mod registers;
 use crate::decode_inst::decode_inst;
 
 use interpret::Machine;
+use memory::Memory;
 use parse_elf::SimpleElfFile;
 
 pub fn interpret(input: &[u8]) {
@@ -27,26 +28,32 @@ pub fn interpret(input: &[u8]) {
 
 pub fn disassemble(input: &[u8]) {
     let elf = SimpleElfFile::from_bytes(input).unwrap_or_else(|pe| panic!("{}", pe));
-    let machine = Machine::from_elf(&elf);
-    let max_steps = 1000;
-    let mut step_index = 0;
-    let mut i = machine.regs.rip;
-    while step_index < max_steps {
-        if machine.mem.read_u8(i) == 0 {
-            break;
+    let mem = Memory::from_segments(&elf.segments);
+    for segment in elf.segments {
+        if !segment.flags.executable {
+            continue;
         }
-        let (inst, len) = decode_inst(&machine.mem, i);
+        disassemble_segment(&mem, segment.p_vaddr, segment.segment_data.len() as u64);
+    }
+}
+
+fn disassemble_segment(mem: &Memory, v_addr: u64, segment_len: u64) {
+    let mut i = v_addr;
+    while i < v_addr + segment_len {
+        let (inst, len) = decode_inst(mem, i);
+        if len == 0 {
+            panic!("Empty instruction.")
+        }
         let mut first = true;
         for j in i..i + len {
             if !first {
                 print!(" ");
             }
             first = false;
-            print!("{:02x}", machine.mem.read_u8(j));
+            print!("{:02x}", mem.read_u8(j));
         }
         print!("\t");
         i += len;
         println!("{}", inst);
-        step_index += 1;
     }
 }

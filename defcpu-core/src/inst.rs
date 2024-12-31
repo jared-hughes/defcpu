@@ -75,6 +75,37 @@ pub enum Inst {
     DecM32(RM32),
     /// REX.W + FF /1; DEC r/m64; Decrement r/m quadword by 1.
     DecM64(RM64),
+    /// 04 ib; ADD AL, imm8; Add imm8 to AL.
+    /// 80 /0 ib; ADD r/m8, imm8; Add imm8 to r/m8.
+    AddMI8(RM8, u8),
+    /// 05 iw; ADD AX, imm16; Add imm16 to AX.
+    /// 81 /0 iw; ADD r/m16, imm16; Add imm16 to r/m16.
+    /// 83 /0 ib; ADD r/m16, imm8; Add sign-extended imm8 to r/m16.
+    AddMI16(RM16, u16),
+    /// 05 id; ADD EAX, imm32; Add imm32 to EAX.
+    /// 81 /0 id; ADD r/m32, imm32; Add imm32 to r/m32.
+    /// 83 /0 ib; ADD r/m32, imm8; Add sign-extended imm8 to r/m32.
+    AddMI32(RM32, u32),
+    /// REX.W + 05 id; ADD RAX, imm32; Add imm32 sign-extended to 64-bits to RAX.
+    /// REX.W + 81 /0 id; ADD r/m64, imm32; Add imm32 sign-extended to 64-bits to r/m64.
+    /// REX.W + 83 /0 ib; ADD r/m64, imm8; Add sign-extended imm8 to r/m64.
+    AddMI64(RM64, u64),
+    /// 00 /r; ADD r/m8, r8; Add r8 to r/m8.
+    AddMR8(RM8, GPR8),
+    /// 01 /r; ADD r/m16, r16; Add r16 to r/m16.
+    AddMR16(RM16, GPR16),
+    /// 01 /r; ADD r/m32, r32; Add r32 to r/m32.
+    AddMR32(RM32, GPR32),
+    /// REX.W + 01 /r; ADD r/m64, r64; Add r64 to r/m64.
+    AddMR64(RM64, GPR64),
+    /// 02 /r; ADD r8, r/m8; Add r/m8 to r8.
+    AddRM8(GPR8, RM8),
+    /// 03 /r; ADD r16, r/m16; Add r/m16 to r16.
+    AddRM16(GPR16, RM16),
+    /// 03 /r; ADD r32, r/m32; Add r/m32 to r32.
+    AddRM32(GPR32, RM32),
+    /// REX.W + 03 /r; ADD r64, r/m64; Add r/m64 to r64.
+    AddRM64(GPR64, RM64),
 }
 
 impl Inst {
@@ -91,22 +122,22 @@ impl Inst {
             | NotImplementedOpext(_, _)
             | RexNoop
             | Syscall => String::new(),
-            MovMR8(rm, reg) => format!("{}, {}", reg, rm),
-            MovMR16(rm, reg) => format!("{}, {}", reg, rm),
-            MovMR32(rm, reg) => format!("{}, {}", reg, rm),
-            MovMR64(rm, reg) => format!("{}, {}", reg, rm),
-            MovRM8(reg, rm) => format!("{}, {}", rm, reg),
-            MovRM16(reg, rm) => format!("{}, {}", rm, reg),
-            MovRM32(reg, rm) => format!("{}, {}", rm, reg),
-            MovRM64(reg, rm) => format!("{}, {}", rm, reg),
+            MovMR8(rm8, gpr8) | AddMR8(rm8, gpr8) => format!("{}, {}", gpr8, rm8),
+            MovMR16(rm16, gpr16) | AddMR16(rm16, gpr16) => format!("{}, {}", gpr16, rm16),
+            MovMR32(rm32, gpr32) | AddMR32(rm32, gpr32) => format!("{}, {}", gpr32, rm32),
+            MovMR64(rm64, gpr64) | AddMR64(rm64, gpr64) => format!("{}, {}", gpr64, rm64),
+            MovRM8(gpr8, rm8) | AddRM8(gpr8, rm8) => format!("{}, {}", rm8, gpr8),
+            MovRM16(gpr16, rm16) | AddRM16(gpr16, rm16) => format!("{}, {}", rm16, gpr16),
+            MovRM32(gpr32, rm32) | AddRM32(gpr32, rm32) => format!("{}, {}", rm32, gpr32),
+            MovRM64(gpr64, rm64) | AddRM64(gpr64, rm64) => format!("{}, {}", rm64, gpr64),
             MovOI8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
             MovOI16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
             MovOI32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
             MovOI64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
-            MovMI8(rm, imm8) => format!("${:#x}, {}", imm8, rm),
-            MovMI16(rm, imm16) => format!("${:#x}, {}", imm16, rm),
-            MovMI32(rm, imm32) => format!("${:#x}, {}", imm32, rm),
-            MovMI64(rm, imm32) => format!("${:#x}, {}", imm32, rm),
+            MovMI8(rm8, imm8) | AddMI8(rm8, imm8) => format!("${:#x}, {}", imm8, rm8),
+            MovMI16(rm16, imm16) | AddMI16(rm16, imm16) => format!("${:#x}, {}", imm16, rm16),
+            MovMI32(rm32, imm32) | AddMI32(rm32, imm32) => format!("${:#x}, {}", imm32, rm32),
+            MovMI64(rm64, imm64) | AddMI64(rm64, imm64) => format!("${:#x}, {}", imm64, rm64),
             Hlt => String::new(),
             IncM8(rm8) | DecM8(rm8) => format!("{}", rm8),
             IncM16(rm16) | DecM16(rm16) => format!("{}", rm16),
@@ -119,17 +150,17 @@ impl Inst {
             NotImplemented(_) | NotImplemented2(_, _) | NotImplementedOpext(_, _) => "(bad)",
             RexNoop => "",
             Syscall => "syscall",
-            MovMR8(_, _) => "mov",
-            MovMR16(_, _) => "mov",
-            MovMR32(_, _) => "mov",
-            MovMR64(_, _) => "mov",
-            MovRM8(_, _) => "mov",
-            MovRM16(_, _) => "mov",
-            MovRM32(_, _) => "mov",
-            MovRM64(_, _) => "mov",
-            MovOI8(_, _) => "mov",
-            MovOI16(_, _) => "mov",
-            MovOI32(_, _) => "mov",
+            MovMR8(_, _)
+            | MovMR16(_, _)
+            | MovMR32(_, _)
+            | MovMR64(_, _)
+            | MovRM8(_, _)
+            | MovRM16(_, _)
+            | MovRM32(_, _)
+            | MovRM64(_, _)
+            | MovOI8(_, _)
+            | MovOI16(_, _)
+            | MovOI32(_, _) => "mov",
             MovMI8(rm8, _) => rm8.either("mov", "movb"),
             MovMI16(rm16, _) => rm16.either("mov", "movw"),
             MovMI32(rm32, _) => rm32.either("mov", "movl"),
@@ -145,6 +176,18 @@ impl Inst {
             DecM16(rm16) => rm16.either("dec", "decw"),
             DecM32(rm32) => rm32.either("dec", "decl"),
             DecM64(rm64) => rm64.either("dec", "decq"),
+            AddMI8(rm8, _) => rm8.either("add", "addb"),
+            AddMI16(rm16, _) => rm16.either("add", "addw"),
+            AddMI32(rm32, _) => rm32.either("add", "addl"),
+            AddMI64(rm64, _) => rm64.either("add", "addq"),
+            AddMR8(_, _)
+            | AddMR16(_, _)
+            | AddMR32(_, _)
+            | AddMR64(_, _)
+            | AddRM8(_, _)
+            | AddRM16(_, _)
+            | AddRM32(_, _)
+            | AddRM64(_, _) => "add",
         }
     }
 }
