@@ -4,7 +4,7 @@ use crate::{
     memory::Memory,
     parse_elf::SimpleElfFile,
     read_write::File,
-    registers::{Flags, Registers, GPR32, GPR64},
+    registers::{Flags, Registers, GPR16, GPR32, GPR64, GPR8},
 };
 
 pub struct Machine {
@@ -342,6 +342,68 @@ impl Machine {
                 let old_dest = self.regs.get_reg64(&gpr64);
                 self.regs.flags.add_64(old_dest, !source + 1, true);
             }
+            Inst::DivM8(rm8) => {
+                let dividend = self.regs.get_reg16(&GPR16::ax);
+                let divisor = self.get_rm8(&rm8) as u16;
+                if divisor == 0 {
+                    divide_error();
+                }
+                self.regs.flags.div_flags();
+                let quotient = dividend.div_euclid(divisor);
+                let remainder = dividend.rem_euclid(divisor);
+                self.regs.set_reg8(
+                    &GPR8::al,
+                    // TODO: Verify try_into actually does what I expect
+                    // (gives None if the quotient exceeds u8::MAX).
+                    quotient.try_into().unwrap_or_else(|_| divide_error()),
+                );
+                self.regs.set_reg8(&GPR8::ah, remainder as u8);
+            }
+            Inst::DivM16(rm16) => {
+                let dividend = self.regs.get_dx_ax();
+                let divisor = self.get_rm16(&rm16) as u32;
+                if divisor == 0 {
+                    divide_error();
+                }
+                self.regs.flags.div_flags();
+                let quotient = dividend.div_euclid(divisor);
+                let remainder = dividend.rem_euclid(divisor);
+                self.regs.set_reg16(
+                    &GPR16::ax,
+                    quotient.try_into().unwrap_or_else(|_| divide_error()),
+                );
+                self.regs.set_reg16(&GPR16::dx, remainder as u16);
+            }
+            Inst::DivM32(rm32) => {
+                let dividend = self.regs.get_edx_eax();
+                let divisor = self.get_rm32(&rm32) as u64;
+                if divisor == 0 {
+                    divide_error();
+                }
+                self.regs.flags.div_flags();
+                let quotient = dividend.div_euclid(divisor);
+                let remainder = dividend.rem_euclid(divisor);
+                self.regs.set_reg32(
+                    &GPR32::eax,
+                    quotient.try_into().unwrap_or_else(|_| divide_error()),
+                );
+                self.regs.set_reg32(&GPR32::edx, remainder as u32);
+            }
+            Inst::DivM64(rm64) => {
+                let dividend = self.regs.get_rdx_rax();
+                let divisor = self.get_rm64(&rm64) as u128;
+                if divisor == 0 {
+                    divide_error();
+                }
+                self.regs.flags.div_flags();
+                let quotient = dividend.div_euclid(divisor);
+                let remainder = dividend.rem_euclid(divisor);
+                self.regs.set_reg64(
+                    &GPR64::rax,
+                    quotient.try_into().unwrap_or_else(|_| divide_error()),
+                );
+                self.regs.set_reg64(&GPR64::rdx, remainder as u64);
+            }
         }
     }
 
@@ -464,4 +526,9 @@ impl Machine {
             }
         }
     }
+}
+
+fn divide_error() -> ! {
+    // #DE
+    panic!("Divide error #DE.");
 }

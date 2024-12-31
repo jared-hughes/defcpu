@@ -387,6 +387,15 @@ impl Flags {
         };
         result
     }
+
+    pub(crate) fn div_flags(&mut self) {
+        // The div and idiv instructions are documented to have undefined effect on flags.
+        // On the code.golf CPU, they clear PF, ZF, SF, set AF and preserve CF, OF and other flags
+        self.pf = false;
+        self.zf = false;
+        self.sf = false;
+        self.af = true;
+    }
 }
 
 pub struct Registers {
@@ -462,6 +471,18 @@ impl Registers {
     pub fn get_reg64(&self, gpr64: &GPR64) -> u64 {
         let ind = gpr64.0.reg_index();
         self.regs[ind]
+    }
+
+    pub fn get_dx_ax(&self) -> u32 {
+        (self.get_reg16(&GPR16::dx) as u32) << 16 | (self.get_reg16(&GPR16::ax) as u32)
+    }
+
+    pub fn get_edx_eax(&self) -> u64 {
+        (self.get_reg32(&GPR32::edx) as u64) << 32 | (self.get_reg32(&GPR32::eax) as u64)
+    }
+
+    pub fn get_rdx_rax(&self) -> u128 {
+        (self.get_reg64(&GPR64::rdx) as u128) << 64 | (self.get_reg64(&GPR64::rax) as u128)
     }
 
     pub fn get_eip(&self) -> u32 {

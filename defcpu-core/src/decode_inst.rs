@@ -770,12 +770,55 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             }
             Hlt
         }
+        0xF6 => {
+            let modrm = lex.next_modrm();
+            match modrm.reg3 {
+                6 => {
+                    // F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
+                    let rm8 = decode_rm8(lex, &modrm);
+                    DivM8(rm8)
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
+        0xF7 => {
+            let modrm = lex.next_modrm();
+            match modrm.reg3 {
+                6 => {
+                    // F7 /6
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // F7 /6; DIV r/m16; Unsigned divide DX:AX by r/m16, with result stored in AX := Quotient, DX := Remainder.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            DivM16(rm16)
+                        }
+                        Data32 => {
+                            // F7 /6; DIV r/m32; Unsigned divide EDX:EAX by r/m32, with result stored in EAX := Quotient, EDX := Remainder.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            DivM32(rm32)
+                        }
+                        Data64 => {
+                            // REX.W + F7 /6; DIV r/m64; Unsigned divide RDX:RAX by r/m64, with result stored in RAX := Quotient, RDX := Remainder.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            DivM64(rm64)
+                        }
+                    }
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
         0xFE => {
             let modrm = lex.next_modrm();
             match modrm.reg3 {
                 0 | 1 => {
                     // FE /0; INC r/m8; Increment r/m byte by 1.
-                    // FE /1; Dec r/m8; Decrement r/m byte by 1.
+                    // FE /1; DEC r/m8; Decrement r/m byte by 1.
                     let rm8 = decode_rm8(lex, &modrm);
                     match modrm.reg3 {
                         0 => IncM8(rm8),

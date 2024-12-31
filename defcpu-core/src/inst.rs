@@ -168,6 +168,14 @@ pub enum Inst {
     CmpRM32(GPR32, RM32),
     /// REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
     CmpRM64(GPR64, RM64),
+    /// F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
+    DivM8(RM8),
+    /// F7 /6; DIV r/m16; Unsigned divide DX:AX by r/m16, with result stored in AX := Quotient, DX := Remainder.
+    DivM16(RM16),
+    /// F7 /6; DIV r/m32; Unsigned divide EDX:EAX by r/m32, with result stored in EAX := Quotient, EDX := Remainder.
+    DivM32(RM32),
+    /// REX.W + F7 /6; DIV r/m64; Unsigned divide RDX:RAX by r/m64, with result stored in RAX := Quotient, RDX := Remainder.
+    DivM64(RM64),
 }
 
 impl Inst {
@@ -252,10 +260,10 @@ impl Inst {
                 format!("${:#x}, {}", imm64, rm64)
             }
             Hlt => String::new(),
-            IncM8(rm8) | DecM8(rm8) => format!("{}", rm8),
-            IncM16(rm16) | DecM16(rm16) => format!("{}", rm16),
-            IncM32(rm32) | DecM32(rm32) => format!("{}", rm32),
-            IncM64(rm64) | DecM64(rm64) => format!("{}", rm64),
+            IncM8(rm8) | DecM8(rm8) | DivM8(rm8) => format!("{}", rm8),
+            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) => format!("{}", rm16),
+            IncM32(rm32) | DecM32(rm32) | DivM32(rm32) => format!("{}", rm32),
+            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) => format!("{}", rm64),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -325,6 +333,10 @@ impl Inst {
             | CmpRM16(_, _)
             | CmpRM32(_, _)
             | CmpRM64(_, _) => "cmp",
+            DivM8(rm8) => rm8.either("div", "divb"),
+            DivM16(rm16) => rm16.either("div", "divw"),
+            DivM32(rm32) => rm32.either("div", "divl"),
+            DivM64(rm64) => rm64.either("div", "divq"),
         }
     }
 }
