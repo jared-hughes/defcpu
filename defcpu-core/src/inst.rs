@@ -106,6 +106,37 @@ pub enum Inst {
     AddRM32(GPR32, RM32),
     /// REX.W + 03 /r; ADD r64, r/m64; Add r/m64 to r64.
     AddRM64(GPR64, RM64),
+    /// 2C ib; SUB AL, imm8; Subtract imm8 from AL.
+    /// 80 /5 ib; SUB r/m8, imm8; Subtract imm8 from r/m8.
+    SubMI8(RM8, u8),
+    /// 2D iw; SUB AX, imm16; Subtract imm16 from AX.
+    /// 81 /5 iw; SUB r/m16, imm16; Subtract imm16 from r/m16.
+    /// 83 /5 ib; SUB r/m16, imm8; Subtract sign-extended imm8 from r/m16.
+    SubMI16(RM16, u16),
+    /// 2D id; SUB EAX, imm32; Subtract imm32 from EAX.
+    /// 81 /5 id; SUB r/m32, imm32; Subtract imm32 from r/m32.
+    /// 83 /5 ib; SUB r/m32, imm8; Subtract sign-extended imm8 from r/m32.
+    SubMI32(RM32, u32),
+    /// REX.W + 2D id; SUB RAX, imm32; Subtract imm32 sign-extended to 64-bits from RAX.
+    /// REX.W + 81 /5 id; SUB r/m64, imm32; Subtract imm32 sign-extended to 64-bits from r/m64.
+    /// REX.W + 83 /5 ib; SUB r/m64, imm8; Subtract sign-extended imm8 from r/m64.
+    SubMI64(RM64, u64),
+    /// 28 /r; SUB r/m8, r8; Subtract r8 from r/m8.
+    SubMR8(RM8, GPR8),
+    /// 29 /r; SUB r/m16, r16; Subtract r16 from r/m16.
+    SubMR16(RM16, GPR16),
+    /// 29 /r; SUB r/m32, r32; Subtract r32 from r/m32.
+    SubMR32(RM32, GPR32),
+    /// REX.W + 29 /r; SUB r/m64, r64; Subtract r64 from r/m64.
+    SubMR64(RM64, GPR64),
+    /// 2A /r; SUB r8, r/m8; Subtract r/m8 from r8.
+    SubRM8(GPR8, RM8),
+    /// 2B /r; SUB r16, r/m16; Subtract r/m16 from r16.
+    SubRM16(GPR16, RM16),
+    /// 2B /r; SUB r32, r/m32; Subtract r/m32 from r32.
+    SubRM32(GPR32, RM32),
+    /// REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
+    SubRM64(GPR64, RM64),
 }
 
 impl Inst {
@@ -122,22 +153,46 @@ impl Inst {
             | NotImplementedOpext(_, _)
             | RexNoop
             | Syscall => String::new(),
-            MovMR8(rm8, gpr8) | AddMR8(rm8, gpr8) => format!("{}, {}", gpr8, rm8),
-            MovMR16(rm16, gpr16) | AddMR16(rm16, gpr16) => format!("{}, {}", gpr16, rm16),
-            MovMR32(rm32, gpr32) | AddMR32(rm32, gpr32) => format!("{}, {}", gpr32, rm32),
-            MovMR64(rm64, gpr64) | AddMR64(rm64, gpr64) => format!("{}, {}", gpr64, rm64),
-            MovRM8(gpr8, rm8) | AddRM8(gpr8, rm8) => format!("{}, {}", rm8, gpr8),
-            MovRM16(gpr16, rm16) | AddRM16(gpr16, rm16) => format!("{}, {}", rm16, gpr16),
-            MovRM32(gpr32, rm32) | AddRM32(gpr32, rm32) => format!("{}, {}", rm32, gpr32),
-            MovRM64(gpr64, rm64) | AddRM64(gpr64, rm64) => format!("{}, {}", rm64, gpr64),
+            MovMR8(rm8, gpr8) | AddMR8(rm8, gpr8) | SubMR8(rm8, gpr8) => {
+                format!("{}, {}", gpr8, rm8)
+            }
+            MovMR16(rm16, gpr16) | AddMR16(rm16, gpr16) | SubMR16(rm16, gpr16) => {
+                format!("{}, {}", gpr16, rm16)
+            }
+            MovMR32(rm32, gpr32) | AddMR32(rm32, gpr32) | SubMR32(rm32, gpr32) => {
+                format!("{}, {}", gpr32, rm32)
+            }
+            MovMR64(rm64, gpr64) | AddMR64(rm64, gpr64) | SubMR64(rm64, gpr64) => {
+                format!("{}, {}", gpr64, rm64)
+            }
+            MovRM8(gpr8, rm8) | AddRM8(gpr8, rm8) | SubRM8(gpr8, rm8) => {
+                format!("{}, {}", rm8, gpr8)
+            }
+            MovRM16(gpr16, rm16) | AddRM16(gpr16, rm16) | SubRM16(gpr16, rm16) => {
+                format!("{}, {}", rm16, gpr16)
+            }
+            MovRM32(gpr32, rm32) | AddRM32(gpr32, rm32) | SubRM32(gpr32, rm32) => {
+                format!("{}, {}", rm32, gpr32)
+            }
+            MovRM64(gpr64, rm64) | AddRM64(gpr64, rm64) | SubRM64(gpr64, rm64) => {
+                format!("{}, {}", rm64, gpr64)
+            }
             MovOI8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
             MovOI16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
             MovOI32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
             MovOI64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
-            MovMI8(rm8, imm8) | AddMI8(rm8, imm8) => format!("${:#x}, {}", imm8, rm8),
-            MovMI16(rm16, imm16) | AddMI16(rm16, imm16) => format!("${:#x}, {}", imm16, rm16),
-            MovMI32(rm32, imm32) | AddMI32(rm32, imm32) => format!("${:#x}, {}", imm32, rm32),
-            MovMI64(rm64, imm64) | AddMI64(rm64, imm64) => format!("${:#x}, {}", imm64, rm64),
+            MovMI8(rm8, imm8) | AddMI8(rm8, imm8) | SubMI8(rm8, imm8) => {
+                format!("${:#x}, {}", imm8, rm8)
+            }
+            MovMI16(rm16, imm16) | AddMI16(rm16, imm16) | SubMI16(rm16, imm16) => {
+                format!("${:#x}, {}", imm16, rm16)
+            }
+            MovMI32(rm32, imm32) | AddMI32(rm32, imm32) | SubMI32(rm32, imm32) => {
+                format!("${:#x}, {}", imm32, rm32)
+            }
+            MovMI64(rm64, imm64) | AddMI64(rm64, imm64) | SubMI64(rm64, imm64) => {
+                format!("${:#x}, {}", imm64, rm64)
+            }
             Hlt => String::new(),
             IncM8(rm8) | DecM8(rm8) => format!("{}", rm8),
             IncM16(rm16) | DecM16(rm16) => format!("{}", rm16),
@@ -188,6 +243,18 @@ impl Inst {
             | AddRM16(_, _)
             | AddRM32(_, _)
             | AddRM64(_, _) => "add",
+            SubMI8(rm8, _) => rm8.either("sub", "subb"),
+            SubMI16(rm16, _) => rm16.either("sub", "subw"),
+            SubMI32(rm32, _) => rm32.either("sub", "subl"),
+            SubMI64(rm64, _) => rm64.either("sub", "subq"),
+            SubMR8(_, _)
+            | SubMR16(_, _)
+            | SubMR32(_, _)
+            | SubMR64(_, _)
+            | SubRM8(_, _)
+            | SubRM16(_, _)
+            | SubRM32(_, _)
+            | SubRM64(_, _) => "sub",
         }
     }
 }

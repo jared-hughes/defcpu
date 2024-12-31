@@ -275,6 +275,79 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 _ => NotImplemented2(opcode, opcode2),
             }
         }
+        0x28 | 0x2A => {
+            // 28 /r; SUB r/m8, r8; Subtract r8 from r/m8.
+            // 2A /r; SUB r8, r/m8; Subtract r/m8 from r8.
+            let modrm = lex.next_modrm();
+            let reg = lex.reg8_field_select_r(modrm.reg3);
+            let rm8 = decode_rm8(lex, &modrm);
+            match opcode {
+                0x28 => SubMR8(rm8, reg),
+                0x2A => SubRM8(reg, rm8),
+                _ => panic!("Missing match arm in decode_inst_inner."),
+            }
+        }
+        0x29 | 0x2B => {
+            let modrm = lex.next_modrm();
+            let rex_r = lex.get_rex_r_matters();
+            match lex.get_operand_size() {
+                Data16 => {
+                    // 29 /r; SUB r/m16, r16; Subtract r16 from r/m16.
+                    // 2B /r; SUB r16, r/m16; Subtract r/m16 from r16.
+                    let reg = reg16_field_select(modrm.reg3, rex_r);
+                    let rm16 = decode_rm16(lex, &modrm);
+                    match opcode {
+                        0x29 => SubMR16(rm16, reg),
+                        0x2B => SubRM16(reg, rm16),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                Data32 => {
+                    // 29 /r; SUB r/m32, r32; Subtract r32 from r/m32.
+                    // 2B /r; SUB r32, r/m32; Subtract r/m32 from r32.
+                    let reg = reg32_field_select(modrm.reg3, rex_r);
+                    let rm32 = decode_rm32(lex, &modrm);
+                    match opcode {
+                        0x29 => SubMR32(rm32, reg),
+                        0x2B => SubRM32(reg, rm32),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                Data64 => {
+                    // REX.W + 29 /r; SUB r/m64, r64; Subtract r64 from r/m64.
+                    // REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
+                    let reg = reg64_field_select(modrm.reg3, rex_r);
+                    let rm64 = decode_rm64(lex, &modrm);
+                    match opcode {
+                        0x29 => SubMR64(rm64, reg),
+                        0x2B => SubRM64(reg, rm64),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+            }
+        }
+        0x2C => {
+            // 2C ib; SUB AL, imm8; Subtract imm8 from AL.
+            let imm8 = lex.next_imm8();
+            SubMI8(RM8::Reg(GPR8::al), imm8)
+        }
+        0x2D => match lex.get_operand_size() {
+            Data16 => {
+                // 2D iw; SUB AX, imm16; Subtract imm16 from AX.
+                let imm16 = lex.next_imm16();
+                SubMI16(RM16::Reg(GPR16::ax), imm16)
+            }
+            Data32 => {
+                // 2D id; SUB EAX, imm32; Subtract imm32 from EAX.
+                let imm32 = lex.next_imm32();
+                SubMI32(RM32::Reg(GPR32::eax), imm32)
+            }
+            Data64 => {
+                // REX.W + 2D id; SUB RAX, imm32; Subtract imm32 sign-extended to 64-bits from RAX.
+                let imm32 = lex.next_imm32();
+                SubMI64(RM64::Reg(GPR64::rax), imm32 as i32 as u64)
+            }
+        },
         0x40..=0x4F => {
             // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
             if lex.prefix.rex.is_some() {
@@ -310,7 +383,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     let rm8 = decode_rm8(lex, &modrm);
                     let imm8 = lex.next_imm8();
                     AddMI8(rm8, imm8)
-                    // REX + C6 /0 ib; MOV r/m8, imm16
+                }
+                5 => {
+                    // 80 /5 ib; SUB r/m8, imm8; Subtract imm8 from r/m8.
+                    let rm8 = decode_rm8(lex, &modrm);
+                    let imm8 = lex.next_imm8();
+                    SubMI8(rm8, imm8)
                 }
                 _ => {
                     lex.rollback();
@@ -345,6 +423,30 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                         }
                     }
                 }
+                5 => {
+                    // 81 /5
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 81 /5 iw; SUB r/m16, imm16; Subtract imm16 from r/m16.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            let imm16 = lex.next_imm16();
+                            SubMI16(rm16, imm16)
+                        }
+                        Data32 => {
+                            // 81 /5 id; SUB r/m32, imm32; Subtract imm32 from r/m32.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            let imm32 = lex.next_imm32();
+                            SubMI32(rm32, imm32)
+                        }
+                        Data64 => {
+                            // REX.W + 81 /5 id; SUB r/m64, imm32; Subtract imm32 sign-extended to 64-bits from r/m64.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            let imm32 = lex.next_imm32();
+                            // Sign extend imm32 to u64.
+                            SubMI64(rm64, imm32 as i32 as u64)
+                        }
+                    }
+                }
                 _ => {
                     lex.rollback();
                     NotImplementedOpext(opcode, modrm.reg3)
@@ -374,6 +476,29 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                             let rm64 = decode_rm64(lex, &modrm);
                             let imm8 = lex.next_imm8();
                             AddMI64(rm64, imm8 as i8 as u64)
+                        }
+                    }
+                }
+                5 => {
+                    // 83 /5
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 83 /5 ib; SUB r/m16, imm8; Subtract sign-extended imm8 from r/m16.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            SubMI16(rm16, imm8 as i8 as u16)
+                        }
+                        Data32 => {
+                            // 83 /5 ib; SUB r/m32, imm8; Subtract sign-extended imm8 from r/m32.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            SubMI32(rm32, imm8 as i8 as u32)
+                        }
+                        Data64 => {
+                            // REX.W + 83 /5 ib; SUB r/m64, imm8; Subtract sign-extended imm8 from r/m64.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            SubMI64(rm64, imm8 as i8 as u64)
                         }
                     }
                 }
