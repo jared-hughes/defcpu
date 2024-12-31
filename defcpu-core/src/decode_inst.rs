@@ -2,11 +2,12 @@ use crate::{
     inst::{
         Base32, Base64, EffAddr, FullInst, Index32, Index64,
         Inst::{self, *},
+        JumpXor::*,
         Scale::{self, *},
         RM16, RM32, RM64, RM8, SIDB32, SIDB64,
     },
     inst_prefixes::{
-        AddressSizeAttribute::*,
+        AddressSizeAttribute::{self, *},
         OperandSizeAttribute::{self, *},
         Prefix,
     },
@@ -61,8 +62,19 @@ impl<'a> Lexer<'a> {
                 return Data64;
             }
         }
+        self.get_operand_size_no_rexw()
+    }
+
+    /// Call only once per instruction decode, since this deletes an operand size prefix, if present.
+    fn get_operand_size_no_rexw(&mut self) -> OperandSizeAttribute {
         self.prefix.dis_prefix.remove_last_operand_size_prefix();
         self.prefix.operand_size
+    }
+
+    /// Call only once per instruction decode, since this deletes an address size prefix, if present.
+    fn get_address_size(&mut self) -> AddressSizeAttribute {
+        self.prefix.dis_prefix.remove_last_address_size_prefix();
+        self.prefix.address_size
     }
 
     fn reg8_field_select_r(&mut self, op: u8) -> GPR8 {
@@ -172,8 +184,11 @@ impl<'a> Lexer<'a> {
         out
     }
 
+    fn next_i16(&mut self) -> i16 {
+        self.next_imm16() as i16
+    }
+
     fn next_i32(&mut self) -> i32 {
-        // i32 and u32 are 2's complement, so this is a no-op.
         self.next_imm32() as i32
     }
 
@@ -272,6 +287,40 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             let opcode2 = lex.next_u8();
             match opcode2 {
                 0x05 => Syscall,
+                0x80..=0x8F => {
+                    let dest = match lex.get_operand_size_no_rexw() {
+                        Data16 => {
+                            let rel_off = lex.next_i16() as u16;
+                            // If the operand-size attribute is 16, the upper two bytes of the EIP register
+                            // are cleared, resulting in a maximum instruction pointer size of 16 bits.
+                            (lex.i as u16).wrapping_add(rel_off) as u64
+                        }
+                        Data32 => {
+                            let rel_off = lex.next_i32() as u64;
+                            lex.i.wrapping_add(rel_off)
+                        }
+                        Data64 => panic!("Impossible Data64 without REX.W bit."),
+                    };
+                    match opcode2 {
+                        0x80 => JccJo(dest, Normal),
+                        0x81 => JccJo(dest, Negate),
+                        0x82 => JccJb(dest, Normal),
+                        0x83 => JccJb(dest, Negate),
+                        0x84 => JccJe(dest, Normal),
+                        0x85 => JccJe(dest, Negate),
+                        0x86 => JccJbe(dest, Normal),
+                        0x87 => JccJbe(dest, Negate),
+                        0x88 => JccJs(dest, Normal),
+                        0x89 => JccJs(dest, Negate),
+                        0x8A => JccJp(dest, Normal),
+                        0x8B => JccJp(dest, Negate),
+                        0x8C => JccJl(dest, Normal),
+                        0x8D => JccJl(dest, Negate),
+                        0x8E => JccJle(dest, Normal),
+                        0x8F => JccJle(dest, Negate),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
                 _ => NotImplemented2(opcode, opcode2),
             }
         }
@@ -447,6 +496,29 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             }
             lex.prefix = lex.prefix.with_address_size_prefix();
             decode_inst_inner(lex)
+        }
+        0x70..=0x7F => {
+            let rel_off = lex.next_i8() as u64;
+            let dest = lex.i.wrapping_add(rel_off);
+            match opcode {
+                0x70 => JccJo(dest, Normal),
+                0x71 => JccJo(dest, Negate),
+                0x72 => JccJb(dest, Normal),
+                0x73 => JccJb(dest, Negate),
+                0x74 => JccJe(dest, Normal),
+                0x75 => JccJe(dest, Negate),
+                0x76 => JccJbe(dest, Normal),
+                0x77 => JccJbe(dest, Negate),
+                0x78 => JccJs(dest, Normal),
+                0x79 => JccJs(dest, Negate),
+                0x7A => JccJp(dest, Normal),
+                0x7B => JccJp(dest, Negate),
+                0x7C => JccJl(dest, Normal),
+                0x7D => JccJl(dest, Negate),
+                0x7E => JccJle(dest, Normal),
+                0x7F => JccJle(dest, Negate),
+                _ => panic!("Missing match arm in decode_inst_inner."),
+            }
         }
         0x80 => {
             let modrm = lex.next_modrm();
@@ -763,6 +835,14 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
             }
         }
+        0xE3 => {
+            let rel_off = lex.next_i8() as u64;
+            let dest = lex.i.wrapping_add(rel_off);
+            match lex.get_address_size() {
+                Addr32 => Jecxz(dest),
+                Addr64 => Jrcxz(dest),
+            }
+        }
         0xF4 => {
             if lex.prefix.rex.is_some() {
                 lex.rollback();
@@ -948,9 +1028,7 @@ fn decode_rm64(lex: &mut Lexer, modrm: &ModRM) -> RM64 {
 /// but with addresses 64-bit regs instead of 32-bit. However displacement remains the same size (8/32 bits).
 fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> EffAddr {
     let rex_b = lex.get_rex_b_matters();
-    // Address size matters, so we don't need to show it.
-    lex.prefix.dis_prefix.remove_last_address_size_prefix();
-    let address_size = lex.prefix.address_size;
+    let address_size = lex.get_address_size();
     if modrm.mod2 == 0b00 && modrm.rm3 == 0b101 {
         // Special case: Instead of encoding a plain [ebp] (rexb=0) or [r13] (rexb=1),
         // it encodes as disp32 instead. Since we are in 64-bit mode,

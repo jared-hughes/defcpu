@@ -33,11 +33,16 @@ impl Machine {
             panic!("Unexpected step in a halt state.")
         }
         let (inst, len) = decode_inst(&self.mem, self.regs.rip);
-        self.run_inst(inst.inner);
-        self.regs.rip += len;
+        let ran = self.run_inst(inst.inner);
+        match ran {
+            // TODO: This is a jump. Should there be segment concerns?
+            Some(addr) => self.regs.rip = addr,
+            None => self.regs.rip += len,
+        }
     }
 
-    pub fn run_inst(&mut self, inst: Inst) {
+    /// Returned value is Some(u64) if rip should jump to that u64.
+    pub fn run_inst(&mut self, inst: Inst) -> Option<u64> {
         match inst {
             Inst::NotImplemented(opcode) => {
                 panic!("Not yet implemented opcode {opcode:02x}.")
@@ -404,7 +409,58 @@ impl Machine {
                 );
                 self.regs.set_reg64(&GPR64::rdx, remainder as u64);
             }
+            Inst::JccJo(addr, negate) => {
+                if negate.xor(self.regs.flags.of) {
+                    return Some(addr);
+                }
+            }
+            Inst::JccJb(addr, negate) => {
+                if negate.xor(self.regs.flags.cf) {
+                    return Some(addr);
+                }
+            }
+            Inst::JccJe(addr, negate) => {
+                if negate.xor(self.regs.flags.zf) {
+                    return Some(addr);
+                }
+            }
+            Inst::JccJbe(addr, negate) => {
+                if negate.xor(self.regs.flags.cf || self.regs.flags.zf) {
+                    return Some(addr);
+                }
+            }
+            Inst::JccJs(addr, negate) => {
+                if negate.xor(self.regs.flags.sf) {
+                    return Some(addr);
+                }
+            }
+            Inst::JccJp(addr, negate) => {
+                if negate.xor(self.regs.flags.pf) {
+                    return Some(addr);
+                }
+            }
+            Inst::JccJl(addr, negate) => {
+                if negate.xor(self.regs.flags.sf != self.regs.flags.of) {
+                    return Some(addr);
+                }
+            }
+            Inst::JccJle(addr, negate) => {
+                if negate.xor(self.regs.flags.zf || (self.regs.flags.sf != self.regs.flags.of)) {
+                    return Some(addr);
+                }
+            }
+            Inst::Jecxz(addr) => {
+                if self.regs.get_reg32(&GPR32::ecx) == 0 {
+                    return Some(addr);
+                }
+            }
+            Inst::Jrcxz(addr) => {
+                if self.regs.get_reg64(&GPR64::rcx) == 0 {
+                    return Some(addr);
+                }
+            }
         }
+        None
     }
 
     fn syscall(&mut self) {

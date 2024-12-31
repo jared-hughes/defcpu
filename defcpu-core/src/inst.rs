@@ -5,6 +5,20 @@ use crate::{
     registers::{Registers, GPR16, GPR32, GPR64, GPR8},
 };
 
+pub use JumpXor::*;
+pub enum JumpXor {
+    Normal,
+    Negate,
+}
+impl JumpXor {
+    pub(crate) fn xor(&self, b: bool) -> bool {
+        match self {
+            Normal => b,
+            Negate => !b,
+        }
+    }
+}
+
 use Inst::*;
 /// Instructions. Tuple args are in Intel order.
 /// For valid opcodes, the name of each variant is the mnemonic,
@@ -176,6 +190,79 @@ pub enum Inst {
     DivM32(RM32),
     /// REX.W + F7 /6; DIV r/m64; Unsigned divide RDX:RAX by r/m64, with result stored in RAX := Quotient, RDX := Remainder.
     DivM64(RM64),
+    /// 70 cb; JO rel8; Jump short if overflow (OF=1).
+    /// 0F 80 cd; JO rel32; Jump near if overflow (OF=1).
+    /// 71 cb; JNO rel8; Jump short if not overflow (OF=0).
+    /// 0F 81 cd; JNO rel32; Jump near if not overflow (OF=0).
+    JccJo(u64, JumpXor),
+    /// 72 cb; JB rel8; Jump short if below (CF=1).
+    /// 72 cb; JC rel8; Jump short if carry (CF=1).
+    /// 72 cb; JNAE rel8; Jump short if not above or equal (CF=1).
+    /// 0F 82 cd; JB rel32; Jump near if below (CF=1).
+    /// 0F 82 cd; JC rel32; Jump near if carry (CF=1).
+    /// 0F 82 cd; JNAE rel32; Jump near if not above or equal (CF=1).
+    /// 73 cb; JAE rel8; Jump short if above or equal (CF=0).
+    /// 73 cb; JNB rel8; Jump short if not below (CF=0).
+    /// 73 cb; JNC rel8; Jump short if not carry (CF=0).
+    /// 0F 83 cd; JAE rel32; Jump near if above or equal (CF=0).
+    /// 0F 83 cd; JNB rel32; Jump near if not below (CF=0).
+    /// 0F 83 cd; JNC rel32; Jump near if not carry (CF=0).
+    JccJb(u64, JumpXor),
+    /// 74 cb; JE rel8; Jump short if equal (ZF=1).
+    /// 74 cb; JZ rel8; Jump short if zero (ZF=1).
+    /// 0F 84 cd; JE rel32; Jump near if equal (ZF=1).
+    /// 0F 84 cd; JZ rel32; Jump near if 0 (ZF=1).
+    /// 0F 84 cd; JZ rel32; Jump near if 0 (ZF=1).
+    /// 75 cb; JNE rel8; Jump short if not equal (ZF=0).
+    /// 75 cb; JNZ rel8; Jump short if not zero (ZF=0).
+    /// 0F 85 cd; JNE rel32; Jump near if not equal (ZF=0).
+    /// 0F 85 cd; JNZ rel32; Jump near if not zero (ZF=0).
+    JccJe(u64, JumpXor),
+    /// 76 cb; JBE rel8; Jump short if below or equal (CF=1 or ZF=1).
+    /// 76 cb; JNA rel8; Jump short if not above (CF=1 or ZF=1).
+    /// 0F 86 cd; JBE rel32; Jump near if below or equal (CF=1 or ZF=1).
+    /// 0F 86 cd; JNA rel32; Jump near if not above (CF=1 or ZF=1).
+    /// 77 cb; JA rel8; Jump short if above (CF=0 and ZF=0).
+    /// 77 cb; JNBE rel8; Jump short if not below or equal (CF=0 and ZF=0).
+    /// 0F 87 cd; JA rel32; Jump near if above (CF=0 and ZF=0).
+    /// 0F 87 cd; JNBE rel32; Jump near if not below or equal (CF=0 and ZF=0).
+    JccJbe(u64, JumpXor),
+    /// 78 cb; JS rel8; Jump short if sign (SF=1).
+    /// 0F 88 cd; JS rel32; Jump near if sign (SF=1).
+    /// 79 cb; JNS rel8; Jump short if not sign (SF=0).
+    /// 0F 89 cd; JNS rel32; Jump near if not sign (SF=0).
+    JccJs(u64, JumpXor),
+    /// 7A cb; JPE rel8; Jump short if parity even (PF=1).
+    /// 7A cb; JP rel8; Jump short if parity (PF=1).
+    /// 0F 8A cd; JPE rel32; Jump near if parity even (PF=1).
+    /// 0F 8A cd; JP rel32; Jump near if parity (PF=1).
+    /// 7B cb; JNP rel8; Jump short if not parity (PF=0).
+    /// 7B cb; JPO rel8; Jump short if parity odd (PF=0).
+    /// 0F 8B cd; JNP rel32; Jump near if not parity (PF=0).
+    /// 0F 8B cd; JPO rel32; Jump near if parity odd (PF=0).
+    JccJp(u64, JumpXor),
+    /// 7C cb; JL rel8; Jump short if less (SF≠ OF).
+    /// 7C cb; JNGE rel8; Jump short if not greater or equal (SF≠ OF).
+    /// 0F 8C cd; JL rel32; Jump near if less (SF≠ OF).
+    /// 0F 8C cd; JNGE rel32; Jump near if not greater or equal (SF≠ OF).
+    /// 7D cb; JGE rel8; Jump short if greater or equal (SF=OF).
+    /// 7D cb; JNL rel8; Jump short if not less (SF=OF).
+    /// 0F 8D cd; JGE rel32; Jump near if greater or equal (SF=OF).
+    /// 0F 8D cd; JNL rel32; Jump near if not less (SF=OF).
+    JccJl(u64, JumpXor),
+    /// 7E cb; JLE rel8; Jump short if less or equal (ZF=1 or SF≠ OF).
+    /// 7E cb; JNG rel8; Jump short if not greater (ZF=1 or SF≠ OF).
+    /// 0F 8E cd; JLE rel32; Jump near if less or equal (ZF=1 or SF≠ OF).
+    /// 0F 8E cd; JNG rel32; Jump near if not greater (ZF=1 or SF≠ OF).
+    /// 7F cb; JG rel8; Jump short if greater (ZF=0 and SF=OF).
+    /// 7F cb; JNLE rel8; Jump short if not less or equal (ZF=0 and SF=OF).
+    /// 0F 8F cd; JG rel32; Jump near if greater (ZF=0 and SF=OF).
+    /// 0F 8F cd; JNLE rel32; Jump near if not less or equal (ZF=0 and SF=OF).
+    JccJle(u64, JumpXor),
+    /// E3 cb; JECXZ rel8; Jump short if ECX register is 0.
+    Jecxz(u64),
+    /// E3 cb; JRCXZ rel8; Jump short if RCX register is 0.
+    Jrcxz(u64),
 }
 
 impl Inst {
@@ -264,6 +351,16 @@ impl Inst {
             IncM16(rm16) | DecM16(rm16) | DivM16(rm16) => format!("{}", rm16),
             IncM32(rm32) | DecM32(rm32) | DivM32(rm32) => format!("{}", rm32),
             IncM64(rm64) | DecM64(rm64) | DivM64(rm64) => format!("{}", rm64),
+            JccJo(imm64, _)
+            | JccJb(imm64, _)
+            | JccJe(imm64, _)
+            | JccJbe(imm64, _)
+            | JccJs(imm64, _)
+            | JccJp(imm64, _)
+            | JccJl(imm64, _)
+            | JccJle(imm64, _)
+            | Jecxz(imm64)
+            | Jrcxz(imm64) => format!("{:#x}", imm64),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -337,6 +434,24 @@ impl Inst {
             DivM16(rm16) => rm16.either("div", "divw"),
             DivM32(rm32) => rm32.either("div", "divl"),
             DivM64(rm64) => rm64.either("div", "divq"),
+            JccJo(_, Normal) => "jo",
+            JccJo(_, Negate) => "jno",
+            JccJb(_, Normal) => "jb",
+            JccJb(_, Negate) => "jae",
+            JccJe(_, Normal) => "je",
+            JccJe(_, Negate) => "jne",
+            JccJbe(_, Normal) => "jbe",
+            JccJbe(_, Negate) => "ja",
+            JccJs(_, Normal) => "js",
+            JccJs(_, Negate) => "jns",
+            JccJp(_, Normal) => "jp",
+            JccJp(_, Negate) => "jnp",
+            JccJl(_, Normal) => "jl",
+            JccJl(_, Negate) => "jge",
+            JccJle(_, Normal) => "jle",
+            JccJle(_, Negate) => "jg",
+            Jecxz(_) => "jecxz",
+            Jrcxz(_) => "jrcxz",
         }
     }
 }
