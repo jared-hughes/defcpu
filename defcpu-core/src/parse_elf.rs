@@ -40,6 +40,8 @@ pub struct LoadSegment<'a> {
     pub p_vaddr: u64,
     /// Bytes to fill in.
     pub segment_data: &'a [u8],
+    /// Length of the segment in virtual memory.
+    pub memsz: u64,
 }
 
 impl<'a> LoadSegment<'a> {
@@ -58,7 +60,14 @@ impl<'a> LoadSegment<'a> {
             // software-only implementation. Leaving this restriction for now.
             panic!("Physical address differs from virtual address. Giving up.")
         }
+        // Note: `p_memsz` is how large the segment should be in memory,
+        // while `p_filesz` describes how long it is in the input ELF.
+        // If `p_filesz < p_memsz`, then the memory is effectively
+        // filled in with zeroes after the first `p_filesz` bytes are filled
+        // in, as specified in the ELF file.
+        // TODO: what happens if `p_filesz > p_memsz`?
         let segment_data = file.segment_data(phdr)?;
+        let memsz = phdr.p_memsz;
 
         Ok(LoadSegment {
             p_vaddr: phdr.p_vaddr,
@@ -68,6 +77,7 @@ impl<'a> LoadSegment<'a> {
                 readable: phdr.p_flags & PF_R != 0,
             },
             segment_data,
+            memsz,
         })
     }
 }

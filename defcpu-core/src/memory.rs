@@ -1,98 +1,128 @@
-use std::{collections::HashMap, fmt};
+use std::collections::HashMap;
 
 use crate::parse_elf::{LoadSegment, PermissionFlags};
 
 const PAGE_SIZE: usize = 4096;
-const PAGE_MASK: usize = PAGE_SIZE - 1;
+fn page_index(addr: u64) -> usize {
+    (addr as usize) & (PAGE_SIZE - 1)
+}
+fn page_addr(addr: u64) -> u64 {
+    addr & !((PAGE_SIZE - 1) as u64)
+}
 
-struct Page {
-    data: [u8; PAGE_SIZE],
+struct MemSegment {
+    /// Starting virtual address. Inclusive. Multiple of PAGE_SIZE.
+    start: u64,
+    /// Ending virtual address. Exclusive. Multiple of PAGE_SIZE.
+    end: u64,
     flags: PermissionFlags,
+    page_table: HashMap<u64, Box<[u8; PAGE_SIZE]>>,
+}
+impl MemSegment {
+    fn contains_addr(&self, addr: u64) -> bool {
+        self.start <= addr && addr < self.end
+    }
+
+    fn overlaps(&self, other: &MemSegment) -> bool {
+        self.contains_addr(other.start) || other.contains_addr(self.start)
+    }
+
+    fn write_u8(&mut self, addr: u64, val: u8) {
+        if !self.flags.writeable {
+            panic!("Segment not writeable at address {:#016X}.", addr);
+        }
+        self.write_u8_unchecked(addr, val);
+    }
+
+    fn write_u8_unchecked(&mut self, addr: u64, val: u8) {
+        let page_data = self
+            .page_table
+            .entry(page_addr(addr))
+            .or_insert_with(|| Box::new([0_u8; PAGE_SIZE]));
+        page_data[page_index(addr)] = val;
+    }
+
+    fn read_u8(&self, addr: u64) -> u8 {
+        if !self.flags.readable {
+            panic!("Segment not readable at address {:#016X}.", addr);
+        }
+        self.read_u8_unchecked(addr)
+    }
+
+    fn read_u8_unchecked(&self, addr: u64) -> u8 {
+        let page_data = self.page_table.get(&page_addr(addr));
+        match page_data {
+            Some(page_data) => page_data[page_index(addr)],
+            // Pages are 0-filled by default
+            // TODO: verify that. Do we have 'random' memory instead?
+            None => 0,
+        }
+    }
 }
 
 pub struct Memory {
-    map: HashMap<usize, Page>,
+    segments: Vec<MemSegment>,
 }
-
-/** Return 0 if all page entries are 0, otherwise the index after the last nonzero. */
-fn after_last_nonzero(page: &Page) -> usize {
-    for i in (0..PAGE_SIZE).rev() {
-        if page.data[i] != 0 {
-            return i + 1;
-        }
-    }
-    0
-}
-
-impl fmt::Display for Memory {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let mut first = true;
-        for (page_addr, page) in self.map.iter() {
-            if first {
-                first = false
-            } else {
-                writeln!(f)?;
-            }
-            writeln!(f, "Page at {:#016X} ({}):", page_addr, page.flags)?;
-            let len = after_last_nonzero(page);
-            let nlines = len.div_ceil(16);
-            for i in 0..nlines {
-                for j in 0..16 {
-                    let ind = i * 16 + j;
-                    if ind < len {
-                        write!(f, "{:02X}", page.data[ind])?;
-                    } else {
-                        write!(f, "  ")?;
-                    }
-                    if j % 2 == 1 {
-                        write!(f, " ")?;
-                    }
-                }
-                writeln!(f)?;
-            }
-        }
-        Ok(())
-    }
-}
-
 impl Memory {
     pub fn from_segments(segments: &[LoadSegment]) -> Memory {
-        let mut mem = Memory {
-            map: HashMap::new(),
-        };
-        for segment in segments {
-            let data = segment.segment_data;
-            let len = data.len();
-            let npages = len.div_ceil(PAGE_SIZE);
-            // TODO: I wonder if the lengths specified in the phdr could differ from the data.len().
-            // TODO: do we need a page for a 0-len segment?
-            for i in 0..npages {
-                let offset = PAGE_SIZE * i;
-                let addr = (segment.p_vaddr as usize) + offset;
-                let page_addr = addr & !PAGE_MASK;
-                if mem.map.contains_key(&page_addr) {
-                    panic!("Duplicate page {:#016X}", page_addr);
-                }
-                let mut page_data = [0_u8; PAGE_SIZE];
-                let suffix_slice = &data[offset..];
-                let copy_len = suffix_slice.len().min(PAGE_SIZE);
-                page_data[..copy_len].copy_from_slice(&suffix_slice[..copy_len]);
-                let page = Page {
-                    data: page_data,
-                    flags: segment.flags,
-                };
-                mem.map.insert(page_addr, page);
-            }
-        }
+        let mut mem = Memory::new();
+        mem.insert_segments(segments);
         mem
     }
 
-    pub fn read_u8(&self, i: u64) -> u8 {
-        let page = self.get_page(i);
-        if !page.flags.readable {
-            panic!("Page not writeable at address {:#016X}.", i);
+    fn new() -> Memory {
+        Memory {
+            segments: Vec::new(),
         }
-        page.data[(i as usize) & PAGE_MASK]
+    }
+
+    fn insert_segments(&mut self, segments: &[LoadSegment]) {
+        for segment in segments {
+            if page_addr(segment.p_vaddr) != segment.p_vaddr {
+                panic!("Virtual address is not page-aligned. Haven't thought that out yet.")
+            }
+            let mut new_seg = MemSegment {
+                start: segment.p_vaddr,
+                end: segment.p_vaddr + segment.memsz,
+                flags: segment.flags,
+                page_table: HashMap::new(),
+            };
+            for other in &self.segments {
+                if new_seg.overlaps(other) {
+                    panic!(
+                        "New segment at {}..{} overlaps the segment at {}..{}",
+                        new_seg.start, new_seg.end, other.start, other.end
+                    );
+                }
+            }
+            for (i, byte) in segment.segment_data.iter().enumerate() {
+                // Unchecked to allow writing even if the segment is not writeable.
+                new_seg.write_u8_unchecked(segment.p_vaddr + (i as u64), *byte);
+            }
+            self.segments.push(new_seg);
+        }
+    }
+
+    pub fn write_u8(&mut self, addr: u64, val: u8) {
+        let segment = self.segments.iter_mut().find(|seg| seg.contains_addr(addr));
+        let Some(segment) = segment else {
+            panic!(
+                "Segmentation fault: address {:#016X} outside every segment.",
+                addr
+            );
+        };
+        segment.write_u8(addr, val);
+    }
+
+    pub fn read_u8(&self, addr: u64) -> u8 {
+        let segment = self.segments.iter().find(|seg| seg.contains_addr(addr));
+        let Some(segment) = segment else {
+            panic!(
+                "Segmentation fault: address {:#016X} outside every segment.",
+                addr
+            );
+        };
+        segment.read_u8(addr)
     }
 
     pub fn read_u16(&self, i: u64) -> u16 {
@@ -121,14 +151,6 @@ impl Memory {
         (d7 << 56) | (d6 << 48) | (d5 << 40) | (d4 << 32) | (d3 << 24) | (d2 << 16) | (d1 << 8) | d0
     }
 
-    pub fn write_u8(&mut self, i: u64, val: u8) {
-        let page = self.get_page_mut(i);
-        if !page.flags.writeable {
-            panic!("Page not writeable at address {:#016X}.", i);
-        }
-        page.data[(i as usize) & PAGE_MASK] = val;
-    }
-
     pub fn write_u16(&mut self, i: u64, val: u16) {
         self.write_u8(i, (val & 0xFF).try_into().unwrap());
         self.write_u8(i + 1, (val >> 8).try_into().unwrap());
@@ -151,23 +173,4 @@ impl Memory {
         self.write_u8(i + 6, (val >> 48 & 0xFF).try_into().unwrap());
         self.write_u8(i + 7, (val >> 56 & 0xFF).try_into().unwrap());
     }
-
-    fn get_page(&self, addr: u64) -> &Page {
-        self.map
-            .get(&((addr as usize) & !PAGE_MASK))
-            .unwrap_or_else(|| page_fault(addr))
-    }
-
-    fn get_page_mut(&mut self, addr: u64) -> &mut Page {
-        self.map
-            .get_mut(&((addr as usize) & !PAGE_MASK))
-            .unwrap_or_else(|| page_fault(addr))
-    }
-}
-
-fn page_fault(addr: u64) -> ! {
-    panic!(
-        "Page fault: not yet initialized. Reading address {:#016X}.",
-        addr
-    )
 }
