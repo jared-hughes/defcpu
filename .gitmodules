@@ -1,0 +1,3 @@
+[submodule "defasm"]
+	path = defasm
+	url = https://github.com/jared-hughes/defasm

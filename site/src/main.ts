@@ -1,5 +1,7 @@
 import init, { run } from "./defcpu_web.js";
 import { examples } from "./examples.js";
+import { AssemblyState } from "@defasm/core";
+import { createExecutable } from "defasm-cli-browser";
 
 /** Assume $ always succeeds and returns an HTMLElement */
 function $<MatchType extends HTMLElement>(selector: string) {
@@ -10,21 +12,35 @@ let wasmReady = false;
 
 const form = $<HTMLFormElement>("form");
 form.onsubmit = () => {
-  if (!wasmReady) {
-    alert("Wasm module not yet loaded");
-    return;
-  }
-  const src = srcInput.value;
-  let output;
-  try {
-    output = run(src);
-  } catch (e) {
-    output = `Unexpected: ${e}`;
-    console.error(e);
-  }
+  const output = compileAndRun();
   const outElem = $<HTMLTextAreaElement>("pre#output");
   outElem.innerText = output;
 };
+
+function compileAndRun(): string {
+  if (!wasmReady) {
+    return "Wasm module not yet loaded.";
+  }
+  const src = srcInput.value;
+
+  const state = new AssemblyState();
+  try {
+    state.compile(src, { haltOnError: true });
+  } catch (e) {
+    console.error(e);
+    return `Error in compiling: ${e}.`;
+  }
+
+  const elf = createExecutable(state);
+
+  try {
+    run(elf);
+    return "Oops I haven't hooked up output from `defcpu run`. Check browser console?";
+  } catch (e) {
+    console.error(e);
+    return `Error when running: ${e}`;
+  }
+}
 
 function debounce<T extends Function>(cb: T, timeout = 20) {
   let tm = 0;

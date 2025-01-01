@@ -3,8 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
+    "@defasm/core": "^2.4.3",
     "esbuild": "^0.21.5"
   },
   "author": "Jared Hughes",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "buffer": "^6.0.3",
+    "defasm-cli-browser": "file:./defasm/cli-browser"
+  }
 }

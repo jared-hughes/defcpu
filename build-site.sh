@@ -5,7 +5,7 @@ if [ -d public-deploy ]; then
     rm -rf public-deploy;
 fi
 
-PACK_DIR="$PWD/site/node_modules/defcpu_web"
+PACK_DIR="$PWD/node_modules/defcpu_web"
 (
     cd defcpu-web
     wasm-pack build --target web --out-dir "${PACK_DIR}"
