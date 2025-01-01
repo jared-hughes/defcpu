@@ -28,7 +28,7 @@ for source_path in sources/*.s; do
 
     elf="elfs/${base}.elf"
 
-    ../node_modules/.bin/defasm "$temp_source" -w -x -o "$elf"
+    ../../node_modules/.bin/defasm "$temp_source" -w -x -o "$elf"
     
     rm "$temp_source"
 
