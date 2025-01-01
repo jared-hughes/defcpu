@@ -14,10 +14,15 @@ use crate::decode_inst::decode_inst;
 use interpret::Machine;
 use memory::Memory;
 use parse_elf::SimpleElfFile;
-use read_write::{StreamWriters, VecWriters, Writers};
+use read_write::Writers;
 
 pub fn interpret_to_streams(input: &[u8]) {
-    let mut writers = Writers::StreamWriters(StreamWriters {});
+    let mut stdout = std::io::stdout();
+    let mut stderr = std::io::stderr();
+    let mut writers = Writers {
+        stdout: &mut stdout,
+        stderr: &mut stderr,
+    };
     interpret(input, &mut writers);
 }
 
@@ -29,10 +34,10 @@ pub struct VecOutput {
 pub fn interpret_to_vecs(input: &[u8]) -> VecOutput {
     let mut stdout = Vec::new();
     let mut stderr = Vec::new();
-    let mut writers = Writers::VecWriters(VecWriters {
+    let mut writers = Writers {
         stdout: &mut stdout,
         stderr: &mut stderr,
-    });
+    };
     interpret(input, &mut writers);
     VecOutput { stdout, stderr }
 }

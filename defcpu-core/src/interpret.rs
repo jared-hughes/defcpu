@@ -110,7 +110,7 @@ impl Machine {
                 self.set_rm64(&rm64, imm64);
             }
             Inst::Hlt => {
-                eprintln!("{}", self.regs);
+                write!(writers.stderr(), "{}", self.regs).expect("Write should succeed.");
                 self.halt = true;
             }
             Inst::IncM8(rm8) => {
@@ -486,7 +486,17 @@ impl Machine {
         for i in 0..count {
             buf_out[i as usize] = self.mem.read_u8(buf + i);
         }
-        writers.write_all(fd, &buf_out);
+        match fd {
+            1 => writers
+                .stdout()
+                .write_all(&buf_out)
+                .expect("Write should succeed"),
+            2 => writers
+                .stderr()
+                .write_all(&buf_out)
+                .expect("Write should succeed"),
+            _ => panic!("Unknown file descriptor: {}.", fd),
+        }
         count
     }
 
