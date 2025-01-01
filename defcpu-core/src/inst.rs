@@ -718,7 +718,7 @@ impl EffAddr {
                     .base
                     .map(|b| match b {
                         Base32::GPR32(gpr32) => regs.get_reg32(&gpr32),
-                        Base32::Eip => regs.get_eip(),
+                        Base32::Eip => regs.rip_prev as u32,
                     })
                     .unwrap_or(0);
                 let scaled_index = match sidb.index {
@@ -736,7 +736,7 @@ impl EffAddr {
                     .base
                     .map(|b| match b {
                         Base64::GPR64(gpr64) => regs.get_reg64(&gpr64),
-                        Base64::Rip => regs.get_rip(),
+                        Base64::Rip => regs.rip_prev,
                     })
                     .unwrap_or(0);
                 let scaled_index = match sidb.index {

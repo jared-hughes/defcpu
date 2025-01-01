@@ -19,6 +19,7 @@ impl Machine {
         let regs = Registers {
             regs: [0_u64; 16],
             flags: Flags::new(),
+            rip_prev: file.e_entry,
             rip: file.e_entry,
         };
         Machine {
@@ -33,16 +34,13 @@ impl Machine {
             panic!("Unexpected step in a halt state.")
         }
         let (inst, len) = decode_inst(&self.mem, self.regs.rip);
-        let ran = self.run_inst(inst.inner);
-        match ran {
-            // TODO: This is a jump. Should there be segment concerns?
-            Some(addr) => self.regs.rip = addr,
-            None => self.regs.rip += len,
-        }
+        self.regs.rip_prev = self.regs.rip;
+        self.regs.rip += len;
+        self.run_inst(inst.inner);
     }
 
     /// Returned value is Some(u64) if rip should jump to that u64.
-    pub fn run_inst(&mut self, inst: Inst) -> Option<u64> {
+    pub fn run_inst(&mut self, inst: Inst) {
         match inst {
             Inst::NotImplemented(opcode) => {
                 panic!("Not yet implemented opcode {opcode:02x}.")
@@ -411,62 +409,63 @@ impl Machine {
             }
             Inst::JccJo(addr, negate) => {
                 if negate.xor(self.regs.flags.of) {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::JccJb(addr, negate) => {
                 if negate.xor(self.regs.flags.cf) {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::JccJe(addr, negate) => {
                 if negate.xor(self.regs.flags.zf) {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::JccJbe(addr, negate) => {
                 if negate.xor(self.regs.flags.cf || self.regs.flags.zf) {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::JccJs(addr, negate) => {
                 if negate.xor(self.regs.flags.sf) {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::JccJp(addr, negate) => {
                 if negate.xor(self.regs.flags.pf) {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::JccJl(addr, negate) => {
                 if negate.xor(self.regs.flags.sf != self.regs.flags.of) {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::JccJle(addr, negate) => {
                 if negate.xor(self.regs.flags.zf || (self.regs.flags.sf != self.regs.flags.of)) {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::Jecxz(addr) => {
                 if self.regs.get_reg32(&GPR32::ecx) == 0 {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
             Inst::Jrcxz(addr) => {
                 if self.regs.get_reg64(&GPR64::rcx) == 0 {
-                    return Some(addr);
+                    self.regs.rip = addr;
                 }
             }
         }
-        None
     }
 
     fn syscall(&mut self) {
         let rax = self.regs.get_reg64(&GPR64::rax);
-        self.regs.set_reg64(&GPR64::rcx, self.regs.get_rip());
-        self.regs.set_reg64(&GPR64::r11, self.regs.get_rflags());
+        self.regs.set_reg64(&GPR64::rcx, self.regs.rip);
+        // The r11 register is set while the RF flag is cleared.
+        let rflags_clr_rf = self.regs.get_rflags() & !(1 << 16);
+        self.regs.set_reg64(&GPR64::r11, rflags_clr_rf);
         let ret = match rax {
             1 => self.sys_write(),
             60 => self.sys_exit(),
@@ -487,7 +486,8 @@ impl Machine {
         for i in 0..count {
             file.write_byte(self.mem.read_u8(buf + i));
         }
-        0
+        // Assume all bytes are successfully written
+        count
     }
 
     fn sys_exit(&mut self) -> u64 {

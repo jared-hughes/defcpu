@@ -516,7 +516,11 @@ pub struct Registers {
     pub regs: [u64; 16],
     /// flags register
     pub flags: Flags,
-    /// instruction pointer register
+    /// Instruction pointer to the current instruction.
+    /// Avoids including the u64 in the encoding of the EffAddr.
+    pub rip_prev: u64,
+    /// Instruction pointer. During execution of an instruction,
+    /// points to the subsequent instruction.
     pub rip: u64,
 }
 
@@ -572,12 +576,12 @@ impl Registers {
 
     pub fn get_reg16(&self, gpr16: &GPR16) -> u16 {
         let ind = gpr16.0.reg_index();
-        (self.regs[ind] & 0xFF_FF).try_into().unwrap()
+        self.regs[ind] as u16
     }
 
     pub fn get_reg32(&self, gpr32: &GPR32) -> u32 {
         let ind = gpr32.0.reg_index();
-        (self.regs[ind] & 0xFF_FF_FF_FF).try_into().unwrap()
+        self.regs[ind] as u32
     }
 
     pub fn get_reg64(&self, gpr64: &GPR64) -> u64 {
@@ -597,14 +601,6 @@ impl Registers {
         (self.get_reg64(&GPR64::rdx) as u128) << 64 | (self.get_reg64(&GPR64::rax) as u128)
     }
 
-    pub fn get_eip(&self) -> u32 {
-        (self.rip & 0xFF_FF_FF_FF).try_into().unwrap()
-    }
-
-    pub fn get_rip(&self) -> u64 {
-        self.rip
-    }
-
     pub fn get_rflags(&self) -> u64 {
         self.flags.to_rflags_u64()
     }
@@ -612,7 +608,7 @@ impl Registers {
 
 impl fmt::Display for Registers {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "(%rip was {:016X})", self.rip)?;
+        writeln!(f, "(%rip was {:016X})", self.rip_prev)?;
         writeln!(f, "Registers:")?;
         writeln!(
             f,
