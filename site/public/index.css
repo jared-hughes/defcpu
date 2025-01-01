@@ -1,0 +1,41 @@
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: hsl(210, 9%, 13%);
+    --color: #ebebeb;
+    --grey: #85888c;
+    --asm-dump: hsl(210, 10%, 67%);
+    --light-grey: hsl(214, 8%, 17%);
+    --asm-error: #f76970;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --background: #fdfdfd;
+    --color: #343a40;
+    --grey: #85888c;
+    --asm-dump: hsl(210, 10%, 67%);
+    --light-grey: #eee;
+    --asm-error: red;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--color);
+}
+
+h1 {
+  margin-block-start: 0.4em;
+  margin-block-end: 0.2em;
+}
+
+#editor {
+  height: 30rem;
+}
+
+.cm-editor {
+  height: 100%;
+}

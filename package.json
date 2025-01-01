@@ -3,15 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
+    "@defasm/cli": "^1.3.0",
     "@defasm/core": "^2.4.3",
     "esbuild": "^0.21.5",
-    "@defasm/cli": "^1.3.0",
     "golfc": "0.3.2"
   },
   "author": "Jared Hughes",
   "license": "MIT",
   "dependencies": {
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@defasm/codemirror": "^1.4.4",
     "buffer": "^6.0.3",
+    "codemirror": "^6.0.1",
     "defasm-cli-browser": "file:./defasm/cli-browser"
   }
 }

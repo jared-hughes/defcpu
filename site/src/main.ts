@@ -2,22 +2,30 @@ import init, { run } from "./defcpu_web.js";
 import { examples } from "./examples.js";
 import { AssemblyState } from "@defasm/core";
 import { createExecutable } from "defasm-cli-browser";
-
-/** Assume $ always succeeds and returns an HTMLElement */
-function $<MatchType extends HTMLElement>(selector: string) {
-  return document.querySelector(selector) as MatchType;
-}
+import { getExtensions, reconfigureTheme } from "./codemirror";
+import { $ } from "./util.js";
+import { EditorState, EditorView } from "./codemirror";
+import { ViewUpdate } from "@codemirror/view";
 
 let wasmReady = false;
 
 const form = $<HTMLFormElement>("form");
-form.onsubmit = () => {
+form.addEventListener("submit", runAndUpdateView);
+
+document.documentElement.addEventListener("keypress", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key == "Enter") {
+    // Ctrl-Enter
+    runAndUpdateView();
+  }
+});
+
+function runAndUpdateView() {
   const { stdout, stderr } = compileAndRun();
   const outElem = $<HTMLPreElement>("pre#output");
   outElem.innerText = stdout ?? "";
   const errElem = $<HTMLPreElement>("pre#errors");
   errElem.innerText = stderr ?? "";
-};
+}
 
 /** For now, just assume it's UTF-8 output. */
 function arrToString(arr: Uint8Array): string {
@@ -28,7 +36,7 @@ function compileAndRun(): { stdout?: string; stderr?: string } {
   if (!wasmReady) {
     return { stderr: "Wasm module not yet loaded." };
   }
-  const src = srcInput.value;
+  const src = editor.state.sliceDoc();
 
   const state = new AssemblyState();
   try {
@@ -62,32 +70,70 @@ function debounce<T extends Function>(cb: T, timeout = 20) {
   return debounced as any as T;
 }
 
+const editorContainer = $<HTMLDivElement>("div#editor");
+
+const editor = new EditorView({
+  parent: editorContainer,
+});
+
 function saveToLocalStorage() {
-  localStorage.setItem("saved-src", srcInput.value);
+  const code = editor.state.sliceDoc();
+  localStorage.setItem("saved-src", code);
 }
 
-const srcInput = $<HTMLTextAreaElement>("textarea#src");
+const debouncedSave = debounce(saveToLocalStorage, 250);
 
-const saved = localStorage.getItem("saved-src");
-if (saved === null || /^\s+$/.test(saved)) {
-  srcInput.value = examples[0].source;
-} else {
-  srcInput.value = saved;
+function onViewUpdate(vu: ViewUpdate) {
+  if (!vu.docChanged) return;
+  debouncedSave();
 }
+
+function getDefaultSource() {
+  const saved = localStorage.getItem("saved-src");
+  if (saved === null || /^\s+$/.test(saved)) {
+    return examples[0].source;
+  } else {
+    return saved;
+  }
+}
+
+editor.setState(
+  EditorState.create({
+    doc: getDefaultSource(),
+    extensions: getExtensions(onViewUpdate),
+  })
+);
+
+const themeMatch = matchMedia("(prefers-color-scheme: light)");
+
+function setTheme() {
+  const theme = themeMatch.matches ? "light" : "dark";
+  editor.dispatch({
+    effects: reconfigureTheme(theme),
+  });
+}
+
+themeMatch.addEventListener("change", () => {
+  setTheme();
+});
+
+setTheme();
+
+// Disable Grammarly.
+editor.contentDOM.setAttribute("data-gramm", "false");
 
 const examplesSpan = $<HTMLSpanElement>("#examples");
 for (const example of examples) {
   const btn = document.createElement("button");
   btn.innerText = example.name;
   btn.addEventListener("click", () => {
-    srcInput.value = example.source;
-    saveToLocalStorage();
+    editor.dispatch({
+      changes: { from: 0, to: editor.state.doc.length, insert: example.source },
+    });
   });
   examplesSpan.appendChild(btn);
   examplesSpan.appendChild(document.createTextNode(" "));
 }
-
-srcInput.addEventListener("input", debounce(saveToLocalStorage, 500), false);
 
 init().then(() => {
   wasmReady = true;

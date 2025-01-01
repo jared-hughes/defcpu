@@ -3,12 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>DefCPU Playground</title>
-    <style>
-      h1 {
-        margin-block-start: 0.4em;
-        margin-block-end: 0.2em;
-      }
-    </style>
+    <link href="./index.css" rel="stylesheet" />
   </head>
   <body>
     <header>
@@ -19,11 +14,11 @@
       <span id="examples"></span>
     </p>
     <form action="javascript:;">
-      <label for="src">Source:</label>
+      <label for="editor">Source:</label>
       <br />
-      <textarea id="src" name="src" required rows="20" cols="60"> </textarea>
+      <div id="editor"></div>
       <br />
-      <button type="submit" value="Submit">Run locally</button>
+      ctrl + enter or <button type="submit" value="Submit">Run locally</button>
     </form>
     Output:
     <pre id="output"></pre>
