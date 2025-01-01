@@ -35,6 +35,23 @@ cargo run -- dis filename.elf
 
 My primary reference is the October 2024 version of [Intel® 64 and IA-32 Architectures Software Developer's Manual.](https://software.intel.com/en-us/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4). Unqualified references in comments to "Vol 1", "Vol 2A", etc. refer to this manual.
 
+## Build for Web
+
+Install only needs to be run once, in the `site` directory:
+
+```sh
+cd site
+npm install
+```
+
+To build for web, run `./build-site.sh` to generate static files in the `public-deploy/` folder, including wasm builds of the Rust code.
+
+To serve locally, I like doing
+
+```sh
+./build-site.sh && npx http-server public-deploy/ -c-1
+```
+
 ## Tests
 
 To regenerate test files, first make sure defasm and golfc are installed by running `npm install`.
