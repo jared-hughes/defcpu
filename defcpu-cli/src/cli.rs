@@ -1,4 +1,4 @@
-use defcpu_core::{disassemble, interpret};
+use defcpu_core::{disassemble, interpret_to_streams};
 
 fn print_usage(arg0: &str) {
     eprintln!("Usage:");
@@ -20,7 +20,7 @@ fn main() {
     match args[1].as_str() {
         "run" => {
             let contents = read_file(&args[2]);
-            interpret(&contents);
+            interpret_to_streams(&contents);
         }
         "dis" => {
             let contents = read_file(&args[2]);

@@ -14,14 +14,36 @@ use crate::decode_inst::decode_inst;
 use interpret::Machine;
 use memory::Memory;
 use parse_elf::SimpleElfFile;
+use read_write::{StreamWriters, VecWriters, Writers};
 
-pub fn interpret(input: &[u8]) {
+pub fn interpret_to_streams(input: &[u8]) {
+    let mut writers = Writers::StreamWriters(StreamWriters {});
+    interpret(input, &mut writers);
+}
+
+pub struct VecOutput {
+    pub stdout: Vec<u8>,
+    pub stderr: Vec<u8>,
+}
+
+pub fn interpret_to_vecs(input: &[u8]) -> VecOutput {
+    let mut stdout = Vec::new();
+    let mut stderr = Vec::new();
+    let mut writers = Writers::VecWriters(VecWriters {
+        stdout: &mut stdout,
+        stderr: &mut stderr,
+    });
+    interpret(input, &mut writers);
+    VecOutput { stdout, stderr }
+}
+
+fn interpret(input: &[u8], writers: &mut Writers) {
     let elf = SimpleElfFile::from_bytes(input).unwrap_or_else(|pe| panic!("{}", pe));
     let mut machine = Machine::from_elf(&elf);
     let max_steps = 100000;
     let mut step_index = 0;
     while step_index < max_steps && !machine.halt {
-        machine.step();
+        machine.step(writers);
         step_index += 1;
     }
 }

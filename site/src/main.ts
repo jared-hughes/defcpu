@@ -12,14 +12,21 @@ let wasmReady = false;
 
 const form = $<HTMLFormElement>("form");
 form.onsubmit = () => {
-  const output = compileAndRun();
-  const outElem = $<HTMLTextAreaElement>("pre#output");
-  outElem.innerText = output;
+  const { stdout, stderr } = compileAndRun();
+  const outElem = $<HTMLPreElement>("pre#output");
+  outElem.innerText = stdout ?? "";
+  const errElem = $<HTMLPreElement>("pre#errors");
+  errElem.innerText = stderr ?? "";
 };
 
-function compileAndRun(): string {
+/** For now, just assume it's UTF-8 output. */
+function arrToString(arr: Uint8Array): string {
+  return new TextDecoder("utf-8").decode(arr);
+}
+
+function compileAndRun(): { stdout?: string; stderr?: string } {
   if (!wasmReady) {
-    return "Wasm module not yet loaded.";
+    return { stderr: "Wasm module not yet loaded." };
   }
   const src = srcInput.value;
 
@@ -28,17 +35,20 @@ function compileAndRun(): string {
     state.compile(src, { haltOnError: true });
   } catch (e) {
     console.error(e);
-    return `Error in compiling: ${e}.`;
+    return { stderr: `Error in compiling: ${e}.` };
   }
 
   const elf = createExecutable(state);
 
   try {
-    run(elf);
-    return "Oops I haven't hooked up output from `defcpu run`. Check browser console?";
+    const output = run(elf);
+    return {
+      stdout: arrToString(output.get_stdout()),
+      stderr: arrToString(output.get_stderr()),
+    };
   } catch (e) {
     console.error(e);
-    return `Error when running: ${e}`;
+    return { stderr: `Error when running: ${e}` };
   }
 }
 

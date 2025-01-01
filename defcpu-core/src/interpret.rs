@@ -3,7 +3,7 @@ use crate::{
     inst::{Inst, RM16, RM32, RM64, RM8},
     memory::Memory,
     parse_elf::SimpleElfFile,
-    read_write::File,
+    read_write::Writers,
     registers::{Flags, Registers, GPR16, GPR32, GPR64, GPR8},
 };
 
@@ -29,18 +29,18 @@ impl Machine {
         }
     }
 
-    pub fn step(&mut self) {
+    pub fn step(&mut self, writers: &mut Writers) {
         if self.halt {
             panic!("Unexpected step in a halt state.")
         }
         let (inst, len) = decode_inst(&self.mem, self.regs.rip);
         self.regs.rip_prev = self.regs.rip;
         self.regs.rip += len;
-        self.run_inst(inst.inner);
+        self.run_inst(inst.inner, writers);
     }
 
     /// Returned value is Some(u64) if rip should jump to that u64.
-    pub fn run_inst(&mut self, inst: Inst) {
+    pub fn run_inst(&mut self, inst: Inst, writers: &mut Writers) {
         match inst {
             Inst::NotImplemented(opcode) => {
                 panic!("Not yet implemented opcode {opcode:02x}.")
@@ -52,7 +52,7 @@ impl Machine {
                 panic!("Not yet implemented opcode {opcode:02x} /{sub}.")
             }
             Inst::RexNoop => {}
-            Inst::Syscall => self.syscall(),
+            Inst::Syscall => self.syscall(writers),
             Inst::MovMR8(rm8, gpr8) => {
                 let val = self.regs.get_reg8(&gpr8);
                 self.set_rm8(&rm8, val);
@@ -460,21 +460,21 @@ impl Machine {
         }
     }
 
-    fn syscall(&mut self) {
+    fn syscall(&mut self, writers: &mut Writers) {
         let rax = self.regs.get_reg64(&GPR64::rax);
         self.regs.set_reg64(&GPR64::rcx, self.regs.rip);
         // The r11 register is set while the RF flag is cleared.
         let rflags_clr_rf = self.regs.get_rflags() & !(1 << 16);
         self.regs.set_reg64(&GPR64::r11, rflags_clr_rf);
         let ret = match rax {
-            1 => self.sys_write(),
+            1 => self.sys_write(writers),
             60 => self.sys_exit(),
             _ => panic!("Unimplemented syscall {}", rax),
         };
         self.regs.set_reg64(&GPR64::rax, ret);
     }
 
-    fn sys_write(&mut self) -> u64 {
+    fn sys_write(&mut self, writers: &mut Writers) -> u64 {
         // SYSCALL_DEFINE3(write,
         //     unsigned int, fd,
         //     const char __user *, buf,
@@ -482,11 +482,11 @@ impl Machine {
         let fd = self.regs.get_reg32(&GPR32::edi);
         let buf = self.regs.get_reg64(&GPR64::rsi);
         let count = self.regs.get_reg64(&GPR64::rdx);
-        let file = File::from_fd(fd);
+        let mut buf_out: Vec<u8> = vec![0; count as usize];
         for i in 0..count {
-            file.write_byte(self.mem.read_u8(buf + i));
+            buf_out[i as usize] = self.mem.read_u8(buf + i);
         }
-        // Assume all bytes are successfully written
+        writers.write_all(fd, &buf_out);
         count
     }
 

@@ -1,5 +1,7 @@
+use std::io::Write;
+
 use File::*;
-pub(crate) enum File {
+enum File {
     Stdout,
     Stderr,
 }
@@ -11,13 +13,43 @@ impl File {
             _ => panic!("Unknown fd: {}", fd),
         }
     }
+}
 
-    // TODO: This is probably incredibly inefficient.
-    // I don't understand Rust I/O at all.
-    pub(crate) fn write_byte(&self, byte: u8) {
+pub(crate) struct VecWriters<'a> {
+    pub(crate) stdout: &'a mut Vec<u8>,
+    pub(crate) stderr: &'a mut Vec<u8>,
+}
+impl VecWriters<'_> {
+    fn write_all(&mut self, file: File, buf: &[u8]) {
+        match file {
+            Stdout => self.stdout.extend_from_slice(buf),
+            Stderr => self.stderr.extend_from_slice(buf),
+        }
+    }
+}
+
+pub(crate) struct StreamWriters {}
+impl StreamWriters {
+    fn write_all(&self, file: File, buf: &[u8]) -> Result<(), std::io::Error> {
+        match file {
+            Stdout => std::io::stdout().write_all(buf),
+            Stderr => std::io::stderr().write_all(buf),
+        }
+    }
+}
+
+pub(crate) enum Writers<'a> {
+    VecWriters(VecWriters<'a>),
+    StreamWriters(StreamWriters),
+}
+impl Writers<'_> {
+    pub(crate) fn write_all(&mut self, fd: u32, buf: &[u8]) {
+        let file = File::from_fd(fd);
         match self {
-            Stdout => print!("{}", byte as char),
-            Stderr => eprint!("{}", byte as char),
+            Writers::VecWriters(vec_output) => vec_output.write_all(file, buf),
+            Writers::StreamWriters(stream_output) => stream_output
+                .write_all(file, buf)
+                .expect("Write fully succeeded."),
         }
     }
 }

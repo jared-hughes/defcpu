@@ -1,12 +1,23 @@
 /* tslint:disable */
 /* eslint-disable */
-export function run(elf: Uint8Array): void;
+export function run(elf: Uint8Array): VecOutputJS;
+export class VecOutputJS {
+  private constructor();
+  free(): void;
+  get_stdout(): Uint8Array;
+  get_stderr(): Uint8Array;
+}
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly run: (a: number, b: number) => void;
+  readonly __wbg_vecoutputjs_free: (a: number, b: number) => void;
+  readonly vecoutputjs_get_stdout: (a: number, b: number) => void;
+  readonly vecoutputjs_get_stderr: (a: number, b: number) => void;
+  readonly run: (a: number, b: number) => number;
+  readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
+  readonly __wbindgen_free: (a: number, b: number, c: number) => void;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
 }
 
