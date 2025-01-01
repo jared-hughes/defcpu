@@ -312,21 +312,21 @@ impl Flags {
     }
 
     fn result_flags_16(&mut self, result: u16) {
-        self.pf = result.count_ones() % 2 == 0;
+        self.pf = (result.count_ones() as u8) % 2 == 0;
         self.zf = result == 0;
         let bm1 = u16::BITS - 1;
         self.sf = result >> bm1 & 1 == 1;
     }
 
     fn result_flags_32(&mut self, result: u32) {
-        self.pf = result.count_ones() % 2 == 0;
+        self.pf = (result.count_ones() as u8) % 2 == 0;
         self.zf = result == 0;
         let bm1 = u32::BITS - 1;
         self.sf = result >> bm1 & 1 == 1;
     }
 
     fn result_flags_64(&mut self, result: u64) {
-        self.pf = result.count_ones() % 2 == 0;
+        self.pf = (result.count_ones() as u8) % 2 == 0;
         self.zf = result == 0;
         let bm1 = u64::BITS - 1;
         self.sf = result >> bm1 & 1 == 1;
