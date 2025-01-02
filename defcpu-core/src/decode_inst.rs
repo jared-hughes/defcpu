@@ -514,6 +514,22 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
             }
         }
+        0x58..=0x5F => {
+            let rex_b = lex.get_rex_b_matters();
+            match lex.get_operand_size_64_default() {
+                Data16 => {
+                    // 58+ rw; POP r16; Pop top of stack into r16; increment stack pointer.
+                    let reg = reg16_field_select(opcode, rex_b);
+                    PopM16(RM16::Reg(reg))
+                }
+                Data32 => panic!("Impossible Data32 with 64-bit default."),
+                Data64 => {
+                    // 58+ rd; POP r64; Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
+                    let reg = reg64_field_select(opcode, rex_b);
+                    PopM64(RM64::Reg(reg))
+                }
+            }
+        }
         0x66 => {
             // 0x66 Operand size prefix.
             if lex.prefix.rex.is_some() {
@@ -819,6 +835,31 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                         0x8B => MovRM64(reg, rm64),
                         _ => panic!("Missing match arm in decode_inst_inner."),
                     }
+                }
+            }
+        }
+        0x8F => {
+            let modrm = lex.next_modrm();
+            match modrm.reg3 {
+                0 => {
+                    // 8F /0
+                    match lex.get_operand_size_64_default() {
+                        Data16 => {
+                            // 8F /0; POP r/m16; Pop top of stack into m16; increment stack pointer.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            PopM16(rm16)
+                        }
+                        Data32 => panic!("Impossible Data32 with 64-bit default."),
+                        Data64 => {
+                            // 8F /0; POP r/m64; Pop top of stack into m64; increment stack pointer. Cannot encode 32-bit operand size.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            PopM64(rm64)
+                        }
+                    }
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
                 }
             }
         }

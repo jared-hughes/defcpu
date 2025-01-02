@@ -474,7 +474,35 @@ impl Machine {
             }
             Inst::PushI16(imm16) => self.push_16(imm16),
             Inst::PushI64(imm64) => self.push_64(imm64),
+            Inst::PopM16(rm16) => {
+                let val = self.pop_16();
+                self.set_rm16(&rm16, val);
+            }
+            Inst::PopM64(rm64) => {
+                // Note the order is correct here for `pop %rsp`.
+                // The increment is before the read value gets placed into %rsp.
+                let val = self.pop_64();
+                self.set_rm64(&rm64, val);
+            }
         }
+    }
+
+    fn pop_16(&mut self) -> u16 {
+        let rsp = self.regs.get_reg64(&GPR64::rsp);
+        let rsp_new = rsp
+            .checked_add((u16::BITS / 8) as u64)
+            .unwrap_or_else(|| stack_fault());
+        self.regs.set_reg64(&GPR64::rsp, rsp_new);
+        self.mem.read_u16(rsp)
+    }
+
+    fn pop_64(&mut self) -> u64 {
+        let rsp = self.regs.get_reg64(&GPR64::rsp);
+        let rsp_new = rsp
+            .checked_add((u64::BITS / 8) as u64)
+            .unwrap_or_else(|| stack_fault());
+        self.regs.set_reg64(&GPR64::rsp, rsp_new);
+        self.mem.read_u64(rsp)
     }
 
     fn push_16(&mut self, val: u16) {

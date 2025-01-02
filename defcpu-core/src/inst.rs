@@ -273,6 +273,12 @@ pub enum Inst {
     // REX.W FF /5; JMP m16:64; Jump far, absolute indirect, address given in m16:64.
     // TODO: Memory-indirect far jump (ljmp). I'm not messing around with CS currently.
     // JmpM(...),
+    /// 8F /0; POP r/m16; Pop top of stack into m16; increment stack pointer.
+    /// 58+ rw; POP r16; Pop top of stack into r16; increment stack pointer.
+    PopM16(RM16),
+    /// 8F /0; POP r/m64; Pop top of stack into m64; increment stack pointer. Cannot encode 32-bit operand size.
+    /// 58+ rd; POP r64; Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
+    PopM64(RM64),
     /// FF /6; PUSH r/m16; Push r/m16.
     /// 50+rw; PUSH r16; Push r16.
     PushM16(RM16),
@@ -373,9 +379,13 @@ impl Inst {
             }
             Hlt => String::new(),
             IncM8(rm8) | DecM8(rm8) | DivM8(rm8) => format!("{}", rm8),
-            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) | PushM16(rm16) => format!("{}", rm16),
+            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) | PushM16(rm16) | PopM16(rm16) => {
+                format!("{}", rm16)
+            }
             IncM32(rm32) | DecM32(rm32) | DivM32(rm32) => format!("{}", rm32),
-            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) | PushM64(rm64) => format!("{}", rm64),
+            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) | PushM64(rm64) | PopM64(rm64) => {
+                format!("{}", rm64)
+            }
             JccJo(imm64, _)
             | JccJb(imm64, _)
             | JccJe(imm64, _)
@@ -482,6 +492,8 @@ impl Inst {
             Jecxz(_) => "jecxz",
             Jrcxz(_) => "jrcxz",
             JmpD(_) | JmpM64(_) => "jmp",
+            PopM16(rm16) => rm16.either("pop", "popw"),
+            PopM64(_rm64) => "pop",
             PushM16(rm16) => rm16.either("push", "pushw"),
             PushM64(_rm64) => "push",
             PushI16(_) => "pushw",
