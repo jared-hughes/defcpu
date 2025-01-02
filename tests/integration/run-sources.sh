@@ -6,7 +6,7 @@ mkdir -p expected
 # TODO remove old expected
 
 unescape() {
-    sed "s/&#39;/'/g" < "$1" | sponge "$1";
+    sed "s/&#39;/'/g" < "$1" | sed "s/&nbsp;/ /g" | sponge "$1";
 }
 
 add_trailing_newline_if_missing() {
@@ -44,10 +44,14 @@ for source_file in sources/*.s; do
     fi
     hole="${first_line##"$hole_prefix"}"
 
+    # Substitute macro
+    real_asm_path="real_sources/$base.s"
+    ./insert-print-regs-macro.mjs "$source_file" "$real_asm_path"
+
     # Run
     run_tmp_dir="./expected/${base}-orig"
     ../../node_modules/.bin/golfc submit -h "$hole" -l assembly \
-        -i "$source_file" --no-auth -o "${run_tmp_dir}"
+        -i "$real_asm_path" --no-auth -o "${run_tmp_dir}"
     cp "${run_tmp_dir}"/{output,errors} "${out_dir}"
     rm -r "${run_tmp_dir}"
 

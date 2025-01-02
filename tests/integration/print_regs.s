@@ -1,4 +1,4 @@
-# debug.s modified from defasm under the following license.
+# This file is a modification of defasm/cli/debug.s, which is under the following license.
 #
 # Copyright (c) 2021, Alon Ran
 # 
@@ -14,6 +14,12 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+# usage:
+#
+# movq $print1_ret, (printRegs_return)
+# jmp printRegs
+# print1_ret:
+
 sys_write = 1
 sys_open = 2
 sys_close = 3
@@ -24,39 +30,12 @@ sys_ptrace = 101
 sys_prctl = 157
 sys_waitid = 247
 
-PTRACE_TRACEME = 0
-PTRACE_CONT = 7
-PTRACE_GETREGS = 12
-PTRACE_GETSIGINFO = 16898
-
-STDOUT_FILENO = 1
-PR_SET_PDEATHSIG = 1
-SIGTRAP = 5
-SIGTERM = 15
-P_PID = 1
-WSTOPPED = 2
-WEXITED = 4
-O_WRONLY = 1
-O_CREAT = 0o100
-
-.text
-.globl _start
-_start:
-
-mov $sys_fork, %eax
-syscall
-
-test %eax, %eax
-jz execFile
+STDERR_FILENO = 2
 
 # Tracing the file
 .bss
-siginfo:
-si_signo: .quad 0
-.octa 0
-si_status: .quad 0
-.octa 0, 0, 0, 0, 0, 0
-
+# regs are in the order provided by sys_ptrace(PTRACE_GETREGS, ...), even though
+# we don't currently use sys_ptrace to get regs since we're in the same process.
 regs:
 r_R15:      .quad 0
 r_R14:      .quad 0
@@ -86,123 +65,22 @@ r_ES:       .quad 0
 r_FS:       .quad 0
 r_GS:       .quad 0
 
-outputData:
-signo:   .long 0
-status:  .long 0
-errAddr: .quad 0
-outputDataLength = . - outputData
+# We only need 7 quadwords of stack space. A bit extra to be space.
+mini_stack: .quad 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+mini_stack_end: .quad 0
 
-.section .rodata
-outputPath: .asciz "/tmp/asm_trace"
-
-.text
-mov %eax, %esi # %esi now stores the child's PID
-call waitpid
-
-continue:
-
-mov $sys_ptrace, %eax
-mov $PTRACE_CONT, %edi
-mov $0, %r10d
-syscall
-
-call waitpid
-
-# Get registers
-mov $sys_ptrace, %eax
-mov $PTRACE_GETREGS, %edi
-mov $regs, %r10d
-syscall
-
-# Get signal information
-mov $sys_ptrace, %eax
-mov $PTRACE_GETSIGINFO, %edi
-mov $siginfo, %r10d
-syscall
-
-cmpl $SIGTRAP, (%r10)
-jne endDebug
-call dumpState
-jmp continue
-
-endDebug:
-
-mov si_signo, %eax; mov %eax, signo
-mov si_status, %eax; mov %eax, status
-mov r_RIP,  %eax; mov %eax, errAddr
-
-# Write to file
-mov $sys_open, %eax
-mov $outputPath, %edi
-mov $O_WRONLY | O_CREAT, %esi
-mov $0o666, %edx
-syscall
-
-mov %eax, %edi # %edi now stores the file descriptor
-mov $sys_write, %eax
-mov $outputData, %esi
-mov $outputDataLength, %edx
-syscall
-
-mov %edi, dumpFile
-call dumpState
-
-mov $sys_close, %eax
-syscall
-
-# Exit
-mov $sys_exit, %eax
-mov $0, %edi
-syscall
-
-
-
-
-# Execute the file
-execFile:
-# prctl, to ensure the child process
-# doesn't continue after its parent dies
-mov $sys_prctl, %eax
-mov $PR_SET_PDEATHSIG, %edi
-mov $SIGTERM, %esi
-syscall
-
-# Enable ptrace
-mov $sys_ptrace, %eax
-mov $PTRACE_TRACEME, %edi
-syscall
-
-# execve
-mov $sys_execve, %eax
-pop %rcx
-pop %rcx
-mov (%rsp), %rdi
-mov %rsp, %rsi
-mov $0, %edx
-syscall
-
-
-
-
-waitpid:
-    mov $sys_waitid, %eax
-    mov $P_PID, %edi
-    mov $siginfo, %edx
-    mov $WSTOPPED | WEXITED, %r10d
-    mov $0, %r8d
-    syscall
-    ret
 
 .section .rodata
 hexaChars: .string "0123456789ABCDEF"
 
 .data
 outputBuffer: .byte 0
-dumpFile: .long STDOUT_FILENO
+dumpFile: .long STDERR_FILENO
 
 .text
 
 # Print the value of %rax in 16 hexadecimal characters
+# Uses 6 quadwords of mini_stack space.
 printQuad:
     push %rbx
     push %rdx
@@ -236,7 +114,7 @@ printQuad:
     pop %rsi
     pop %rdx
     pop %rbx
-    ret
+    jmp printQuad_done
 
 .section .rodata
 
@@ -247,9 +125,6 @@ registerOrder:
 
 flagOrder:
 .byte 0, 6, 11, 7, 10, 2
-
-dumpAlertString: .string "SIGTRAP DETECTED - DUMPING STATE\n"
-dumpAlertSize = . - dumpAlertString
 
 dumpString: .string "\
 Registers:
@@ -278,52 +153,65 @@ flagMessages:
 flagMsgLen = 16
 
 .text
-dumpState:
-    push %rsi
-    push %rdi
-    push %rdx
-    push %rcx
-    push %rbx
+printRegs:
+    mov %rax, (r_RAX)
+    mov %rbx, (r_RBX)
+    mov %rcx, (r_RCX)
+    mov %rdx, (r_RDX)
+    mov %rsi, (r_RSI)
+    mov %rdi, (r_RDI)
+    mov %rsp, (r_RSP)
+    mov %rbp, (r_RBP)
+    mov %r8, (r_R8)
+    mov %r9, (r_R9)
+    mov %r10, (r_R10)
+    mov %r11, (r_R11)
+    mov %r12, (r_R12)
+    mov %r13, (r_R13)
+    mov %r14, (r_R14)
+    mov %r15, (r_R15)
 
-    cmpl $STDOUT_FILENO, dumpFile
-    jne postPrintAlert
-        mov $dumpAlertString, %esi
-        mov $dumpAlertSize, %edx
-        mov $STDOUT_FILENO, %edi
-        mov $sys_write, %eax
-        syscall
-    postPrintAlert:
+    mov $mini_stack_end, %rsp
+
+    pushfq
+    pop %rax
+    mov %rax, (r_FLAGS)
 
     xor %ebx, %ebx
+    # bl = 0. Will be incremented on each read to count number of nulls filled in.
     mov $dumpString, %esi
 
     registerLoop:
+        # start of loop: %esi is the start of $dumpString, or points to the last \0.
         mov %esi, %edi
         mov $-1, %ecx
         xor %al, %al
+        # increment %rdi and decrement %ecx until (%rdi) = %al (=0), or %ecx = 0.
         repnz scasb
+        # %rdi is now a pointer to the null byte; %ecx is negative of its 1-index in the string.
 
         push %rdi
         not %ecx
         dec %ecx
+        # %ecx is length to print.
         mov %ecx, %edx
         mov $sys_write, %eax
         mov dumpFile, %edi
         syscall
         pop %rsi
 
-        cmp $23, %bl
+        cmp $23, %bl # 17 registers + 6 flags. 
         jge endRegisterLoop
 
-        cmp $17, %bl
+        cmp $17, %bl # 17 registers (including RFLAGS)
         jge printFlag
-            # Select register and print it
+            # bl < 17: Select register and print it
             mov registerOrder(, %rbx, 4), %eax
             mov (%rax), %rax
-            call printQuad
-            jmp nextRegister
+            jmp printQuad
+            printQuad_done: jmp nextRegister
         printFlag:
-            # Select appropriate flag message
+            # bl >= 17: Select appropriate flag message
             push %rsi
 
             mov %bl, %dl
@@ -347,9 +235,27 @@ dumpState:
         jmp registerLoop
     endRegisterLoop:
 
-    pop %rbx
-    pop %rcx
-    pop %rdx
-    pop %rdi
-    pop %rsi
-    ret
+printRegsDone:
+    mov (r_FLAGS), %rax
+    push %rax
+    popfq
+
+    mov (r_RAX), %rax
+    mov (r_RBX), %rbx
+    mov (r_RCX), %rcx
+    mov (r_RDX), %rdx
+    mov (r_RSI), %rsi
+    mov (r_RDI), %rdi
+    mov (r_RSP), %rsp
+    mov (r_RBP), %rbp
+    mov (r_R8), %r8
+    mov (r_R9), %r9
+    mov (r_R10), %r10
+    mov (r_R11), %r11
+    mov (r_R12), %r12
+    mov (r_R13), %r13
+    mov (r_R14), %r14
+    mov (r_R15), %r15
+
+    jmp 0x0(%rip)
+printRegs_return: .quad 0
