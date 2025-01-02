@@ -19,7 +19,7 @@ source = source.replace(/print_regs/g, () => {
     `movq $print${i}_ret, (printRegs_return)`,
     `jmp printRegs`,
     `print${i}_ret:`,
-  ].join("\n");
+  ].join("; ");
 });
 if (i > 0) {
   source += "\n\n\n" + print_regs_s;
