@@ -464,7 +464,35 @@ impl Machine {
                 let addr = self.get_rm64(&rm64);
                 self.regs.rip = addr;
             }
+            Inst::PushM16(rm16) => {
+                let val = self.get_rm16(&rm16);
+                self.push_16(val)
+            }
+            Inst::PushM64(rm64) => {
+                let val = self.get_rm64(&rm64);
+                self.push_64(val)
+            }
+            Inst::PushI16(imm16) => self.push_16(imm16),
+            Inst::PushI64(imm64) => self.push_64(imm64),
         }
+    }
+
+    fn push_16(&mut self, val: u16) {
+        let rsp = self.regs.get_reg64(&GPR64::rsp);
+        let rsp_new = rsp
+            .checked_sub((u16::BITS / 8) as u64)
+            .unwrap_or_else(|| stack_fault());
+        self.regs.set_reg64(&GPR64::rsp, rsp_new);
+        self.mem.write_u16(rsp_new, val);
+    }
+
+    fn push_64(&mut self, val: u64) {
+        let rsp = self.regs.get_reg64(&GPR64::rsp);
+        let rsp_new = rsp
+            .checked_sub((u64::BITS / 8) as u64)
+            .unwrap_or_else(|| stack_fault());
+        self.regs.set_reg64(&GPR64::rsp, rsp_new);
+        self.mem.write_u64(rsp_new, val);
     }
 
     fn syscall(&mut self, writers: &mut Writers) {
@@ -601,7 +629,11 @@ impl Machine {
     }
 }
 
+fn stack_fault() -> ! {
+    // Described in "push" docs. Causes a double-fault and logical processer shutdown.
+    panic!("Stack Fault Exception #SS.");
+}
+
 fn divide_error() -> ! {
-    // #DE
     panic!("Divide error #DE.");
 }

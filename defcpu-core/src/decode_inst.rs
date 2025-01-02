@@ -71,6 +71,25 @@ impl<'a> Lexer<'a> {
         self.prefix.operand_size
     }
 
+    /// This is used in one particular case that supports u16 and u64 but not u32.
+    /// So the default is u64. The 0x66 operand-size prefix converts it to u16,
+    /// but the REX.W takes precedence in keeping as u64. Since the default
+    /// is u64 though, the REX.W (0x48) just undoes the 0x66, so
+    /// `66 48 op` is the same as `op`; we don't count the REX.W as mattering,
+    /// so it and the operand-size still get printed.
+    fn get_operand_size_64_default(&mut self) -> OperandSizeAttribute {
+        if let Some(rex) = self.prefix.rex {
+            if rex.w {
+                return Data64;
+            }
+        }
+        match self.get_operand_size_no_rexw() {
+            Data16 => Data16,
+            Data32 => Data64,
+            Data64 => panic!("Impossible Data64 without REX.W bit."),
+        }
+    }
+
     /// Call only once per instruction decode, since this deletes an address size prefix, if present.
     fn get_address_size(&mut self) -> AddressSizeAttribute {
         self.prefix.dis_prefix.remove_last_address_size_prefix();
@@ -479,6 +498,22 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             lex.prefix = lex.prefix.with_rex(opcode);
             decode_inst_inner(lex)
         }
+        0x50..=0x57 => {
+            let rex_b = lex.get_rex_b_matters();
+            match lex.get_operand_size_64_default() {
+                Data16 => {
+                    // 50+rw; PUSH r16; Push r16.
+                    let reg = reg16_field_select(opcode, rex_b);
+                    PushM16(RM16::Reg(reg))
+                }
+                Data32 => panic!("Impossible Data32 with 64-bit default."),
+                Data64 => {
+                    // 50+rd; PUSH r64; Push r64.
+                    let reg = reg64_field_select(opcode, rex_b);
+                    PushM64(RM64::Reg(reg))
+                }
+            }
+        }
         0x66 => {
             // 0x66 Operand size prefix.
             if lex.prefix.rex.is_some() {
@@ -496,6 +531,36 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             }
             lex.prefix = lex.prefix.with_address_size_prefix();
             decode_inst_inner(lex)
+        }
+        0x68 => {
+            // 0x68
+            match lex.get_operand_size_64_default() {
+                Data16 => {
+                    // 68 iw; PUSH imm16; Push imm16.
+                    let imm16 = lex.next_imm16();
+                    PushI16(imm16)
+                }
+                Data32 => panic!("Impossible Data32 with 64-bit default."),
+                Data64 => {
+                    // 68 id; PUSH imm32; Push imm32.
+                    let imm32 = lex.next_imm32();
+                    PushI64(imm32 as i32 as u64)
+                }
+            }
+        }
+        0x6A => {
+            // 6A ib; PUSH imm8; Push imm8.
+            match lex.get_operand_size_64_default() {
+                Data16 => {
+                    let imm8 = lex.next_imm8();
+                    PushI16(imm8 as i8 as u16)
+                }
+                Data32 => panic!("Impossible Data32 with 64-bit default."),
+                Data64 => {
+                    let imm8 = lex.next_imm8();
+                    PushI64(imm8 as i8 as u64)
+                }
+            }
         }
         0x70..=0x7F => {
             let rel_off = lex.next_i8() as u64;
@@ -855,13 +920,13 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
             //   48 e9 12 34 56 78           rex.W jmp 0x7896346b
             //   66 48 e9 12 34 56 78        data16 rex.W jmp 0x78963479
             match lex.get_operand_size_no_rexw() {
-                Data64 => panic!("Impossible Data64 without REX.W bit."),
+                Data16 => todo!("Operand-size prefix 0x66 behaves funny with jmp 0xE9. I haven't reverse-engineered it yet."),
                 Data32 => {
                     let rel_off = lex.next_i32() as u64;
                     let dest = lex.i.wrapping_add(rel_off);
                     JmpD(dest)
                 }
-                Data16 => todo!("Operand-size prefix 0x66 behaves funny with jmp 0xE9. I haven't reverse-engineered it yet."),
+                Data64 => panic!("Impossible Data64 without REX.W bit."),
             }
         }
         0xEB => {
@@ -981,6 +1046,22 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     // FF /4; JMP r/m64; Jump near, absolute indirect, RIP = 64-Bit offset from register or memory.
                     let rm64 = decode_rm64(lex, &modrm);
                     JmpM64(rm64)
+                }
+                6 => {
+                    // FF /6
+                    match lex.get_operand_size_64_default() {
+                        Data16 => {
+                            // FF /6; PUSH r/m16; Push r/m16.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            PushM16(rm16)
+                        }
+                        Data32 => panic!("Impossible Data32 with 64-bit default."),
+                        Data64 => {
+                            // FF /6; PUSH r/m64; Push r/m64.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            PushM64(rm64)
+                        }
+                    }
                 }
                 _ => {
                     lex.rollback();

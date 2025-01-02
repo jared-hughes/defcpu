@@ -273,6 +273,21 @@ pub enum Inst {
     // REX.W FF /5; JMP m16:64; Jump far, absolute indirect, address given in m16:64.
     // TODO: Memory-indirect far jump (ljmp). I'm not messing around with CS currently.
     // JmpM(...),
+    /// FF /6; PUSH r/m16; Push r/m16.
+    /// 50+rw; PUSH r16; Push r16.
+    PushM16(RM16),
+    /// FF /6; PUSH r/m64; Push r/m64.
+    /// 50+rd; PUSH r64; Push r64.
+    PushM64(RM64),
+    /// Any of the following, with a 0x66 operand-size prefix.
+    /// 6A ib; PUSH imm8; Push imm8.
+    /// 68 iw; PUSH imm16; Push imm16.
+    /// 68 id; PUSH imm32; Push imm32.
+    PushI16(u16),
+    /// 6A ib; PUSH imm8; Push imm8.
+    /// 68 iw; PUSH imm16; Push imm16.
+    /// 68 id; PUSH imm32; Push imm32.
+    PushI64(u64),
 }
 
 impl Inst {
@@ -358,9 +373,9 @@ impl Inst {
             }
             Hlt => String::new(),
             IncM8(rm8) | DecM8(rm8) | DivM8(rm8) => format!("{}", rm8),
-            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) => format!("{}", rm16),
+            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) | PushM16(rm16) => format!("{}", rm16),
             IncM32(rm32) | DecM32(rm32) | DivM32(rm32) => format!("{}", rm32),
-            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) => format!("{}", rm64),
+            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) | PushM64(rm64) => format!("{}", rm64),
             JccJo(imm64, _)
             | JccJb(imm64, _)
             | JccJe(imm64, _)
@@ -373,6 +388,8 @@ impl Inst {
             | Jrcxz(imm64)
             | JmpD(imm64) => format!("{:#x}", imm64),
             JmpM64(rm64) => format!("*{}", rm64),
+            PushI16(imm16) => format!("${:#x}", imm16),
+            PushI64(imm64) => format!("${:#x}", imm64),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -465,6 +482,10 @@ impl Inst {
             Jecxz(_) => "jecxz",
             Jrcxz(_) => "jrcxz",
             JmpD(_) | JmpM64(_) => "jmp",
+            PushM16(rm16) => rm16.either("push", "pushw"),
+            PushM64(_rm64) => "push",
+            PushI16(_) => "pushw",
+            PushI64(_) => "push",
         }
     }
 }
