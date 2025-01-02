@@ -457,6 +457,13 @@ impl Machine {
                     self.regs.rip = addr;
                 }
             }
+            Inst::JmpD(addr) => {
+                self.regs.rip = addr;
+            }
+            Inst::JmpM64(rm64) => {
+                let addr = self.get_rm64(&rm64);
+                self.regs.rip = addr;
+            }
         }
     }
 

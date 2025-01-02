@@ -263,6 +263,16 @@ pub enum Inst {
     Jecxz(u64),
     /// E3 cb; JRCXZ rel8; Jump short if RCX register is 0.
     Jrcxz(u64),
+    /// EB cb; JMP rel8; Jump short, RIP = RIP + 8-bit displacement sign extended to 64-bits.
+    /// E9 cd; JMP rel32; Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits.
+    JmpD(u64),
+    /// FF /4; JMP r/m64; Jump near, absolute indirect, RIP = 64-Bit offset from register or memory.
+    JmpM64(RM64),
+    // FF /5; JMP m16:16; Jump far, absolute indirect, address given in m16:16.
+    // FF /5; JMP m16:32; Jump far, absolute indirect, address given in m16:32.
+    // REX.W FF /5; JMP m16:64; Jump far, absolute indirect, address given in m16:64.
+    // TODO: Memory-indirect far jump (ljmp). I'm not messing around with CS currently.
+    // JmpM(...),
 }
 
 impl Inst {
@@ -360,7 +370,9 @@ impl Inst {
             | JccJl(imm64, _)
             | JccJle(imm64, _)
             | Jecxz(imm64)
-            | Jrcxz(imm64) => format!("{:#x}", imm64),
+            | Jrcxz(imm64)
+            | JmpD(imm64) => format!("{:#x}", imm64),
+            JmpM64(rm64) => format!("*{}", rm64),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -452,6 +464,7 @@ impl Inst {
             JccJle(_, Negate) => "jg",
             Jecxz(_) => "jecxz",
             Jrcxz(_) => "jrcxz",
+            JmpD(_) | JmpM64(_) => "jmp",
         }
     }
 }

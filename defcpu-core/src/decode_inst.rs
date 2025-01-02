@@ -843,6 +843,33 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 Addr64 => Jrcxz(dest),
             }
         }
+        0xE9 => {
+            // E9 cd; JMP rel32; Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits.
+            // E9 cw; JMP rel16; Jump near, relative, displacement relative to next instruction. Not supported in 64-bit mode.
+            //   Note we mention the E9 cw encoding despite "Not supported in 64-bit mode." because it still seems to be parsed.
+            //   http://ref.x86asm.net/coder64.html#gen_note_short_near_jmp notes it is implementation-dependent.
+            //   It's obtainable with the operand-size prefix 0x66.
+            // gdb dis (new cases for 015_jmp.s):
+            //   e9 12 34 56 78              jmp    0x78963420
+            //   66 e9 12 34                 jmpw   0x342a
+            //   48 e9 12 34 56 78           rex.W jmp 0x7896346b
+            //   66 48 e9 12 34 56 78        data16 rex.W jmp 0x78963479
+            match lex.get_operand_size_no_rexw() {
+                Data64 => panic!("Impossible Data64 without REX.W bit."),
+                Data32 => {
+                    let rel_off = lex.next_i32() as u64;
+                    let dest = lex.i.wrapping_add(rel_off);
+                    JmpD(dest)
+                }
+                Data16 => todo!("Operand-size prefix 0x66 behaves funny with jmp 0xE9. I haven't reverse-engineered it yet."),
+            }
+        }
+        0xEB => {
+            // EB cb; JMP rel8; Jump short, RIP = RIP + 8-bit displacement sign extended to 64-bits.
+            let rel_off = lex.next_i8() as u64;
+            let dest = lex.i.wrapping_add(rel_off);
+            JmpD(dest)
+        }
         0xF4 => {
             if lex.prefix.rex.is_some() {
                 lex.rollback();
@@ -949,6 +976,11 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                             }
                         }
                     }
+                }
+                4 => {
+                    // FF /4; JMP r/m64; Jump near, absolute indirect, RIP = 64-Bit offset from register or memory.
+                    let rm64 = decode_rm64(lex, &modrm);
+                    JmpM64(rm64)
                 }
                 _ => {
                     lex.rollback();
