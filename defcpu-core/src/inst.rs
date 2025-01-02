@@ -279,6 +279,10 @@ pub enum Inst {
     /// 8F /0; POP r/m64; Pop top of stack into m64; increment stack pointer. Cannot encode 32-bit operand size.
     /// 58+ rd; POP r64; Pop top of stack into r64; increment stack pointer. Cannot encode 32-bit operand size.
     PopM64(RM64),
+    // 9D; POPF; Pop top of stack into lower 16 bits of EFLAGS.
+    Popf16,
+    // 9D; POPFQ; Pop top of stack and zero-extend into RFLAGS.
+    Popf64,
     /// FF /6; PUSH r/m16; Push r/m16.
     /// 50+rw; PUSH r16; Push r16.
     PushM16(RM16),
@@ -294,6 +298,10 @@ pub enum Inst {
     /// 68 iw; PUSH imm16; Push imm16.
     /// 68 id; PUSH imm32; Push imm32.
     PushI64(u64),
+    /// 9C; PUSHF; Push lower 16 bits of EFLAGS.
+    Pushf16,
+    /// 9C; PUSHFQ; Push RFLAGS.
+    Pushf64,
 }
 
 impl Inst {
@@ -309,7 +317,11 @@ impl Inst {
             | NotImplemented2(_, _)
             | NotImplementedOpext(_, _)
             | RexNoop
-            | Syscall => String::new(),
+            | Syscall
+            | Popf16
+            | Popf64
+            | Pushf16
+            | Pushf64 => String::new(),
             MovMR8(rm8, gpr8) | AddMR8(rm8, gpr8) | SubMR8(rm8, gpr8) | CmpMR8(rm8, gpr8) => {
                 format!("{}, {}", gpr8, rm8)
             }
@@ -494,10 +506,14 @@ impl Inst {
             JmpD(_) | JmpM64(_) => "jmp",
             PopM16(rm16) => rm16.either("pop", "popw"),
             PopM64(_rm64) => "pop",
+            Popf16 => "popfw",
+            Popf64 => "popf",
             PushM16(rm16) => rm16.either("push", "pushw"),
             PushM64(_rm64) => "push",
             PushI16(_) => "pushw",
             PushI64(_) => "push",
+            Pushf16 => "pushfw",
+            Pushf64 => "pushf",
         }
     }
 }

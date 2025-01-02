@@ -157,3 +157,9 @@ ff f4                       push   %rsp
 67 49 ff 70 f4              rex.WB push -0xc(%r8d)
 67 49 ff f3                 addr32 rex.WB push %r11
 67 49 ff f4                 addr32 rex.WB push %r12
+9c                          pushf
+66 9c                       pushfw
+67 9c                       addr32 pushf
+66 67 9c                    addr32 pushfw
+48 9c                       rex.W pushf
+66 48 9c                    data16 rex.W pushf

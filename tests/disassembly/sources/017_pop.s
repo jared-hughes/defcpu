@@ -131,3 +131,9 @@
 67 49 8f 40 f4              rex.WB pop -0xc(%r8d)
 67 49 8f c3                 addr32 rex.WB pop %r11
 67 49 8f c4                 addr32 rex.WB pop %r12
+9d                          popf
+66 9d                       popfw
+67 9d                       addr32 popf
+66 67 9d                    addr32 popfw
+48 9d                       rex.W popf
+66 48 9d                    data16 rex.W popf

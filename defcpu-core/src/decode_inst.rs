@@ -863,6 +863,32 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
             }
         }
+        0x9C => {
+            match lex.get_operand_size_64_default() {
+                Data16 => {
+                    // 9C; PUSHF; Push lower 16 bits of EFLAGS.
+                    Pushf16
+                }
+                Data32 => panic!("Impossible Data32 with 64-bit default."),
+                Data64 => {
+                    // 9C; PUSHFQ; Push RFLAGS.
+                    Pushf64
+                }
+            }
+        }
+        0x9D => {
+            match lex.get_operand_size_64_default() {
+                Data16 => {
+                    // 9D; POPF; Pop top of stack into lower 16 bits of EFLAGS.
+                    Popf16
+                }
+                Data32 => panic!("Impossible Data32 with 64-bit default."),
+                Data64 => {
+                    // 9D; POPFQ; Pop top of stack and zero-extend into RFLAGS.
+                    Popf64
+                }
+            }
+        }
         0xB0..=0xB7 => {
             // B0+ rb ib; MOV r8, imm8
             // Move imm8 to r8.

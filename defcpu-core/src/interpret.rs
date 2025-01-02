@@ -474,6 +474,14 @@ impl Machine {
             }
             Inst::PushI16(imm16) => self.push_16(imm16),
             Inst::PushI64(imm64) => self.push_64(imm64),
+            Inst::Pushf16 => {
+                let val = self.regs.get_rflags() as u16;
+                self.push_16(val);
+            }
+            Inst::Pushf64 => {
+                let val = self.regs.get_rflags();
+                self.push_64(val)
+            }
             Inst::PopM16(rm16) => {
                 let val = self.pop_16();
                 self.set_rm16(&rm16, val);
@@ -483,6 +491,14 @@ impl Machine {
                 // The increment is before the read value gets placed into %rsp.
                 let val = self.pop_64();
                 self.set_rm64(&rm64, val);
+            }
+            Inst::Popf16 => {
+                let val = self.pop_16();
+                self.regs.flags.set_rflags16(val);
+            }
+            Inst::Popf64 => {
+                let val = self.pop_64();
+                self.regs.flags.set_rflags64(val);
             }
         }
     }

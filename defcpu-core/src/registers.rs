@@ -304,6 +304,23 @@ impl Flags {
             | if self.of { 1 << 11 } else { 0 }
     }
 
+    /// Set the lower 16 bits of RFLAGS.
+    pub(crate) fn set_rflags16(&mut self, val: u16) {
+        // TODO: check out the bits other than the 7 flags we treat special
+        self.cf = val & 1 == 1;
+        self.pf = val >> 2 & 1 == 1;
+        self.af = val >> 4 & 1 == 1;
+        self.zf = val >> 6 & 1 == 1;
+        self.sf = val >> 7 & 1 == 1;
+        self.df = val >> 10 & 1 == 1;
+        self.of = val >> 11 & 1 == 1;
+    }
+
+    pub(crate) fn set_rflags64(&mut self, val: u64) {
+        // TODO: check out the bits other than the 7 flags we treat special
+        self.set_rflags16(val as u16);
+    }
+
     fn result_flags_8(&mut self, result: u8) {
         self.pf = result.count_ones() % 2 == 0;
         self.zf = result == 0;
