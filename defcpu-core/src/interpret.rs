@@ -570,6 +570,63 @@ impl Machine {
                 let val = self.get_rm64(rm64);
                 self.set_rm64(rm64, !val);
             }
+            Inst::ImulM8(rm8) => {
+                let x = self.regs.get_reg8(&GPR8::al);
+                let y = self.get_rm8(rm8);
+                let prod = self.regs.flags.imul_8(x, y);
+                self.regs.set_reg16(&GPR16::ax, prod);
+            }
+            Inst::ImulM16(rm16) => {
+                let x = self.regs.get_reg16(&GPR16::ax);
+                let y = self.get_rm16(rm16);
+                let prod = self.regs.flags.imul_16(x, y);
+                self.regs.set_dx_ax(prod);
+            }
+            Inst::ImulM32(rm32) => {
+                let x = self.regs.get_reg32(&GPR32::eax);
+                let y = self.get_rm32(rm32);
+                let prod = self.regs.flags.imul_32(x, y);
+                self.regs.set_edx_eax(prod);
+            }
+            Inst::ImulM64(rm64) => {
+                let x = self.regs.get_reg64(&GPR64::rax);
+                let y = self.get_rm64(rm64);
+                let prod = self.regs.flags.imul_64(x, y);
+                self.regs.set_rdx_rax(prod);
+            }
+            Inst::ImulRM16(gpr16, rm16) => {
+                let x = self.regs.get_reg16(gpr16);
+                let y = self.get_rm16(rm16);
+                let prod = self.regs.flags.imul_16(x, y);
+                self.regs.set_reg16(gpr16, prod as u16);
+            }
+            Inst::ImulRM32(gpr32, rm32) => {
+                let x = self.regs.get_reg32(gpr32);
+                let y = self.get_rm32(rm32);
+                let prod = self.regs.flags.imul_32(x, y);
+                self.regs.set_reg32(gpr32, prod as u32);
+            }
+            Inst::ImulRM64(gpr64, rm64) => {
+                let x = self.regs.get_reg64(gpr64);
+                let y = self.get_rm64(rm64);
+                let prod = self.regs.flags.imul_64(x, y);
+                self.regs.set_reg64(gpr64, prod as u64);
+            }
+            Inst::ImulRMI16(gpr16, rm16, imm16) => {
+                let x = self.get_rm16(rm16);
+                let prod = self.regs.flags.imul_16(x, *imm16);
+                self.regs.set_reg16(gpr16, prod as u16);
+            }
+            Inst::ImulRMI32(gpr32, rm32, imm32) => {
+                let x = self.get_rm32(rm32);
+                let prod = self.regs.flags.imul_32(x, *imm32);
+                self.regs.set_reg32(gpr32, prod as u32);
+            }
+            Inst::ImulRMI64(gpr64, rm64, imm64) => {
+                let x = self.get_rm64(rm64);
+                let prod = self.regs.flags.imul_64(x, *imm64);
+                self.regs.set_reg64(gpr64, prod as u64);
+            }
             Inst::JccJo(addr, negate) => {
                 if negate.xor(self.regs.flags.of) {
                     self.regs.rip = *addr;

@@ -557,6 +557,38 @@ impl Flags {
         result
     }
 
+    pub(crate) fn imul_8(&mut self, x: u8, y: u8) -> u16 {
+        let prod = ((x as i8 as i16) * (y as i8 as i16)) as u16;
+        let cf_of = (prod as i8 as u16) != prod;
+        self.cf = cf_of;
+        self.of = cf_of;
+        prod
+    }
+
+    pub(crate) fn imul_16(&mut self, x: u16, y: u16) -> u32 {
+        let prod = ((x as i16 as i32) * (y as i16 as i32)) as u32;
+        let cf_of = (prod as i16 as u32) != prod;
+        self.cf = cf_of;
+        self.of = cf_of;
+        prod
+    }
+
+    pub(crate) fn imul_32(&mut self, x: u32, y: u32) -> u64 {
+        let prod = ((x as i32 as i64) * (y as i32 as i64)) as u64;
+        let cf_of = (prod as i32 as u64) != prod;
+        self.cf = cf_of;
+        self.of = cf_of;
+        prod
+    }
+
+    pub(crate) fn imul_64(&mut self, x: u64, y: u64) -> u128 {
+        let prod = ((x as i64 as i128) * (y as i64 as i128)) as u128;
+        let cf_of = (prod as i64 as u128) != prod;
+        self.cf = cf_of;
+        self.of = cf_of;
+        prod
+    }
+
     pub(crate) fn div_flags(&mut self) {
         // The div and idiv instructions are documented to have undefined effect on flags.
         // On the code.golf CPU, they clear PF, ZF, SF, set AF and preserve CF, OF and other flags
@@ -656,6 +688,21 @@ impl Registers {
 
     pub fn get_rdx_rax(&self) -> u128 {
         (self.get_reg64(&GPR64::rdx) as u128) << 64 | (self.get_reg64(&GPR64::rax) as u128)
+    }
+
+    pub fn set_dx_ax(&mut self, val: u32) {
+        self.set_reg16(&GPR16::dx, (val >> 16) as u16);
+        self.set_reg16(&GPR16::ax, val as u16);
+    }
+
+    pub fn set_edx_eax(&mut self, val: u64) {
+        self.set_reg32(&GPR32::edx, (val >> 32) as u32);
+        self.set_reg32(&GPR32::eax, val as u32);
+    }
+
+    pub fn set_rdx_rax(&mut self, val: u128) {
+        self.set_reg64(&GPR64::rdx, (val >> 64) as u64);
+        self.set_reg64(&GPR64::rax, val as u64);
     }
 
     pub fn get_rflags(&self) -> u64 {

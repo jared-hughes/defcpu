@@ -292,6 +292,29 @@ pub enum Inst {
     NotM32(RM32),
     /// REX.W + F7 /2; NOT r/m64; Reverse each bit of r/m64.
     NotM64(RM64),
+    /// F6 /5; IMUL r/m8; AX:= AL ∗ r/m byte.
+    ImulM8(RM8),
+    /// F7 /5; IMUL r/m16; DX:AX := AX ∗ r/m word.
+    ImulM16(RM16),
+    /// F7 /5; IMUL r/m32; EDX:EAX := EAX ∗ r/m32.
+    ImulM32(RM32),
+    /// REX.W + F7 /5; IMUL r/m64; RDX:RAX := RAX ∗ r/m64.
+    ImulM64(RM64),
+    /// 0F AF /r; IMUL r16, r/m16; word register := word register ∗ r/m16.
+    ImulRM16(GPR16, RM16),
+    /// 0F AF /r; IMUL r32, r/m32; doubleword register := doubleword register ∗ r/m32.
+    ImulRM32(GPR32, RM32),
+    /// REX.W + 0F AF /r; IMUL r64, r/m64; Quadword register := Quadword register ∗ r/m64.
+    ImulRM64(GPR64, RM64),
+    /// 6B /r ib; IMUL r16, r/m16, imm8; word register := r/m16 ∗ sign-extended immediate byte.
+    /// 69 /r iw; IMUL r16, r/m16, imm16; word register := r/m16 ∗ immediate word.
+    ImulRMI16(GPR16, RM16, u16),
+    /// 6B /r ib; IMUL r32, r/m32, imm8; doubleword register := r/m32 ∗ sign-extended immediate byte.
+    /// 69 /r id; IMUL r32, r/m32, imm32; doubleword register := r/m32 ∗ immediate doubleword.
+    ImulRMI32(GPR32, RM32, u32),
+    /// REX.W + 6B /r ib; IMUL r64, r/m64, imm8; Quadword register := r/m64 ∗ sign-extended immediate byte.
+    /// REX.W + 69 /r id; IMUL r64, r/m64, imm32; Quadword register := r/m64 ∗ immediate doubleword.
+    ImulRMI64(GPR64, RM64, u64),
     /// 70 cb; JO rel8; Jump short if overflow (OF=1).
     /// 0F 80 cd; JO rel32; Jump near if overflow (OF=1).
     /// 71 cb; JNO rel8; Jump short if not overflow (OF=0).
@@ -471,21 +494,24 @@ impl Inst {
             | AddRM16(gpr16, rm16)
             | SubRM16(gpr16, rm16)
             | CmpRM16(gpr16, rm16)
-            | XorRM16(gpr16, rm16) => {
+            | XorRM16(gpr16, rm16)
+            | ImulRM16(gpr16, rm16) => {
                 format!("{}, {}", rm16, gpr16)
             }
             MovRM32(gpr32, rm32)
             | AddRM32(gpr32, rm32)
             | SubRM32(gpr32, rm32)
             | CmpRM32(gpr32, rm32)
-            | XorRM32(gpr32, rm32) => {
+            | XorRM32(gpr32, rm32)
+            | ImulRM32(gpr32, rm32) => {
                 format!("{}, {}", rm32, gpr32)
             }
             MovRM64(gpr64, rm64)
             | AddRM64(gpr64, rm64)
             | SubRM64(gpr64, rm64)
             | CmpRM64(gpr64, rm64)
-            | XorRM64(gpr64, rm64) => {
+            | XorRM64(gpr64, rm64)
+            | ImulRM64(gpr64, rm64) => {
                 format!("{}, {}", rm64, gpr64)
             }
             MovOI8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
@@ -521,16 +547,21 @@ impl Inst {
                 format!("${:#x}, {}", imm64, rm64)
             }
             Hlt => String::new(),
-            IncM8(rm8) | DecM8(rm8) | DivM8(rm8) | NotM8(rm8) => format!("{}", rm8),
-            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) | NotM16(rm16) | PushM16(rm16)
-            | PopM16(rm16) => {
+            IncM8(rm8) | DecM8(rm8) | DivM8(rm8) | NotM8(rm8) | ImulM8(rm8) => format!("{}", rm8),
+            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) | NotM16(rm16) | ImulM16(rm16)
+            | PushM16(rm16) | PopM16(rm16) => {
                 format!("{}", rm16)
             }
-            IncM32(rm32) | DecM32(rm32) | DivM32(rm32) | NotM32(rm32) => format!("{}", rm32),
-            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) | NotM64(rm64) | PushM64(rm64)
-            | PopM64(rm64) => {
+            IncM32(rm32) | DecM32(rm32) | DivM32(rm32) | NotM32(rm32) | ImulM32(rm32) => {
+                format!("{}", rm32)
+            }
+            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) | NotM64(rm64) | ImulM64(rm64)
+            | PushM64(rm64) | PopM64(rm64) => {
                 format!("{}", rm64)
             }
+            ImulRMI16(gpr16, rm16, imm16) => format!("${imm16:#x}, {rm16}, {gpr16}"),
+            ImulRMI32(gpr32, rm32, imm32) => format!("${imm32:#x}, {rm32}, {gpr32}"),
+            ImulRMI64(gpr64, rm64, imm64) => format!("${imm64:#x}, {rm64}, {gpr64}"),
             JccJo(imm64, _)
             | JccJb(imm64, _)
             | JccJe(imm64, _)
@@ -630,6 +661,16 @@ impl Inst {
             DivM16(rm16) => rm16.either("div", "divw"),
             DivM32(rm32) => rm32.either("div", "divl"),
             DivM64(rm64) => rm64.either("div", "divq"),
+            ImulM8(rm8) => rm8.either("imul", "imulb"),
+            ImulM16(rm16) => rm16.either("imul", "imulw"),
+            ImulM32(rm32) => rm32.either("imul", "imull"),
+            ImulM64(rm64) => rm64.either("imul", "imulq"),
+            ImulRM16(_, _)
+            | ImulRM32(_, _)
+            | ImulRM64(_, _)
+            | ImulRMI16(_, _, _)
+            | ImulRMI32(_, _, _)
+            | ImulRMI64(_, _, _) => "imul",
             JccJo(_, Normal) => "jo",
             JccJo(_, Negate) => "jno",
             JccJb(_, Normal) => "jb",

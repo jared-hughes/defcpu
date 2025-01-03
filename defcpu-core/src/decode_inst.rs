@@ -188,7 +188,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn next_i8(&mut self) -> i8 {
-        // i32 and u32 are 2's complement, so this is a no-op.
+        // i8 and u8 are 2's complement, so this is a no-op.
         self.next_imm8() as i8
     }
 
@@ -432,6 +432,31 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                             let reg = reg64_field_select(modrm.reg3, rex_r);
                             let rm64 = decode_rm64(lex, &modrm);
                             BtMR64(rm64, reg)
+                        }
+                    }
+                }
+                0xAF => {
+                    // 0F AF
+                    let modrm = lex.next_modrm();
+                    let rex_r = lex.get_rex_r_matters();
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 0F AF /r; IMUL r16, r/m16; word register := word register ∗ r/m16.
+                            let reg = reg16_field_select(modrm.reg3, rex_r);
+                            let rm16 = decode_rm16(lex, &modrm);
+                            ImulRM16(reg, rm16)
+                        }
+                        Data32 => {
+                            // 0F AF /r; IMUL r32, r/m32; doubleword register := doubleword register ∗ r/m32.
+                            let reg = reg32_field_select(modrm.reg3, rex_r);
+                            let rm32 = decode_rm32(lex, &modrm);
+                            ImulRM32(reg, rm32)
+                        }
+                        Data64 => {
+                            // REX.W + 0F AF /r; IMUL r64, r/m64; Quadword register := Quadword register ∗ r/m64.
+                            let reg = reg64_field_select(modrm.reg3, rex_r);
+                            let rm64 = decode_rm64(lex, &modrm);
+                            ImulRM64(reg, rm64)
                         }
                     }
                 }
@@ -702,6 +727,33 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
             }
         }
+        0x69 => {
+            let modrm = lex.next_modrm();
+            let rex_r = lex.get_rex_r_matters();
+            match lex.get_operand_size() {
+                Data16 => {
+                    // 69 /r iw; IMUL r16, r/m16, imm16; word register := r/m16 ∗ immediate word.
+                    let reg = reg16_field_select(modrm.reg3, rex_r);
+                    let rm16 = decode_rm16(lex, &modrm);
+                    let imm16 = lex.next_i16();
+                    ImulRMI16(reg, rm16, imm16 as u16)
+                }
+                Data32 => {
+                    // 69 /r id; IMUL r32, r/m32, imm32; doubleword register := r/m32 ∗ immediate doubleword.
+                    let reg = reg32_field_select(modrm.reg3, rex_r);
+                    let rm32 = decode_rm32(lex, &modrm);
+                    let imm32 = lex.next_i32();
+                    ImulRMI32(reg, rm32, imm32 as u32)
+                }
+                Data64 => {
+                    // REX.W + 69 /r id; IMUL r64, r/m64, imm32; Quadword register := r/m64 ∗ immediate doubleword.
+                    let reg = reg64_field_select(modrm.reg3, rex_r);
+                    let rm64 = decode_rm64(lex, &modrm);
+                    let imm32 = lex.next_i32();
+                    ImulRMI64(reg, rm64, imm32 as u64)
+                }
+            }
+        }
         0x6A => {
             // 6A ib; PUSH imm8; Push imm8.
             match lex.get_operand_size_64_default() {
@@ -713,6 +765,33 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 Data64 => {
                     let imm8 = lex.next_imm8();
                     PushI64(imm8 as i8 as u64)
+                }
+            }
+        }
+        0x6B => {
+            let modrm = lex.next_modrm();
+            let rex_r = lex.get_rex_r_matters();
+            match lex.get_operand_size() {
+                Data16 => {
+                    // 6B /r ib; IMUL r16, r/m16, imm8; word register := r/m16 ∗ sign-extended immediate byte.
+                    let reg = reg16_field_select(modrm.reg3, rex_r);
+                    let rm16 = decode_rm16(lex, &modrm);
+                    let imm8 = lex.next_i8();
+                    ImulRMI16(reg, rm16, imm8 as u16)
+                }
+                Data32 => {
+                    // 6B /r ib; IMUL r32, r/m32, imm8; doubleword register := r/m32 ∗ sign-extended immediate byte.
+                    let reg = reg32_field_select(modrm.reg3, rex_r);
+                    let rm32 = decode_rm32(lex, &modrm);
+                    let imm8 = lex.next_i8();
+                    ImulRMI32(reg, rm32, imm8 as u32)
+                }
+                Data64 => {
+                    // REX.W + 6B /r ib; IMUL r64, r/m64, imm8; Quadword register := r/m64 ∗ sign-extended immediate byte.
+                    let reg = reg64_field_select(modrm.reg3, rex_r);
+                    let rm64 = decode_rm64(lex, &modrm);
+                    let imm8 = lex.next_i8();
+                    ImulRMI64(reg, rm64, imm8 as u64)
                 }
             }
         }
@@ -1217,6 +1296,11 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     let rm8 = decode_rm8(lex, &modrm);
                     NotM8(rm8)
                 }
+                5 => {
+                    // F6 /5; IMUL r/m8; AX:= AL ∗ r/m byte.
+                    let rm8 = decode_rm8(lex, &modrm);
+                    ImulM8(rm8)
+                }
                 6 => {
                     // F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
                     let rm8 = decode_rm8(lex, &modrm);
@@ -1248,6 +1332,26 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                             // REX.W + F7 /2; NOT r/m64; Reverse each bit of r/m64.
                             let rm64 = decode_rm64(lex, &modrm);
                             NotM64(rm64)
+                        }
+                    }
+                }
+                5 => {
+                    // F7 /5
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // F7 /5; IMUL r/m16; DX:AX := AX ∗ r/m word.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            ImulM16(rm16)
+                        }
+                        Data32 => {
+                            // F7 /5; IMUL r/m32; EDX:EAX := EAX ∗ r/m32.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            ImulM32(rm32)
+                        }
+                        Data64 => {
+                            // REX.W + F7 /5; IMUL r/m64; RDX:RAX := RAX ∗ r/m64.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            ImulM64(rm64)
                         }
                     }
                 }
