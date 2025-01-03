@@ -1151,6 +1151,11 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         0xF6 => {
             let modrm = lex.next_modrm();
             match modrm.reg3 {
+                2 => {
+                    // F6 /2; NOT r/m8; Reverse each bit of r/m8.
+                    let rm8 = decode_rm8(lex, &modrm);
+                    NotM8(rm8)
+                }
                 6 => {
                     // F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
                     let rm8 = decode_rm8(lex, &modrm);
@@ -1165,6 +1170,26 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         0xF7 => {
             let modrm = lex.next_modrm();
             match modrm.reg3 {
+                2 => {
+                    // F7 /2
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // F7 /2; NOT r/m16; Reverse each bit of r/m16.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            NotM16(rm16)
+                        }
+                        Data32 => {
+                            // F7 /2; NOT r/m32; Reverse each bit of r/m32.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            NotM32(rm32)
+                        }
+                        Data64 => {
+                            // REX.W + F7 /2; NOT r/m64; Reverse each bit of r/m64.
+                            let rm64 = decode_rm64(lex, &modrm);
+                            NotM64(rm64)
+                        }
+                    }
+                }
                 6 => {
                     // F7 /6
                     match lex.get_operand_size() {

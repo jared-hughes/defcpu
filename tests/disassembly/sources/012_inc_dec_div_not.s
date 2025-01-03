@@ -238,3 +238,83 @@ f7 f4                       div    %esp
 67 49 f7 70 f4              divq   -0xc(%r8d)
 67 49 f7 f3                 addr32 div %r11
 67 49 f7 f4                 addr32 div %r12
+f6 10                       notb   (%rax)
+f6 14 f4                    notb   (%rsp, %rsi, 8)
+f6 15 f4 f4 f4 f4           notb   -0xb0b0b0c(%rip)
+f6 16                       notb   (%rsi)
+f6 50 f4                    notb   -0xc(%rax)
+f6 d3                       not    %bl
+f6 d4                       not    %ah
+41 f6 10                    notb   (%r8)
+41 f6 14 12                 notb   (%r10, %rdx, 1)
+41 f6 15 12 34 56 78        notb   0x78563412(%rip)
+41 f6 16                    notb   (%r14)
+f7 10                       notl   (%rax)
+f7 14 f4                    notl   (%rsp, %rsi, 8)
+f7 15 f4 f4 f4 f4           notl   -0xb0b0b0c(%rip)
+f7 16                       notl   (%rsi)
+f7 50 f4                    notl   -0xc(%rax)
+f7 d3                       not    %ebx
+f7 d4                       not    %esp
+41 f7 10                    notl   (%r8)
+41 f7 14 12                 notl   (%r10, %rdx, 1)
+41 f7 15 12 34 56 78        notl   0x78563412(%rip)
+41 f7 16                    notl   (%r14)
+66 f7 10                    notw   (%rax)
+66 f7 14 f4                 notw   (%rsp, %rsi, 8)
+66 f7 15 f4 f4 f4 f4        notw   -0xb0b0b0c(%rip)
+66 f7 16                    notw   (%rsi)
+66 f7 50 f4                 notw   -0xc(%rax)
+66 f7 d3                    not    %bx
+66 f7 d4                    not    %sp
+66 41 f7 10                 notw   (%r8)
+66 41 f7 14 12              notw   (%r10, %rdx, 1)
+66 41 f7 15 12 34 56 78     notw   0x78563412(%rip)
+66 41 f7 16                 notw   (%r14)
+67 f7 10                    notl   (%eax)
+67 f7 14 f4                 notl   (%esp, %esi, 8)
+67 f7 15 f4 f4 f4 f4        notl   -0xb0b0b0c(%eip)
+67 f7 16                    notl   (%esi)
+67 f7 50 f4                 notl   -0xc(%eax)
+67 f7 d3                    addr32 not %ebx
+67 f7 d4                    addr32 not %esp
+67 41 f7 10                 notl   (%r8d)
+67 41 f7 14 12              notl   (%r10d, %edx, 1)
+67 41 f7 15 12 34 56 78     notl   0x78563412(%eip)
+67 41 f7 16                 notl   (%r14d)
+66 67 f7 10                 notw   (%eax)
+66 67 f7 14 f4              notw   (%esp, %esi, 8)
+66 67 f7 15 f4 f4 f4 f4     notw   -0xb0b0b0c(%eip)
+66 67 f7 16                 notw   (%esi)
+66 67 f7 50 f4              notw   -0xc(%eax)
+66 67 f7 d3                 addr32 not %bx
+66 67 f7 d4                 addr32 not %sp
+66 67 41 f7 10              notw   (%r8d)
+66 67 41 f7 14 12           notw   (%r10d, %edx, 1)
+66 67 41 f7 15 12 34 56 78  notw   0x78563412(%eip)
+66 67 41 f7 16              notw   (%r14d)
+66 67 48 f7 10              data16 notq (%eax)
+66 67 48 f7 14 f4           data16 notq (%esp, %esi, 8)
+66 67 48 f7 15 f4 f4 f4 f4  data16 notq -0xb0b0b0c(%eip)
+48 f7 16                    notq   (%rsi)
+48 f7 50 f4                 notq   -0xc(%rax)
+48 f7 d3                    not    %rbx
+48 f7 d4                    not    %rsp
+49 f7 10                    notq   (%r8)
+49 f7 14 f4                 notq   (%r12, %rsi, 8)
+49 f7 15 f4 f4 f4 f4        notq   -0xb0b0b0c(%rip)
+49 f7 16                    notq   (%r14)
+49 f7 50 f4                 notq   -0xc(%r8)
+49 f7 d3                    not    %r11
+49 f7 d4                    not    %r12
+67 48 f7 16                 notq   (%esi)
+67 48 f7 50 f4              notq   -0xc(%eax)
+67 48 f7 d3                 addr32 not %rbx
+67 48 f7 d4                 addr32 not %rsp
+67 49 f7 10                 notq   (%r8d)
+67 49 f7 14 f4              notq   (%r12d, %esi, 8)
+67 49 f7 15 f4 f4 f4 f4     notq   -0xb0b0b0c(%eip)
+67 49 f7 16                 notq   (%r14d)
+67 49 f7 50 f4              notq   -0xc(%r8d)
+67 49 f7 d3                 addr32 not %r11
+67 49 f7 d4                 addr32 not %r12

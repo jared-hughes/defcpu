@@ -272,6 +272,14 @@ pub enum Inst {
     DivM32(RM32),
     /// REX.W + F7 /6; DIV r/m64; Unsigned divide RDX:RAX by r/m64, with result stored in RAX := Quotient, RDX := Remainder.
     DivM64(RM64),
+    /// F6 /2; NOT r/m8; Reverse each bit of r/m8.
+    NotM8(RM8),
+    /// F7 /2; NOT r/m16; Reverse each bit of r/m16.
+    NotM16(RM16),
+    /// F7 /2; NOT r/m32; Reverse each bit of r/m32.
+    NotM32(RM32),
+    /// REX.W + F7 /2; NOT r/m64; Reverse each bit of r/m64.
+    NotM64(RM64),
     /// 70 cb; JO rel8; Jump short if overflow (OF=1).
     /// 0F 80 cd; JO rel32; Jump near if overflow (OF=1).
     /// 71 cb; JNO rel8; Jump short if not overflow (OF=0).
@@ -498,12 +506,14 @@ impl Inst {
                 format!("${:#x}, {}", imm64, rm64)
             }
             Hlt => String::new(),
-            IncM8(rm8) | DecM8(rm8) | DivM8(rm8) => format!("{}", rm8),
-            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) | PushM16(rm16) | PopM16(rm16) => {
+            IncM8(rm8) | DecM8(rm8) | DivM8(rm8) | NotM8(rm8) => format!("{}", rm8),
+            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) | NotM16(rm16) | PushM16(rm16)
+            | PopM16(rm16) => {
                 format!("{}", rm16)
             }
-            IncM32(rm32) | DecM32(rm32) | DivM32(rm32) => format!("{}", rm32),
-            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) | PushM64(rm64) | PopM64(rm64) => {
+            IncM32(rm32) | DecM32(rm32) | DivM32(rm32) | NotM32(rm32) => format!("{}", rm32),
+            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) | NotM64(rm64) | PushM64(rm64)
+            | PopM64(rm64) => {
                 format!("{}", rm64)
             }
             JccJo(imm64, _)
@@ -644,6 +654,10 @@ impl Inst {
             | XorRM32(_, _)
             | XorRM64(_, _) => "xor",
             Scas(_, _) => "scas",
+            NotM8(rm8) => rm8.either("not", "notb"),
+            NotM16(rm16) => rm16.either("not", "notw"),
+            NotM32(rm32) => rm32.either("not", "notl"),
+            NotM64(rm64) => rm64.either("not", "notq"),
         }
     }
 }

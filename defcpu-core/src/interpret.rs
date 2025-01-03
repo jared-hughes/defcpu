@@ -518,6 +518,22 @@ impl Machine {
                 );
                 self.regs.set_reg64(&GPR64::rdx, remainder as u64);
             }
+            Inst::NotM8(rm8) => {
+                let val = self.get_rm8(rm8);
+                self.set_rm8(rm8, !val);
+            }
+            Inst::NotM16(rm16) => {
+                let val = self.get_rm16(rm16);
+                self.set_rm16(rm16, !val);
+            }
+            Inst::NotM32(rm32) => {
+                let val = self.get_rm32(rm32);
+                self.set_rm32(rm32, !val);
+            }
+            Inst::NotM64(rm64) => {
+                let val = self.get_rm64(rm64);
+                self.set_rm64(rm64, !val);
+            }
             Inst::JccJo(addr, negate) => {
                 if negate.xor(self.regs.flags.of) {
                     self.regs.rip = *addr;
