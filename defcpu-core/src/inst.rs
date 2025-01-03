@@ -182,6 +182,37 @@ pub enum Inst {
     CmpRM32(GPR32, RM32),
     /// REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
     CmpRM64(GPR64, RM64),
+    /// 34 ib; XOR AL, imm8; AL XOR imm8.
+    /// 80 /6 ib; XOR r/m8, imm8; r/m8 XOR imm8.
+    XorMI8(RM8, u8),
+    /// 35 iw; XOR AX, imm16; AX XOR imm16.
+    /// 81 /6 iw; XOR r/m16, imm16; r/m16 XOR imm16.
+    /// 83 /6 ib; XOR r/m16, imm8; r/m16 XOR imm8 (sign-extended).
+    XorMI16(RM16, u16),
+    /// 35 id; XOR EAX, imm32; EAX XOR imm32.
+    /// 81 /6 id; XOR r/m32, imm32; r/m32 XOR imm32.
+    /// 83 /6 ib; XOR r/m32, imm8; r/m32 XOR imm8 (sign-extended).
+    XorMI32(RM32, u32),
+    /// REX.W + 35 id; XOR RAX, imm32; RAX XOR imm32 (sign-extended).
+    /// REX.W + 81 /6 id; XOR r/m64, imm32; r/m64 XOR imm32 (sign-extended).
+    /// REX.W + 83 /6 ib; XOR r/m64, imm8; r/m64 XOR imm8 (sign-extended).
+    XorMI64(RM64, u64),
+    /// 30 /r; XOR r/m8, r8; r/m8 XOR r8.
+    XorMR8(RM8, GPR8),
+    /// 31 /r; XOR r/m16, r16; r/m16 XOR r16.
+    XorMR16(RM16, GPR16),
+    /// 31 /r; XOR r/m32, r32; r/m32 XOR r32.
+    XorMR32(RM32, GPR32),
+    /// REX.W + 31 /r; XOR r/m64, r64; r/m64 XOR r64.
+    XorMR64(RM64, GPR64),
+    /// 32 /r; XOR r8, r/m8; r8 XOR r/m8.
+    XorRM8(GPR8, RM8),
+    /// 33 /r; XOR r16, r/m16; r16 XOR r/m16.
+    XorRM16(GPR16, RM16),
+    /// 33 /r; XOR r32, r/m32; r32 XOR r/m32.
+    XorRM32(GPR32, RM32),
+    /// REX.W + 33 /r; XOR r64, r/m64; r64 XOR r/m64.
+    XorRM64(GPR64, RM64),
     /// F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
     DivM8(RM8),
     /// F7 /6; DIV r/m16; Unsigned divide DX:AX by r/m16, with result stored in AX := Quotient, DX := Remainder.
@@ -322,71 +353,92 @@ impl Inst {
             | Popf64
             | Pushf16
             | Pushf64 => String::new(),
-            MovMR8(rm8, gpr8) | AddMR8(rm8, gpr8) | SubMR8(rm8, gpr8) | CmpMR8(rm8, gpr8) => {
+            MovMR8(rm8, gpr8)
+            | AddMR8(rm8, gpr8)
+            | SubMR8(rm8, gpr8)
+            | CmpMR8(rm8, gpr8)
+            | XorMR8(rm8, gpr8) => {
                 format!("{}, {}", gpr8, rm8)
             }
             MovMR16(rm16, gpr16)
             | AddMR16(rm16, gpr16)
             | SubMR16(rm16, gpr16)
-            | CmpMR16(rm16, gpr16) => {
+            | CmpMR16(rm16, gpr16)
+            | XorMR16(rm16, gpr16) => {
                 format!("{}, {}", gpr16, rm16)
             }
             MovMR32(rm32, gpr32)
             | AddMR32(rm32, gpr32)
             | SubMR32(rm32, gpr32)
-            | CmpMR32(rm32, gpr32) => {
+            | CmpMR32(rm32, gpr32)
+            | XorMR32(rm32, gpr32) => {
                 format!("{}, {}", gpr32, rm32)
             }
             MovMR64(rm64, gpr64)
             | AddMR64(rm64, gpr64)
             | SubMR64(rm64, gpr64)
-            | CmpMR64(rm64, gpr64) => {
+            | CmpMR64(rm64, gpr64)
+            | XorMR64(rm64, gpr64) => {
                 format!("{}, {}", gpr64, rm64)
             }
-            MovRM8(gpr8, rm8) | AddRM8(gpr8, rm8) | SubRM8(gpr8, rm8) | CmpRM8(gpr8, rm8) => {
+            MovRM8(gpr8, rm8)
+            | AddRM8(gpr8, rm8)
+            | SubRM8(gpr8, rm8)
+            | CmpRM8(gpr8, rm8)
+            | XorRM8(gpr8, rm8) => {
                 format!("{}, {}", rm8, gpr8)
             }
             MovRM16(gpr16, rm16)
             | AddRM16(gpr16, rm16)
             | SubRM16(gpr16, rm16)
-            | CmpRM16(gpr16, rm16) => {
+            | CmpRM16(gpr16, rm16)
+            | XorRM16(gpr16, rm16) => {
                 format!("{}, {}", rm16, gpr16)
             }
             MovRM32(gpr32, rm32)
             | AddRM32(gpr32, rm32)
             | SubRM32(gpr32, rm32)
-            | CmpRM32(gpr32, rm32) => {
+            | CmpRM32(gpr32, rm32)
+            | XorRM32(gpr32, rm32) => {
                 format!("{}, {}", rm32, gpr32)
             }
             MovRM64(gpr64, rm64)
             | AddRM64(gpr64, rm64)
             | SubRM64(gpr64, rm64)
-            | CmpRM64(gpr64, rm64) => {
+            | CmpRM64(gpr64, rm64)
+            | XorRM64(gpr64, rm64) => {
                 format!("{}, {}", rm64, gpr64)
             }
             MovOI8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
             MovOI16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
             MovOI32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
             MovOI64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
-            MovMI8(rm8, imm8) | AddMI8(rm8, imm8) | SubMI8(rm8, imm8) | CmpMI8(rm8, imm8) => {
+            MovMI8(rm8, imm8)
+            | AddMI8(rm8, imm8)
+            | SubMI8(rm8, imm8)
+            | CmpMI8(rm8, imm8)
+            | XorMI8(rm8, imm8) => {
                 format!("${:#x}, {}", imm8, rm8)
             }
             MovMI16(rm16, imm16)
             | AddMI16(rm16, imm16)
             | SubMI16(rm16, imm16)
-            | CmpMI16(rm16, imm16) => {
+            | CmpMI16(rm16, imm16)
+            | XorMI16(rm16, imm16) => {
                 format!("${:#x}, {}", imm16, rm16)
             }
             MovMI32(rm32, imm32)
             | AddMI32(rm32, imm32)
             | SubMI32(rm32, imm32)
-            | CmpMI32(rm32, imm32) => {
+            | CmpMI32(rm32, imm32)
+            | XorMI32(rm32, imm32) => {
                 format!("${:#x}, {}", imm32, rm32)
             }
             MovMI64(rm64, imm64)
             | AddMI64(rm64, imm64)
             | SubMI64(rm64, imm64)
-            | CmpMI64(rm64, imm64) => {
+            | CmpMI64(rm64, imm64)
+            | XorMI64(rm64, imm64) => {
                 format!("${:#x}, {}", imm64, rm64)
             }
             Hlt => String::new(),
@@ -514,6 +566,18 @@ impl Inst {
             PushI64(_) => "push",
             Pushf16 => "pushfw",
             Pushf64 => "pushf",
+            XorMI8(rm8, _) => rm8.either("xor", "xorb"),
+            XorMI16(rm16, _) => rm16.either("xor", "xorw"),
+            XorMI32(rm32, _) => rm32.either("xor", "xorl"),
+            XorMI64(rm64, _) => rm64.either("xor", "xorq"),
+            XorMR8(_, _)
+            | XorMR16(_, _)
+            | XorMR32(_, _)
+            | XorMR64(_, _)
+            | XorRM8(_, _)
+            | XorRM16(_, _)
+            | XorRM32(_, _)
+            | XorRM64(_, _) => "xor",
         }
     }
 }

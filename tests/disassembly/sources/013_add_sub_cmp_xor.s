@@ -268,3 +268,93 @@
 67 48 3b 23                 cmp    (%ebx), %rsp
 66 48 3b 23                 data16 cmp (%rbx), %rsp
 66 67 48 3b 23              data16 cmp (%ebx), %rsp
+34 12                       xor    $0x12, %al
+66 35 12 34                 xor    $0x3412, %ax
+35 12 34 56 78              xor    $0x78563412, %eax
+41 35 12 34 56 78           rex.B xor $0x78563412, %eax
+41 35 12 34 56 88           rex.B xor $0x88563412, %eax
+48 35 12 34 56 78           xor    $0x78563412, %rax
+48 35 12 34 56 88           xor    $0xffffffff88563412, %rax
+49 35 12 34 56 78           rex.WB xor $0x78563412, %rax
+49 35 12 34 56 88           rex.WB xor $0xffffffff88563412, %rax
+80 f0 12                    xor    $0x12, %al
+80 f6 12                    xor    $0x12, %dh
+40 80 f6 12                 xor    $0x12, %sil
+66 81 f6 12 34              xor    $0x3412, %si
+81 f6 12 34 56 78           xor    $0x78563412, %esi
+48 81 f6 12 34 56 78        xor    $0x78563412, %rsi
+48 81 f6 12 34 56 88        xor    $0xffffffff88563412, %rsi
+66 83 f6 12                 xor    $0x12, %si
+66 83 f6 82                 xor    $0xff82, %si
+83 f6 12                    xor    $0x12, %esi
+83 f6 82                    xor    $0xffffff82, %esi
+41 83 f6 12                 xor    $0x12, %r14d
+41 83 f6 82                 xor    $0xffffff82, %r14d
+48 83 f6 12                 xor    $0x12, %rsi
+48 83 f6 82                 xor    $0xffffffffffffff82, %rsi
+49 83 f6 12                 xor    $0x12, %r14
+49 83 f6 82                 xor    $0xffffffffffffff82, %r14
+30 23                       xor    %ah, (%rbx)
+66 30 23                    data16 xor %ah, (%rbx)
+67 30 23                    xor    %ah, (%ebx)
+66 67 30 23                 data16 xor %ah, (%ebx)
+40 30 23                    xor    %spl, (%rbx)
+67 40 30 23                 xor    %spl, (%ebx)
+66 40 30 23                 data16 xor %spl, (%rbx)
+66 67 40 30 23              data16 xor %spl, (%ebx)
+41 30 23                    xor    %spl, (%r11)
+67 41 30 23                 xor    %spl, (%r11d)
+66 41 30 23                 data16 xor %spl, (%r11)
+66 67 41 30 23              data16 xor %spl, (%r11d)
+48 30 23                    rex.W xor %spl, (%rbx)
+67 48 30 23                 rex.W xor %spl, (%ebx)
+66 48 30 23                 data16 rex.W xor %spl, (%rbx)
+66 67 48 30 23              data16 rex.W xor %spl, (%ebx)
+31 23                       xor    %esp, (%rbx)
+66 31 23                    xor    %sp, (%rbx)
+67 31 23                    xor    %esp, (%ebx)
+66 67 31 23                 xor    %sp, (%ebx)
+40 31 23                    rex xor %esp, (%rbx)
+67 40 31 23                 rex xor %esp, (%ebx)
+66 40 31 23                 rex xor %sp, (%rbx)
+66 67 40 31 23              rex xor %sp, (%ebx)
+41 31 23                    xor    %esp, (%r11)
+67 41 31 23                 xor    %esp, (%r11d)
+66 41 31 23                 xor    %sp, (%r11)
+66 67 41 31 23              xor    %sp, (%r11d)
+48 31 23                    xor    %rsp, (%rbx)
+67 48 31 23                 xor    %rsp, (%ebx)
+66 48 31 23                 data16 xor %rsp, (%rbx)
+66 67 48 31 23              data16 xor %rsp, (%ebx)
+32 23                       xor    (%rbx), %ah
+66 32 23                    data16 xor (%rbx), %ah
+67 32 23                    xor    (%ebx), %ah
+66 67 32 23                 data16 xor (%ebx), %ah
+40 32 23                    xor    (%rbx), %spl
+67 40 32 23                 xor    (%ebx), %spl
+66 40 32 23                 data16 xor (%rbx), %spl
+66 67 40 32 23              data16 xor (%ebx), %spl
+41 32 23                    xor    (%r11), %spl
+67 41 32 23                 xor    (%r11d), %spl
+66 41 32 23                 data16 xor (%r11), %spl
+66 67 41 32 23              data16 xor (%r11d), %spl
+48 32 23                    rex.W xor (%rbx), %spl
+67 48 32 23                 rex.W xor (%ebx), %spl
+66 48 32 23                 data16 rex.W xor (%rbx), %spl
+66 67 48 32 23              data16 rex.W xor (%ebx), %spl
+33 23                       xor    (%rbx), %esp
+66 33 23                    xor    (%rbx), %sp
+67 33 23                    xor    (%ebx), %esp
+66 67 33 23                 xor    (%ebx), %sp
+40 33 23                    rex xor (%rbx), %esp
+67 40 33 23                 rex xor (%ebx), %esp
+66 40 33 23                 rex xor (%rbx), %sp
+66 67 40 33 23              rex xor (%ebx), %sp
+41 33 23                    xor    (%r11), %esp
+67 41 33 23                 xor    (%r11d), %esp
+66 41 33 23                 xor    (%r11), %sp
+66 67 41 33 23              xor    (%r11d), %sp
+48 33 23                    xor    (%rbx), %rsp
+67 48 33 23                 xor    (%ebx), %rsp
+66 48 33 23                 data16 xor (%rbx), %rsp
+66 67 48 33 23              data16 xor (%ebx), %rsp

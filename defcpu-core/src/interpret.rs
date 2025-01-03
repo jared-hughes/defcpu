@@ -345,6 +345,74 @@ impl Machine {
                 let old_dest = self.regs.get_reg64(&gpr64);
                 self.regs.flags.sub_64(old_dest, source, true);
             }
+            Inst::XorMI8(rm8, imm8) => {
+                let old = self.get_rm8(&rm8);
+                let new = self.regs.flags.xor_8(old, imm8);
+                self.set_rm8(&rm8, new);
+            }
+            Inst::XorMI16(rm16, imm16) => {
+                let old = self.get_rm16(&rm16);
+                let new = self.regs.flags.xor_16(old, imm16);
+                self.set_rm16(&rm16, new);
+            }
+            Inst::XorMI32(rm32, imm32) => {
+                let old = self.get_rm32(&rm32);
+                let new = self.regs.flags.xor_32(old, imm32);
+                self.set_rm32(&rm32, new);
+            }
+            Inst::XorMI64(rm64, imm64) => {
+                let old = self.get_rm64(&rm64);
+                let new = self.regs.flags.xor_64(old, imm64);
+                self.set_rm64(&rm64, new);
+            }
+            Inst::XorMR8(rm8, gpr8) => {
+                let source = self.regs.get_reg8(&gpr8);
+                let old_dest = self.get_rm8(&rm8);
+                let new = self.regs.flags.xor_8(old_dest, source);
+                self.set_rm8(&rm8, new);
+            }
+            Inst::XorMR16(rm16, gpr16) => {
+                let source = self.regs.get_reg16(&gpr16);
+                let old_dest = self.get_rm16(&rm16);
+                let new = self.regs.flags.xor_16(old_dest, source);
+                self.set_rm16(&rm16, new);
+            }
+            Inst::XorMR32(rm32, gpr32) => {
+                let source = self.regs.get_reg32(&gpr32);
+                let old_dest = self.get_rm32(&rm32);
+                let new = self.regs.flags.xor_32(old_dest, source);
+                self.set_rm32(&rm32, new);
+            }
+            Inst::XorMR64(rm64, gpr64) => {
+                let source = self.regs.get_reg64(&gpr64);
+                let old_dest = self.get_rm64(&rm64);
+                let new = self.regs.flags.xor_64(old_dest, source);
+                self.set_rm64(&rm64, new);
+            }
+            Inst::XorRM8(gpr8, rm8) => {
+                let source = self.get_rm8(&rm8);
+                let old_dest = self.regs.get_reg8(&gpr8);
+                let new = self.regs.flags.xor_8(old_dest, source);
+                self.regs.set_reg8(&gpr8, new);
+            }
+            Inst::XorRM16(gpr16, rm16) => {
+                let source = self.get_rm16(&rm16);
+                let old_dest = self.regs.get_reg16(&gpr16);
+                let new = self.regs.flags.xor_16(old_dest, source);
+                self.regs.set_reg16(&gpr16, new);
+            }
+            Inst::XorRM32(gpr32, rm32) => {
+                let source = self.get_rm32(&rm32);
+                let old_dest = self.regs.get_reg32(&gpr32);
+                let new = self.regs.flags.xor_32(old_dest, source);
+                self.regs.set_reg32(&gpr32, new);
+            }
+            Inst::XorRM64(gpr64, rm64) => {
+                let source = self.get_rm64(&rm64);
+                let old_dest = self.regs.get_reg64(&gpr64);
+                let new = self.regs.flags.xor_64(old_dest, source);
+                self.regs.set_reg64(&gpr64, new);
+            }
             Inst::DivM8(rm8) => {
                 let dividend = self.regs.get_reg16(&GPR16::ax);
                 let divisor = self.get_rm8(&rm8) as u16;

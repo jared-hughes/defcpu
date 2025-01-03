@@ -416,6 +416,28 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 SubMI64(RM64::Reg(GPR64::rax), imm32 as i32 as u64)
             }
         },
+        0x34 => {
+            // 34 ib; XOR AL, imm8; AL XOR imm8.
+            let imm8 = lex.next_imm8();
+            XorMI8(RM8::Reg(GPR8::al), imm8)
+        }
+        0x35 => match lex.get_operand_size() {
+            Data16 => {
+                // 35 iw; XOR AX, imm16; AX XOR imm16.
+                let imm16 = lex.next_imm16();
+                XorMI16(RM16::Reg(GPR16::ax), imm16)
+            }
+            Data32 => {
+                // 35 id; XOR EAX, imm32; EAX XOR imm32.
+                let imm32 = lex.next_imm32();
+                XorMI32(RM32::Reg(GPR32::eax), imm32)
+            }
+            Data64 => {
+                // REX.W + 35 id; XOR RAX, imm32; RAX XOR imm32 (sign-extended).
+                let imm32 = lex.next_imm32();
+                XorMI64(RM64::Reg(GPR64::rax), imm32 as i32 as u64)
+            }
+        },
         0x3C => {
             // 3C ib; CMP AL, imm8; Compare imm8 with AL.
             let imm8 = lex.next_imm8();
@@ -438,50 +460,66 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 CmpMI64(RM64::Reg(GPR64::rax), imm32 as i32 as u64)
             }
         },
-        0x38 | 0x3A => {
+        0x30 | 0x32 | 0x38 | 0x3A => {
+            // 30 /r; XOR r/m8, r8; r/m8 XOR r8.
+            // 32 /r; XOR r8, r/m8; r8 XOR r/m8.
             // 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
             // 3A /r; CMP r8, r/m8; Compare r/m8 with r8.
             let modrm = lex.next_modrm();
             let reg = lex.reg8_field_select_r(modrm.reg3);
             let rm8 = decode_rm8(lex, &modrm);
             match opcode {
+                0x30 => XorMR8(rm8, reg),
+                0x32 => XorRM8(reg, rm8),
                 0x38 => CmpMR8(rm8, reg),
                 0x3A => CmpRM8(reg, rm8),
                 _ => panic!("Missing match arm in decode_inst_inner."),
             }
         }
-        0x39 | 0x3B => {
+        0x31 | 0x33 | 0x39 | 0x3B => {
             let modrm = lex.next_modrm();
             let rex_r = lex.get_rex_r_matters();
             match lex.get_operand_size() {
                 Data16 => {
+                    // 31 /r; XOR r/m16, r16; r/m16 XOR r16.
+                    // 33 /r; XOR r16, r/m16; r16 XOR r/m16.
                     // 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
                     // 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
                     let reg = reg16_field_select(modrm.reg3, rex_r);
                     let rm16 = decode_rm16(lex, &modrm);
                     match opcode {
+                        0x31 => XorMR16(rm16, reg),
+                        0x33 => XorRM16(reg, rm16),
                         0x39 => CmpMR16(rm16, reg),
                         0x3B => CmpRM16(reg, rm16),
                         _ => panic!("Missing match arm in decode_inst_inner."),
                     }
                 }
                 Data32 => {
+                    // 31 /r; XOR r/m32, r32; r/m32 XOR r32.
+                    // 33 /r; XOR r32, r/m32; r32 XOR r/m32.
                     // 39 /r; CMP r/m32, r32; Compare r32 with r/m32.
                     // 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
                     let reg = reg32_field_select(modrm.reg3, rex_r);
                     let rm32 = decode_rm32(lex, &modrm);
                     match opcode {
+                        0x31 => XorMR32(rm32, reg),
+                        0x33 => XorRM32(reg, rm32),
                         0x39 => CmpMR32(rm32, reg),
                         0x3B => CmpRM32(reg, rm32),
                         _ => panic!("Missing match arm in decode_inst_inner."),
                     }
                 }
                 Data64 => {
+                    // REX.W + 31 /r; XOR r/m64, r64; r/m64 XOR r64.
+                    // REX.W + 33 /r; XOR r64, r/m64; r64 XOR r/m64.
                     // REX.W + 39 /r; CMP r/m64, r64; Compare r64 with r/m64.
                     // REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
                     let reg = reg64_field_select(modrm.reg3, rex_r);
                     let rm64 = decode_rm64(lex, &modrm);
                     match opcode {
+                        0x31 => XorMR64(rm64, reg),
+                        0x33 => XorRM64(reg, rm64),
                         0x39 => CmpMR64(rm64, reg),
                         0x3B => CmpRM64(reg, rm64),
                         _ => panic!("Missing match arm in decode_inst_inner."),
@@ -616,6 +654,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     let imm8 = lex.next_imm8();
                     SubMI8(rm8, imm8)
                 }
+                6 => {
+                    // 80 /6 ib; XOR r/m8, imm8; r/m8 XOR imm8.
+                    let rm8 = decode_rm8(lex, &modrm);
+                    let imm8 = lex.next_imm8();
+                    XorMI8(rm8, imm8)
+                }
                 7 => {
                     // 80 /7 ib; CMP r/m8, imm8; Compare imm8 with r/m8.
                     let rm8 = decode_rm8(lex, &modrm);
@@ -676,6 +720,30 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                             let imm32 = lex.next_imm32();
                             // Sign extend imm32 to u64.
                             SubMI64(rm64, imm32 as i32 as u64)
+                        }
+                    }
+                }
+                6 => {
+                    // 81 /6
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 81 /6 iw; XOR r/m16, imm16; r/m16 XOR imm16.
+                            let rm16 = decode_rm16(lex, &modrm);
+                            let imm16 = lex.next_imm16();
+                            XorMI16(rm16, imm16)
+                        }
+                        Data32 => {
+                            // 81 /6 id; XOR r/m32, imm32; r/m32 XOR imm32.
+                            let rm32 = decode_rm32(lex, &modrm);
+                            let imm32 = lex.next_imm32();
+                            XorMI32(rm32, imm32)
+                        }
+                        Data64 => {
+                            // REX.W + 81 /6 id; XOR r/m64, imm32; r/m64 XOR imm32 (sign-extended).
+                            let rm64 = decode_rm64(lex, &modrm);
+                            let imm32 = lex.next_imm32();
+                            // Sign extend imm32 to u64.
+                            XorMI64(rm64, imm32 as i32 as u64)
                         }
                     }
                 }
@@ -755,6 +823,29 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                             let rm64 = decode_rm64(lex, &modrm);
                             let imm8 = lex.next_imm8();
                             SubMI64(rm64, imm8 as i8 as u64)
+                        }
+                    }
+                }
+                6 => {
+                    // 83 /6
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 83 /6 ib; XOR r/m16, imm8; r/m16 XOR imm8 (sign-extended).
+                            let rm16 = decode_rm16(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            XorMI16(rm16, imm8 as i8 as u16)
+                        }
+                        Data32 => {
+                            // 83 /6 ib; XOR r/m32, imm8; r/m32 XOR imm8 (sign-extended).
+                            let rm32 = decode_rm32(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            XorMI32(rm32, imm8 as i8 as u32)
+                        }
+                        Data64 => {
+                            // REX.W + 83 /6 ib; XOR r/m64, imm8; r/m64 XOR imm8 (sign-extended).
+                            let rm64 = decode_rm64(lex, &modrm);
+                            let imm8 = lex.next_imm8();
+                            XorMI64(rm64, imm8 as i8 as u64)
                         }
                     }
                 }

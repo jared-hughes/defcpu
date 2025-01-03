@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, ops::BitXor};
 
 #[derive(Clone, Copy)]
 pub enum ABCDReg {
@@ -514,6 +514,46 @@ impl Flags {
             (1, 0, 0) => true,
             _ => false,
         };
+        result
+    }
+
+    fn xor_flags(&mut self) {
+        // Documented: CF and OF cleared, with AF flag undefined.
+        // AF flag seems to be cleared on code.golf CPU.
+        self.cf = false;
+        self.of = false;
+        self.af = false;
+    }
+
+    /// XOR two numbers, update flags, and return the XOR.
+    pub(crate) fn xor_8(&mut self, x: u8, y: u8) -> u8 {
+        let result = x.bitxor(y);
+        self.result_flags_8(result);
+        self.xor_flags();
+        result
+    }
+
+    /// XOR two numbers, update flags, and return the XOR.
+    pub(crate) fn xor_16(&mut self, x: u16, y: u16) -> u16 {
+        let result = x.bitxor(y);
+        self.result_flags_16(result);
+        self.xor_flags();
+        result
+    }
+
+    /// XOR two numbers, update flags, and return the XOR.
+    pub(crate) fn xor_32(&mut self, x: u32, y: u32) -> u32 {
+        let result = x.bitxor(y);
+        self.result_flags_32(result);
+        self.xor_flags();
+        result
+    }
+
+    /// XOR two numbers, update flags, and return the XOR.
+    pub(crate) fn xor_64(&mut self, x: u64, y: u64) -> u64 {
+        let result = x.bitxor(y);
+        self.result_flags_64(result);
+        self.xor_flags();
         result
     }
 
