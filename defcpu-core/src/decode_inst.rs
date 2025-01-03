@@ -1,6 +1,6 @@
 use crate::{
     inst::{
-        Base32, Base64, EffAddr, FullInst, Index32, Index64,
+        Base32, Base64, DataSize, EffAddr, FullInst, Index32, Index64,
         Inst::{self, *},
         JumpXor::*,
         Scale::{self, *},
@@ -978,6 +978,15 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     // 9D; POPFQ; Pop top of stack and zero-extend into RFLAGS.
                     Popf64
                 }
+            }
+        }
+        0xAE => Scas(DataSize::Data8, lex.get_address_size()),
+        0xAF => {
+            let addr_size = lex.get_address_size();
+            match lex.get_operand_size() {
+                Data16 => Scas(DataSize::Data16, addr_size),
+                Data32 => Scas(DataSize::Data32, addr_size),
+                Data64 => Scas(DataSize::Data64, addr_size),
             }
         }
         0xB0..=0xB7 => {

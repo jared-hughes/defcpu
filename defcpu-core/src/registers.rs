@@ -661,6 +661,24 @@ impl Registers {
     pub fn get_rflags(&self) -> u64 {
         self.flags.to_rflags_u64()
     }
+
+    pub(crate) fn offset_reg32_by_df(&mut self, gpr32: &GPR32, scale: u32) {
+        let val = self.get_reg32(gpr32);
+        let new_val = match self.flags.df {
+            false => val.wrapping_add(scale),
+            true => val.wrapping_sub(scale),
+        };
+        self.set_reg32(gpr32, new_val);
+    }
+
+    pub(crate) fn offset_reg64_by_df(&mut self, gpr64: &GPR64, scale: u64) {
+        let val = self.get_reg64(gpr64);
+        let new_val = match self.flags.df {
+            false => val.wrapping_add(scale),
+            true => val.wrapping_sub(scale),
+        };
+        self.set_reg64(gpr64, new_val);
+    }
 }
 
 impl fmt::Display for Registers {

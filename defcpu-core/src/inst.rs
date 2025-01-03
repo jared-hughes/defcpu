@@ -1,7 +1,10 @@
 use std::fmt::{self, LowerHex};
 
 use crate::{
-    inst_prefixes::DisassemblyPrefix,
+    inst_prefixes::{
+        AddressSizeAttribute::{self, *},
+        DisassemblyPrefix,
+    },
     registers::{Registers, GPR16, GPR32, GPR64, GPR8},
 };
 
@@ -15,6 +18,23 @@ impl JumpXor {
         match self {
             Normal => b,
             Negate => !b,
+        }
+    }
+}
+
+pub enum DataSize {
+    Data8,
+    Data16,
+    Data32,
+    Data64,
+}
+impl DataSize {
+    pub fn byte_len(&self) -> u32 {
+        match self {
+            Self::Data8 => 1,
+            Self::Data16 => 2,
+            Self::Data32 => 4,
+            Self::Data64 => 8,
         }
     }
 }
@@ -333,6 +353,17 @@ pub enum Inst {
     Pushf16,
     /// 9C; PUSHFQ; Push RFLAGS.
     Pushf64,
+    /// AE; SCAS m8; Compare AL with byte at ES:(E)DI or RDI, then set status flags.
+    /// AE; SCASB; Compare AL with byte at ES:(E)DI or RDI then set status flags.
+    /// AF; SCAS m16; Compare AX with word at ES:(E)DI or RDI, then set status flags.
+    /// AF; SCASW; Compare AX with word at ES:(E)DI or RDI then set status flags.
+    /// AF; SCAS m32; Compare EAX with doubleword at ES(E)DI or RDI then set status flags.
+    /// AF; SCASD; Compare EAX with doubleword at ES:(E)DI or RDI then set status flags.
+    /// REX.W + AF; SCAS m64; Compare RAX with quadword at RDI or EDI then set status flags.
+    /// REX.W + AF; SCASQ; Compare RAX with quadword at RDI or EDI then set status flags.
+    /// Note the e.g. m32 form is "explicit-operand form". You put in a register,
+    /// but it only represents the %al/%ax/%eax/%rax of the same size.
+    Scas(DataSize, AddressSizeAttribute),
 }
 
 impl Inst {
@@ -464,6 +495,15 @@ impl Inst {
             JmpM64(rm64) => format!("*{}", rm64),
             PushI16(imm16) => format!("${:#x}", imm16),
             PushI64(imm64) => format!("${:#x}", imm64),
+            // gdb picked the worst possible disassembly smh.
+            Scas(DataSize::Data8, Addr32) => "%es:(%edi), %al".to_owned(),
+            Scas(DataSize::Data16, Addr32) => "%es:(%edi), %ax".to_owned(),
+            Scas(DataSize::Data32, Addr32) => "%es:(%edi), %eax".to_owned(),
+            Scas(DataSize::Data64, Addr32) => "%es:(%edi), %rax".to_owned(),
+            Scas(DataSize::Data8, Addr64) => "%es:(%rdi), %al".to_owned(),
+            Scas(DataSize::Data16, Addr64) => "%es:(%rdi), %ax".to_owned(),
+            Scas(DataSize::Data32, Addr64) => "%es:(%rdi), %eax".to_owned(),
+            Scas(DataSize::Data64, Addr64) => "%es:(%rdi), %rax".to_owned(),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -578,6 +618,7 @@ impl Inst {
             | XorRM16(_, _)
             | XorRM32(_, _)
             | XorRM64(_, _) => "xor",
+            Scas(_, _) => "scas",
         }
     }
 }

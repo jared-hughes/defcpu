@@ -1,6 +1,7 @@
 use crate::{
     decode_inst::decode_inst,
-    inst::{Inst, RM16, RM32, RM64, RM8},
+    inst::{DataSize, Inst, RM16, RM32, RM64, RM8},
+    inst_prefixes::AddressSizeAttribute::*,
     memory::Memory,
     parse_elf::SimpleElfFile,
     read_write::Writers,
@@ -567,6 +568,42 @@ impl Machine {
             Inst::Popf64 => {
                 let val = self.pop_64();
                 self.regs.flags.set_rflags64(val);
+            }
+            Inst::Scas(data_size, addr_size) => {
+                let addr = match addr_size {
+                    Addr32 => self.regs.get_reg32(&GPR32::edi) as u64,
+                    Addr64 => self.regs.get_reg64(&GPR64::rdi),
+                };
+                match data_size {
+                    DataSize::Data8 => {
+                        let a = self.regs.get_reg8(&GPR8::al);
+                        let b = self.mem.read_u8(addr);
+                        self.regs.flags.sub_8(a, b, true);
+                    }
+                    DataSize::Data16 => {
+                        let a = self.regs.get_reg16(&GPR16::ax);
+                        let b = self.mem.read_u16(addr);
+                        self.regs.flags.sub_16(a, b, true);
+                    }
+                    DataSize::Data32 => {
+                        let a = self.regs.get_reg32(&GPR32::eax);
+                        let b = self.mem.read_u32(addr);
+                        self.regs.flags.sub_32(a, b, true);
+                    }
+                    DataSize::Data64 => {
+                        let a = self.regs.get_reg64(&GPR64::rax);
+                        let b = self.mem.read_u64(addr);
+                        self.regs.flags.sub_64(a, b, true);
+                    }
+                }
+                match addr_size {
+                    Addr32 => self
+                        .regs
+                        .offset_reg32_by_df(&GPR32::edi, data_size.byte_len()),
+                    Addr64 => self
+                        .regs
+                        .offset_reg64_by_df(&GPR64::rdi, data_size.byte_len().into()),
+                }
             }
         }
     }
