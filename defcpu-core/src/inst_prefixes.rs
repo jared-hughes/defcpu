@@ -1,9 +1,12 @@
 use std::fmt;
 
+use crate::inst::Group1Prefix;
+
 #[derive(Clone, Copy)]
 enum VarDisPrefix {
     AddressSize(AddressSizeAttribute),
     OperandSize(OperandSizeAttribute),
+    Group1(Group1Prefix),
 }
 
 #[derive(Clone)]
@@ -21,6 +24,7 @@ impl fmt::Display for DisassemblyPrefix {
             match vdp {
                 VarDisPrefix::AddressSize(s) => s.fmt(f)?,
                 VarDisPrefix::OperandSize(s) => s.fmt(f)?,
+                VarDisPrefix::Group1(group1_prefix) => group1_prefix.fmt(f)?,
             };
             some = true;
         }
@@ -139,11 +143,16 @@ impl fmt::Display for Rex {
 
 #[derive(Clone)]
 pub struct Prefix {
+    /// None if there is no such prefix, or if it was mandatory for an instruction like popcnt.
+    /// Otherwise, the most recent Group 1 prefix (rep, repz, repnz).
+    pub group1_prefix: Option<Group1Prefix>,
     /// Data16 if the Operand-Size Prefix 0x66 is present, otherwise Data32.
     /// Unaffected by any REX bit.
+    /// Operand_size is the only Group 3 Prefix.
     pub operand_size: OperandSizeAttribute,
     /// Addr32 if the Address-Size Prefix 0x67 is present, otherwise Addr64
     /// Note this doesn't factor in the REX.W bit, since the behavior of that depends per-instruction.
+    /// Operand_size is the only Group 4 Prefix.
     pub address_size: AddressSizeAttribute,
     /// If Some(Rex), a REX prefix is present.
     pub rex: Option<Rex>,
@@ -157,6 +166,7 @@ pub struct Prefix {
 impl Prefix {
     pub fn new() -> Prefix {
         Prefix {
+            group1_prefix: None,
             operand_size: OperandSizeAttribute::Data32,
             address_size: AddressSizeAttribute::Addr64,
             rex: None,
@@ -177,6 +187,14 @@ impl Prefix {
         p.address_size = AddressSizeAttribute::Addr32;
         p.dis_prefix
             .push_prefix(VarDisPrefix::AddressSize(p.address_size));
+        p
+    }
+
+    pub fn with_group1_prefix(&self, group1_prefix: Group1Prefix) -> Prefix {
+        let mut p = self.clone();
+        p.group1_prefix = Some(group1_prefix);
+        p.dis_prefix
+            .push_prefix(VarDisPrefix::Group1(group1_prefix));
         p
     }
 

@@ -39,6 +39,37 @@ impl DataSize {
     }
 }
 
+/// Prefixes described in Vol2A: 2.1.1 "Instruction Prefixes"
+#[derive(Clone, Copy)]
+pub enum Group1Prefix {
+    Repz,
+    Repnz,
+}
+impl fmt::Display for Group1Prefix {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Group1Prefix::Repz => write!(f, "repz"),
+            Group1Prefix::Repnz => write!(f, "repnz"),
+        }
+    }
+}
+
+pub enum Group1PrefixExec {
+    Repz(AddressSizeAttribute),
+    Repnz(AddressSizeAttribute),
+}
+
+pub struct FullInst {
+    /// The group1_prefix is None if there is no such prefix, or if they
+    /// are a mandatory prefix (such as for popcnt or lzcnt).
+    /// Having a group1_prefix other than None is undefined except for string and I/O instructions.
+    /// Reverse-engineering those undefined behaviors for the code.golf CPU is TODO.
+    pub group1_prefix: Option<Group1PrefixExec>,
+    pub main_inst: Inst,
+}
+
+// Flags aren't updated until after the last iteration to make the operation faster
+
 use Inst::*;
 /// Instructions. Tuple args are in Intel order.
 /// For valid opcodes, the name of each variant is the mnemonic,
@@ -367,12 +398,6 @@ pub enum Inst {
 }
 
 impl Inst {
-    pub fn with_prefix(self, prefix: DisassemblyPrefix) -> FullInst {
-        FullInst {
-            prefix,
-            inner: self,
-        }
-    }
     fn operands(&self) -> String {
         match self {
             NotImplemented(_)
@@ -623,15 +648,16 @@ impl Inst {
     }
 }
 
-pub struct FullInst {
+pub struct DisInst {
     /// The prefix is only encoded for disassembly.
-    prefix: DisassemblyPrefix,
+    pub prefix: DisassemblyPrefix,
     /// The inner instruction is needed for disassembly and execution.
-    pub inner: Inst,
+    pub inner: FullInst,
 }
-impl fmt::Display for FullInst {
+impl fmt::Display for DisInst {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let mnem = self.inner.mnemonic();
+        let main_inst = &self.inner.main_inst;
+        let mnem = main_inst.mnemonic();
         if !mnem.is_empty() {
             let prefix = format!("{}", self.prefix);
             let prefix_plus_mnemonic = if !prefix.is_empty() {
@@ -639,7 +665,7 @@ impl fmt::Display for FullInst {
             } else {
                 mnem.to_string()
             };
-            let operands = self.inner.operands();
+            let operands = main_inst.operands();
             if operands.is_empty() {
                 write!(f, "{}", prefix_plus_mnemonic)?;
             } else {

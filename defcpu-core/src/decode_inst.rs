@@ -1,6 +1,7 @@
 use crate::{
     inst::{
-        Base32, Base64, DataSize, EffAddr, FullInst, Index32, Index64,
+        Base32, Base64, DataSize, DisInst, EffAddr, FullInst, Group1Prefix, Group1PrefixExec,
+        Index32, Index64,
         Inst::{self, *},
         JumpXor::*,
         Scale::{self, *},
@@ -219,16 +220,81 @@ impl<'a> Lexer<'a> {
 }
 
 /// Returns instruction together with the number of bytes read.
-pub fn decode_inst(mem: &Memory, i: u64) -> (FullInst, u64) {
+pub fn decode_inst(mem: &Memory, i: u64) -> (DisInst, u64) {
     let mut lex = Lexer::new(mem, i);
     let inst = decode_inst_inner(&mut lex);
     let len = lex.len();
-    (inst.with_prefix(lex.prefix.dis_prefix), len)
+    let full_inst = FullInst {
+        group1_prefix: lex.prefix.group1_prefix.map(|prefix| {
+            let addr_size = lex.get_address_size();
+            match prefix {
+                // TODO: How do we know when it's REP instead of REPZ?
+                Group1Prefix::Repz => Group1PrefixExec::Repz(addr_size),
+                Group1Prefix::Repnz => Group1PrefixExec::Repnz(addr_size),
+            }
+        }),
+        main_inst: inst,
+    };
+    let dis_inst = DisInst {
+        prefix: lex.prefix.dis_prefix,
+        inner: full_inst,
+    };
+    (dis_inst, len)
 }
 
 fn decode_inst_inner(lex: &mut Lexer) -> Inst {
     let opcode = lex.next_u8();
     match opcode {
+        //
+        // ============ prefixes ============
+        //
+        0x40..=0x4F => {
+            // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
+            if lex.prefix.rex.is_some() {
+                lex.rollback();
+                return RexNoop;
+            }
+            lex.prefix = lex.prefix.with_rex(opcode);
+            decode_inst_inner(lex)
+        }
+        0x66 => {
+            // 0x66 Operand size prefix.
+            if lex.prefix.rex.is_some() {
+                lex.rollback();
+                return RexNoop;
+            }
+            lex.prefix = lex.prefix.with_operand_size_prefix();
+            decode_inst_inner(lex)
+        }
+        0x67 => {
+            // 0x67 Address size prefix.
+            if lex.prefix.rex.is_some() {
+                lex.rollback();
+                return RexNoop;
+            }
+            lex.prefix = lex.prefix.with_address_size_prefix();
+            decode_inst_inner(lex)
+        }
+        0xF2 => {
+            // 0xF2 Repnz/Repne prefix
+            if lex.prefix.rex.is_some() {
+                lex.rollback();
+                return RexNoop;
+            }
+            lex.prefix = lex.prefix.with_group1_prefix(Group1Prefix::Repnz);
+            decode_inst_inner(lex)
+        }
+        0xF3 => {
+            // 0xF3 Rep/Repe/Repz prefix
+            if lex.prefix.rex.is_some() {
+                lex.rollback();
+                return RexNoop;
+            }
+            lex.prefix = lex.prefix.with_group1_prefix(Group1Prefix::Repz);
+            decode_inst_inner(lex)
+        }
+        //
+        // ============ regular opcodes ============
         0x00 | 0x02 => {
             // 00 /r; ADD r/m8, r8; Add r8 to r/m8.
             // 02 /r; ADD r8, r/m8; Add r/m8 to r8.
@@ -527,15 +593,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                 }
             }
         }
-        0x40..=0x4F => {
-            // 0x40..=0x4F REX prefix. Must be immediately followed by opcode byte.
-            if lex.prefix.rex.is_some() {
-                lex.rollback();
-                return RexNoop;
-            }
-            lex.prefix = lex.prefix.with_rex(opcode);
-            decode_inst_inner(lex)
-        }
         0x50..=0x57 => {
             let rex_b = lex.get_rex_b_matters();
             match lex.get_operand_size_64_default() {
@@ -567,24 +624,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                     PopM64(RM64::Reg(reg))
                 }
             }
-        }
-        0x66 => {
-            // 0x66 Operand size prefix.
-            if lex.prefix.rex.is_some() {
-                lex.rollback();
-                return RexNoop;
-            }
-            lex.prefix = lex.prefix.with_operand_size_prefix();
-            decode_inst_inner(lex)
-        }
-        0x67 => {
-            // 0x67 Address size prefix.
-            if lex.prefix.rex.is_some() {
-                lex.rollback();
-                return RexNoop;
-            }
-            lex.prefix = lex.prefix.with_address_size_prefix();
-            decode_inst_inner(lex)
         }
         0x68 => {
             // 0x68

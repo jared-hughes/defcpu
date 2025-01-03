@@ -1,6 +1,6 @@
 use crate::{
     decode_inst::decode_inst,
-    inst::{DataSize, Inst, RM16, RM32, RM64, RM8},
+    inst::{DataSize, FullInst, Group1PrefixExec, Inst, RM16, RM32, RM64, RM8},
     inst_prefixes::AddressSizeAttribute::*,
     memory::Memory,
     parse_elf::SimpleElfFile,
@@ -37,11 +37,53 @@ impl Machine {
         let (inst, len) = decode_inst(&self.mem, self.regs.rip);
         self.regs.rip_prev = self.regs.rip;
         self.regs.rip += len;
-        self.run_inst(inst.inner, writers);
+        self.run_full_inst(inst.inner, writers);
     }
 
-    /// Returned value is Some(u64) if rip should jump to that u64.
-    pub fn run_inst(&mut self, inst: Inst, writers: &mut Writers) {
+    fn run_full_inst(&mut self, full_inst: FullInst, writers: &mut Writers) {
+        let FullInst {
+            group1_prefix,
+            main_inst,
+        } = full_inst;
+        match group1_prefix {
+            Some(Group1PrefixExec::Repz(addr_size)) | Some(Group1PrefixExec::Repnz(addr_size)) => {
+                loop {
+                    let count = match addr_size {
+                        Addr32 => self.regs.get_reg32(&GPR32::edi) as u64,
+                        Addr64 => self.regs.get_reg64(&GPR64::rdi),
+                    };
+                    // TODO: verify this is right. The documented pseudocode has
+                    // two exits to the loop, since there's a break inside a while loop.
+                    if count == 0 {
+                        break;
+                    }
+                    self.run_inst(&main_inst, writers);
+                    match addr_size {
+                        Addr32 => self
+                            .regs
+                            .set_reg32(&GPR32::edi, (count as u32).wrapping_sub(1)),
+                        Addr64 => self.regs.set_reg64(&GPR64::rdi, count.wrapping_sub(1)),
+                    };
+                    if count == 1 {
+                        // The register was just decremented to 0.
+                        break;
+                    }
+                    let should_break = match group1_prefix {
+                        Some(Group1PrefixExec::Repz(_)) => !self.regs.flags.zf,
+                        Some(Group1PrefixExec::Repnz(_)) => self.regs.flags.zf,
+                        _ => panic!("Missing match arm in run_full_inst."),
+                    };
+                    if should_break {
+                        break;
+                    }
+                }
+                // let count_reg =
+            }
+            None => self.run_inst(&main_inst, writers),
+        }
+    }
+
+    fn run_inst(&mut self, inst: &Inst, writers: &mut Writers) {
         match inst {
             Inst::NotImplemented(opcode) => {
                 panic!("Not yet implemented opcode {opcode:02x}.")
@@ -55,368 +97,368 @@ impl Machine {
             Inst::RexNoop => {}
             Inst::Syscall => self.syscall(writers),
             Inst::MovMR8(rm8, gpr8) => {
-                let val = self.regs.get_reg8(&gpr8);
-                self.set_rm8(&rm8, val);
+                let val = self.regs.get_reg8(gpr8);
+                self.set_rm8(rm8, val);
             }
             Inst::MovMR16(rm16, gpr16) => {
-                let val = self.regs.get_reg16(&gpr16);
-                self.set_rm16(&rm16, val);
+                let val = self.regs.get_reg16(gpr16);
+                self.set_rm16(rm16, val);
             }
             Inst::MovMR32(rm32, gpr32) => {
-                let val = self.regs.get_reg32(&gpr32);
-                self.set_rm32(&rm32, val);
+                let val = self.regs.get_reg32(gpr32);
+                self.set_rm32(rm32, val);
             }
             Inst::MovMR64(rm64, gpr64) => {
-                let val = self.regs.get_reg64(&gpr64);
-                self.set_rm64(&rm64, val);
+                let val = self.regs.get_reg64(gpr64);
+                self.set_rm64(rm64, val);
             }
             Inst::MovRM8(gpr8, rm8) => {
-                let val = self.get_rm8(&rm8);
-                self.regs.set_reg8(&gpr8, val);
+                let val = self.get_rm8(rm8);
+                self.regs.set_reg8(gpr8, val);
             }
             Inst::MovRM16(gpr16, rm16) => {
-                let val = self.get_rm16(&rm16);
-                self.regs.set_reg16(&gpr16, val);
+                let val = self.get_rm16(rm16);
+                self.regs.set_reg16(gpr16, val);
             }
             Inst::MovRM32(gpr32, rm32) => {
-                let val = self.get_rm32(&rm32);
-                self.regs.set_reg32(&gpr32, val);
+                let val = self.get_rm32(rm32);
+                self.regs.set_reg32(gpr32, val);
             }
             Inst::MovRM64(gpr64, rm64) => {
-                let val = self.get_rm64(&rm64);
-                self.regs.set_reg64(&gpr64, val);
+                let val = self.get_rm64(rm64);
+                self.regs.set_reg64(gpr64, val);
             }
             Inst::MovOI8(gpr8, imm8) => {
-                self.regs.set_reg8(&gpr8, imm8);
+                self.regs.set_reg8(gpr8, *imm8);
             }
             Inst::MovOI16(gpr16, imm16) => {
-                self.regs.set_reg16(&gpr16, imm16);
+                self.regs.set_reg16(gpr16, *imm16);
             }
             Inst::MovOI32(gpr32, imm32) => {
-                self.regs.set_reg32(&gpr32, imm32);
+                self.regs.set_reg32(gpr32, *imm32);
             }
             Inst::MovOI64(gpr64, imm64) => {
-                self.regs.set_reg64(&gpr64, imm64);
+                self.regs.set_reg64(gpr64, *imm64);
             }
             Inst::MovMI8(rm8, imm8) => {
-                self.set_rm8(&rm8, imm8);
+                self.set_rm8(rm8, *imm8);
             }
             Inst::MovMI16(rm16, imm16) => {
-                self.set_rm16(&rm16, imm16);
+                self.set_rm16(rm16, *imm16);
             }
             Inst::MovMI32(rm32, imm32) => {
-                self.set_rm32(&rm32, imm32);
+                self.set_rm32(rm32, *imm32);
             }
             Inst::MovMI64(rm64, imm64) => {
-                self.set_rm64(&rm64, imm64);
+                self.set_rm64(rm64, *imm64);
             }
             Inst::Hlt => {
                 write!(writers.stderr(), "{}", self.regs).expect("Write should succeed.");
                 self.halt = true;
             }
             Inst::IncM8(rm8) => {
-                let old = self.get_rm8(&rm8);
+                let old = self.get_rm8(rm8);
                 let new = self.regs.flags.add_8(old, 1, false);
-                self.set_rm8(&rm8, new);
+                self.set_rm8(rm8, new);
             }
             Inst::IncM16(rm16) => {
-                let old = self.get_rm16(&rm16);
+                let old = self.get_rm16(rm16);
                 let new = self.regs.flags.add_16(old, 1, false);
-                self.set_rm16(&rm16, new);
+                self.set_rm16(rm16, new);
             }
             Inst::IncM32(rm32) => {
-                let old = self.get_rm32(&rm32);
+                let old = self.get_rm32(rm32);
                 let new = self.regs.flags.add_32(old, 1, false);
-                self.set_rm32(&rm32, new);
+                self.set_rm32(rm32, new);
             }
             Inst::IncM64(rm64) => {
-                let old = self.get_rm64(&rm64);
+                let old = self.get_rm64(rm64);
                 let new = self.regs.flags.add_64(old, 1, false);
-                self.set_rm64(&rm64, new);
+                self.set_rm64(rm64, new);
             }
             Inst::DecM8(rm8) => {
-                let old = self.get_rm8(&rm8);
+                let old = self.get_rm8(rm8);
                 let new = self.regs.flags.sub_8(old, 1, false);
-                self.set_rm8(&rm8, new);
+                self.set_rm8(rm8, new);
             }
             Inst::DecM16(rm16) => {
-                let old = self.get_rm16(&rm16);
+                let old = self.get_rm16(rm16);
                 let new = self.regs.flags.sub_16(old, 1, false);
-                self.set_rm16(&rm16, new);
+                self.set_rm16(rm16, new);
             }
             Inst::DecM32(rm32) => {
-                let old = self.get_rm32(&rm32);
+                let old = self.get_rm32(rm32);
                 let new = self.regs.flags.sub_32(old, 1, false);
-                self.set_rm32(&rm32, new);
+                self.set_rm32(rm32, new);
             }
             Inst::DecM64(rm64) => {
-                let old = self.get_rm64(&rm64);
+                let old = self.get_rm64(rm64);
                 let new = self.regs.flags.sub_64(old, 1, false);
-                self.set_rm64(&rm64, new);
+                self.set_rm64(rm64, new);
             }
             Inst::AddMI8(rm8, imm8) => {
-                let old = self.get_rm8(&rm8);
-                let new = self.regs.flags.add_8(old, imm8, true);
-                self.set_rm8(&rm8, new);
+                let old = self.get_rm8(rm8);
+                let new = self.regs.flags.add_8(old, *imm8, true);
+                self.set_rm8(rm8, new);
             }
             Inst::AddMI16(rm16, imm16) => {
-                let old = self.get_rm16(&rm16);
-                let new = self.regs.flags.add_16(old, imm16, true);
-                self.set_rm16(&rm16, new);
+                let old = self.get_rm16(rm16);
+                let new = self.regs.flags.add_16(old, *imm16, true);
+                self.set_rm16(rm16, new);
             }
             Inst::AddMI32(rm32, imm32) => {
-                let old = self.get_rm32(&rm32);
-                let new = self.regs.flags.add_32(old, imm32, true);
-                self.set_rm32(&rm32, new);
+                let old = self.get_rm32(rm32);
+                let new = self.regs.flags.add_32(old, *imm32, true);
+                self.set_rm32(rm32, new);
             }
             Inst::AddMI64(rm64, imm64) => {
-                let old = self.get_rm64(&rm64);
-                let new = self.regs.flags.add_64(old, imm64, true);
-                self.set_rm64(&rm64, new);
+                let old = self.get_rm64(rm64);
+                let new = self.regs.flags.add_64(old, *imm64, true);
+                self.set_rm64(rm64, new);
             }
             Inst::AddMR8(rm8, gpr8) => {
-                let source = self.regs.get_reg8(&gpr8);
-                let old_dest = self.get_rm8(&rm8);
+                let source = self.regs.get_reg8(gpr8);
+                let old_dest = self.get_rm8(rm8);
                 let new = self.regs.flags.add_8(old_dest, source, true);
-                self.set_rm8(&rm8, new);
+                self.set_rm8(rm8, new);
             }
             Inst::AddMR16(rm16, gpr16) => {
-                let source = self.regs.get_reg16(&gpr16);
-                let old_dest = self.get_rm16(&rm16);
+                let source = self.regs.get_reg16(gpr16);
+                let old_dest = self.get_rm16(rm16);
                 let new = self.regs.flags.add_16(old_dest, source, true);
-                self.set_rm16(&rm16, new);
+                self.set_rm16(rm16, new);
             }
             Inst::AddMR32(rm32, gpr32) => {
-                let source = self.regs.get_reg32(&gpr32);
-                let old_dest = self.get_rm32(&rm32);
+                let source = self.regs.get_reg32(gpr32);
+                let old_dest = self.get_rm32(rm32);
                 let new = self.regs.flags.add_32(old_dest, source, true);
-                self.set_rm32(&rm32, new);
+                self.set_rm32(rm32, new);
             }
             Inst::AddMR64(rm64, gpr64) => {
-                let source = self.regs.get_reg64(&gpr64);
-                let old_dest = self.get_rm64(&rm64);
+                let source = self.regs.get_reg64(gpr64);
+                let old_dest = self.get_rm64(rm64);
                 let new = self.regs.flags.add_64(old_dest, source, true);
-                self.set_rm64(&rm64, new);
+                self.set_rm64(rm64, new);
             }
             Inst::AddRM8(gpr8, rm8) => {
-                let source = self.get_rm8(&rm8);
-                let old_dest = self.regs.get_reg8(&gpr8);
+                let source = self.get_rm8(rm8);
+                let old_dest = self.regs.get_reg8(gpr8);
                 let new = self.regs.flags.add_8(old_dest, source, true);
-                self.regs.set_reg8(&gpr8, new);
+                self.regs.set_reg8(gpr8, new);
             }
             Inst::AddRM16(gpr16, rm16) => {
-                let source = self.get_rm16(&rm16);
-                let old_dest = self.regs.get_reg16(&gpr16);
+                let source = self.get_rm16(rm16);
+                let old_dest = self.regs.get_reg16(gpr16);
                 let new = self.regs.flags.add_16(old_dest, source, true);
-                self.regs.set_reg16(&gpr16, new);
+                self.regs.set_reg16(gpr16, new);
             }
             Inst::AddRM32(gpr32, rm32) => {
-                let source = self.get_rm32(&rm32);
-                let old_dest = self.regs.get_reg32(&gpr32);
+                let source = self.get_rm32(rm32);
+                let old_dest = self.regs.get_reg32(gpr32);
                 let new = self.regs.flags.add_32(old_dest, source, true);
-                self.regs.set_reg32(&gpr32, new);
+                self.regs.set_reg32(gpr32, new);
             }
             Inst::AddRM64(gpr64, rm64) => {
-                let source = self.get_rm64(&rm64);
-                let old_dest = self.regs.get_reg64(&gpr64);
+                let source = self.get_rm64(rm64);
+                let old_dest = self.regs.get_reg64(gpr64);
                 let new = self.regs.flags.add_64(old_dest, source, true);
-                self.regs.set_reg64(&gpr64, new);
+                self.regs.set_reg64(gpr64, new);
             }
             Inst::SubMI8(rm8, imm8) => {
-                let old = self.get_rm8(&rm8);
-                let new = self.regs.flags.sub_8(old, imm8, true);
-                self.set_rm8(&rm8, new);
+                let old = self.get_rm8(rm8);
+                let new = self.regs.flags.sub_8(old, *imm8, true);
+                self.set_rm8(rm8, new);
             }
             Inst::SubMI16(rm16, imm16) => {
-                let old = self.get_rm16(&rm16);
-                let new = self.regs.flags.sub_16(old, imm16, true);
-                self.set_rm16(&rm16, new);
+                let old = self.get_rm16(rm16);
+                let new = self.regs.flags.sub_16(old, *imm16, true);
+                self.set_rm16(rm16, new);
             }
             Inst::SubMI32(rm32, imm32) => {
-                let old = self.get_rm32(&rm32);
-                let new = self.regs.flags.sub_32(old, imm32, true);
-                self.set_rm32(&rm32, new);
+                let old = self.get_rm32(rm32);
+                let new = self.regs.flags.sub_32(old, *imm32, true);
+                self.set_rm32(rm32, new);
             }
             Inst::SubMI64(rm64, imm64) => {
-                let old = self.get_rm64(&rm64);
-                let new = self.regs.flags.sub_64(old, imm64, true);
-                self.set_rm64(&rm64, new);
+                let old = self.get_rm64(rm64);
+                let new = self.regs.flags.sub_64(old, *imm64, true);
+                self.set_rm64(rm64, new);
             }
             Inst::SubMR8(rm8, gpr8) => {
-                let source = self.regs.get_reg8(&gpr8);
-                let old_dest = self.get_rm8(&rm8);
+                let source = self.regs.get_reg8(gpr8);
+                let old_dest = self.get_rm8(rm8);
                 let new = self.regs.flags.sub_8(old_dest, source, true);
-                self.set_rm8(&rm8, new);
+                self.set_rm8(rm8, new);
             }
             Inst::SubMR16(rm16, gpr16) => {
-                let source = self.regs.get_reg16(&gpr16);
-                let old_dest = self.get_rm16(&rm16);
+                let source = self.regs.get_reg16(gpr16);
+                let old_dest = self.get_rm16(rm16);
                 let new = self.regs.flags.sub_16(old_dest, source, true);
-                self.set_rm16(&rm16, new);
+                self.set_rm16(rm16, new);
             }
             Inst::SubMR32(rm32, gpr32) => {
-                let source = self.regs.get_reg32(&gpr32);
-                let old_dest = self.get_rm32(&rm32);
+                let source = self.regs.get_reg32(gpr32);
+                let old_dest = self.get_rm32(rm32);
                 let new = self.regs.flags.sub_32(old_dest, source, true);
-                self.set_rm32(&rm32, new);
+                self.set_rm32(rm32, new);
             }
             Inst::SubMR64(rm64, gpr64) => {
-                let source = self.regs.get_reg64(&gpr64);
-                let old_dest = self.get_rm64(&rm64);
+                let source = self.regs.get_reg64(gpr64);
+                let old_dest = self.get_rm64(rm64);
                 let new = self.regs.flags.sub_64(old_dest, source, true);
-                self.set_rm64(&rm64, new);
+                self.set_rm64(rm64, new);
             }
             Inst::SubRM8(gpr8, rm8) => {
-                let source = self.get_rm8(&rm8);
-                let old_dest = self.regs.get_reg8(&gpr8);
+                let source = self.get_rm8(rm8);
+                let old_dest = self.regs.get_reg8(gpr8);
                 let new = self.regs.flags.sub_8(old_dest, source, true);
-                self.regs.set_reg8(&gpr8, new);
+                self.regs.set_reg8(gpr8, new);
             }
             Inst::SubRM16(gpr16, rm16) => {
-                let source = self.get_rm16(&rm16);
-                let old_dest = self.regs.get_reg16(&gpr16);
+                let source = self.get_rm16(rm16);
+                let old_dest = self.regs.get_reg16(gpr16);
                 let new = self.regs.flags.sub_16(old_dest, source, true);
-                self.regs.set_reg16(&gpr16, new);
+                self.regs.set_reg16(gpr16, new);
             }
             Inst::SubRM32(gpr32, rm32) => {
-                let source = self.get_rm32(&rm32);
-                let old_dest = self.regs.get_reg32(&gpr32);
+                let source = self.get_rm32(rm32);
+                let old_dest = self.regs.get_reg32(gpr32);
                 let new = self.regs.flags.sub_32(old_dest, source, true);
-                self.regs.set_reg32(&gpr32, new);
+                self.regs.set_reg32(gpr32, new);
             }
             Inst::SubRM64(gpr64, rm64) => {
-                let source = self.get_rm64(&rm64);
-                let old_dest = self.regs.get_reg64(&gpr64);
+                let source = self.get_rm64(rm64);
+                let old_dest = self.regs.get_reg64(gpr64);
                 let new = self.regs.flags.sub_64(old_dest, source, true);
-                self.regs.set_reg64(&gpr64, new);
+                self.regs.set_reg64(gpr64, new);
             }
             Inst::CmpMI8(rm8, imm8) => {
-                let old = self.get_rm8(&rm8);
-                self.regs.flags.sub_8(old, imm8, true);
+                let old = self.get_rm8(rm8);
+                self.regs.flags.sub_8(old, *imm8, true);
             }
             Inst::CmpMI16(rm16, imm16) => {
-                let old = self.get_rm16(&rm16);
-                self.regs.flags.sub_16(old, imm16, true);
+                let old = self.get_rm16(rm16);
+                self.regs.flags.sub_16(old, *imm16, true);
             }
             Inst::CmpMI32(rm32, imm32) => {
-                let old = self.get_rm32(&rm32);
-                self.regs.flags.sub_32(old, imm32, true);
+                let old = self.get_rm32(rm32);
+                self.regs.flags.sub_32(old, *imm32, true);
             }
             Inst::CmpMI64(rm64, imm64) => {
-                let old = self.get_rm64(&rm64);
-                self.regs.flags.sub_64(old, imm64, true);
+                let old = self.get_rm64(rm64);
+                self.regs.flags.sub_64(old, *imm64, true);
             }
             Inst::CmpMR8(rm8, gpr8) => {
-                let source = self.regs.get_reg8(&gpr8);
-                let old_dest = self.get_rm8(&rm8);
+                let source = self.regs.get_reg8(gpr8);
+                let old_dest = self.get_rm8(rm8);
                 self.regs.flags.sub_8(old_dest, source, true);
             }
             Inst::CmpMR16(rm16, gpr16) => {
-                let source = self.regs.get_reg16(&gpr16);
-                let old_dest = self.get_rm16(&rm16);
+                let source = self.regs.get_reg16(gpr16);
+                let old_dest = self.get_rm16(rm16);
                 self.regs.flags.sub_16(old_dest, source, true);
             }
             Inst::CmpMR32(rm32, gpr32) => {
-                let source = self.regs.get_reg32(&gpr32);
-                let old_dest = self.get_rm32(&rm32);
+                let source = self.regs.get_reg32(gpr32);
+                let old_dest = self.get_rm32(rm32);
                 self.regs.flags.sub_32(old_dest, source, true);
             }
             Inst::CmpMR64(rm64, gpr64) => {
-                let source = self.regs.get_reg64(&gpr64);
-                let old_dest = self.get_rm64(&rm64);
+                let source = self.regs.get_reg64(gpr64);
+                let old_dest = self.get_rm64(rm64);
                 self.regs.flags.sub_64(old_dest, source, true);
             }
             Inst::CmpRM8(gpr8, rm8) => {
-                let source = self.get_rm8(&rm8);
-                let old_dest = self.regs.get_reg8(&gpr8);
+                let source = self.get_rm8(rm8);
+                let old_dest = self.regs.get_reg8(gpr8);
                 self.regs.flags.sub_8(old_dest, source, true);
             }
             Inst::CmpRM16(gpr16, rm16) => {
-                let source = self.get_rm16(&rm16);
-                let old_dest = self.regs.get_reg16(&gpr16);
+                let source = self.get_rm16(rm16);
+                let old_dest = self.regs.get_reg16(gpr16);
                 self.regs.flags.sub_16(old_dest, source, true);
             }
             Inst::CmpRM32(gpr32, rm32) => {
-                let source = self.get_rm32(&rm32);
-                let old_dest = self.regs.get_reg32(&gpr32);
+                let source = self.get_rm32(rm32);
+                let old_dest = self.regs.get_reg32(gpr32);
                 self.regs.flags.sub_32(old_dest, source, true);
             }
             Inst::CmpRM64(gpr64, rm64) => {
-                let source = self.get_rm64(&rm64);
-                let old_dest = self.regs.get_reg64(&gpr64);
+                let source = self.get_rm64(rm64);
+                let old_dest = self.regs.get_reg64(gpr64);
                 self.regs.flags.sub_64(old_dest, source, true);
             }
             Inst::XorMI8(rm8, imm8) => {
-                let old = self.get_rm8(&rm8);
-                let new = self.regs.flags.xor_8(old, imm8);
-                self.set_rm8(&rm8, new);
+                let old = self.get_rm8(rm8);
+                let new = self.regs.flags.xor_8(old, *imm8);
+                self.set_rm8(rm8, new);
             }
             Inst::XorMI16(rm16, imm16) => {
-                let old = self.get_rm16(&rm16);
-                let new = self.regs.flags.xor_16(old, imm16);
-                self.set_rm16(&rm16, new);
+                let old = self.get_rm16(rm16);
+                let new = self.regs.flags.xor_16(old, *imm16);
+                self.set_rm16(rm16, new);
             }
             Inst::XorMI32(rm32, imm32) => {
-                let old = self.get_rm32(&rm32);
-                let new = self.regs.flags.xor_32(old, imm32);
-                self.set_rm32(&rm32, new);
+                let old = self.get_rm32(rm32);
+                let new = self.regs.flags.xor_32(old, *imm32);
+                self.set_rm32(rm32, new);
             }
             Inst::XorMI64(rm64, imm64) => {
-                let old = self.get_rm64(&rm64);
-                let new = self.regs.flags.xor_64(old, imm64);
-                self.set_rm64(&rm64, new);
+                let old = self.get_rm64(rm64);
+                let new = self.regs.flags.xor_64(old, *imm64);
+                self.set_rm64(rm64, new);
             }
             Inst::XorMR8(rm8, gpr8) => {
-                let source = self.regs.get_reg8(&gpr8);
-                let old_dest = self.get_rm8(&rm8);
+                let source = self.regs.get_reg8(gpr8);
+                let old_dest = self.get_rm8(rm8);
                 let new = self.regs.flags.xor_8(old_dest, source);
-                self.set_rm8(&rm8, new);
+                self.set_rm8(rm8, new);
             }
             Inst::XorMR16(rm16, gpr16) => {
-                let source = self.regs.get_reg16(&gpr16);
-                let old_dest = self.get_rm16(&rm16);
+                let source = self.regs.get_reg16(gpr16);
+                let old_dest = self.get_rm16(rm16);
                 let new = self.regs.flags.xor_16(old_dest, source);
-                self.set_rm16(&rm16, new);
+                self.set_rm16(rm16, new);
             }
             Inst::XorMR32(rm32, gpr32) => {
-                let source = self.regs.get_reg32(&gpr32);
-                let old_dest = self.get_rm32(&rm32);
+                let source = self.regs.get_reg32(gpr32);
+                let old_dest = self.get_rm32(rm32);
                 let new = self.regs.flags.xor_32(old_dest, source);
-                self.set_rm32(&rm32, new);
+                self.set_rm32(rm32, new);
             }
             Inst::XorMR64(rm64, gpr64) => {
-                let source = self.regs.get_reg64(&gpr64);
-                let old_dest = self.get_rm64(&rm64);
+                let source = self.regs.get_reg64(gpr64);
+                let old_dest = self.get_rm64(rm64);
                 let new = self.regs.flags.xor_64(old_dest, source);
-                self.set_rm64(&rm64, new);
+                self.set_rm64(rm64, new);
             }
             Inst::XorRM8(gpr8, rm8) => {
-                let source = self.get_rm8(&rm8);
-                let old_dest = self.regs.get_reg8(&gpr8);
+                let source = self.get_rm8(rm8);
+                let old_dest = self.regs.get_reg8(gpr8);
                 let new = self.regs.flags.xor_8(old_dest, source);
-                self.regs.set_reg8(&gpr8, new);
+                self.regs.set_reg8(gpr8, new);
             }
             Inst::XorRM16(gpr16, rm16) => {
-                let source = self.get_rm16(&rm16);
-                let old_dest = self.regs.get_reg16(&gpr16);
+                let source = self.get_rm16(rm16);
+                let old_dest = self.regs.get_reg16(gpr16);
                 let new = self.regs.flags.xor_16(old_dest, source);
-                self.regs.set_reg16(&gpr16, new);
+                self.regs.set_reg16(gpr16, new);
             }
             Inst::XorRM32(gpr32, rm32) => {
-                let source = self.get_rm32(&rm32);
-                let old_dest = self.regs.get_reg32(&gpr32);
+                let source = self.get_rm32(rm32);
+                let old_dest = self.regs.get_reg32(gpr32);
                 let new = self.regs.flags.xor_32(old_dest, source);
-                self.regs.set_reg32(&gpr32, new);
+                self.regs.set_reg32(gpr32, new);
             }
             Inst::XorRM64(gpr64, rm64) => {
-                let source = self.get_rm64(&rm64);
-                let old_dest = self.regs.get_reg64(&gpr64);
+                let source = self.get_rm64(rm64);
+                let old_dest = self.regs.get_reg64(gpr64);
                 let new = self.regs.flags.xor_64(old_dest, source);
-                self.regs.set_reg64(&gpr64, new);
+                self.regs.set_reg64(gpr64, new);
             }
             Inst::DivM8(rm8) => {
                 let dividend = self.regs.get_reg16(&GPR16::ax);
-                let divisor = self.get_rm8(&rm8) as u16;
+                let divisor = self.get_rm8(rm8) as u16;
                 if divisor == 0 {
                     divide_error();
                 }
@@ -433,7 +475,7 @@ impl Machine {
             }
             Inst::DivM16(rm16) => {
                 let dividend = self.regs.get_dx_ax();
-                let divisor = self.get_rm16(&rm16) as u32;
+                let divisor = self.get_rm16(rm16) as u32;
                 if divisor == 0 {
                     divide_error();
                 }
@@ -448,7 +490,7 @@ impl Machine {
             }
             Inst::DivM32(rm32) => {
                 let dividend = self.regs.get_edx_eax();
-                let divisor = self.get_rm32(&rm32) as u64;
+                let divisor = self.get_rm32(rm32) as u64;
                 if divisor == 0 {
                     divide_error();
                 }
@@ -463,7 +505,7 @@ impl Machine {
             }
             Inst::DivM64(rm64) => {
                 let dividend = self.regs.get_rdx_rax();
-                let divisor = self.get_rm64(&rm64) as u128;
+                let divisor = self.get_rm64(rm64) as u128;
                 if divisor == 0 {
                     divide_error();
                 }
@@ -478,71 +520,71 @@ impl Machine {
             }
             Inst::JccJo(addr, negate) => {
                 if negate.xor(self.regs.flags.of) {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::JccJb(addr, negate) => {
                 if negate.xor(self.regs.flags.cf) {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::JccJe(addr, negate) => {
                 if negate.xor(self.regs.flags.zf) {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::JccJbe(addr, negate) => {
                 if negate.xor(self.regs.flags.cf || self.regs.flags.zf) {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::JccJs(addr, negate) => {
                 if negate.xor(self.regs.flags.sf) {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::JccJp(addr, negate) => {
                 if negate.xor(self.regs.flags.pf) {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::JccJl(addr, negate) => {
                 if negate.xor(self.regs.flags.sf != self.regs.flags.of) {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::JccJle(addr, negate) => {
                 if negate.xor(self.regs.flags.zf || (self.regs.flags.sf != self.regs.flags.of)) {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::Jecxz(addr) => {
                 if self.regs.get_reg32(&GPR32::ecx) == 0 {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::Jrcxz(addr) => {
                 if self.regs.get_reg64(&GPR64::rcx) == 0 {
-                    self.regs.rip = addr;
+                    self.regs.rip = *addr;
                 }
             }
             Inst::JmpD(addr) => {
-                self.regs.rip = addr;
+                self.regs.rip = *addr;
             }
             Inst::JmpM64(rm64) => {
-                let addr = self.get_rm64(&rm64);
+                let addr = self.get_rm64(rm64);
                 self.regs.rip = addr;
             }
             Inst::PushM16(rm16) => {
-                let val = self.get_rm16(&rm16);
+                let val = self.get_rm16(rm16);
                 self.push_16(val)
             }
             Inst::PushM64(rm64) => {
-                let val = self.get_rm64(&rm64);
+                let val = self.get_rm64(rm64);
                 self.push_64(val)
             }
-            Inst::PushI16(imm16) => self.push_16(imm16),
-            Inst::PushI64(imm64) => self.push_64(imm64),
+            Inst::PushI16(imm16) => self.push_16(*imm16),
+            Inst::PushI64(imm64) => self.push_64(*imm64),
             Inst::Pushf16 => {
                 let val = self.regs.get_rflags() as u16;
                 self.push_16(val);
@@ -553,13 +595,13 @@ impl Machine {
             }
             Inst::PopM16(rm16) => {
                 let val = self.pop_16();
-                self.set_rm16(&rm16, val);
+                self.set_rm16(rm16, val);
             }
             Inst::PopM64(rm64) => {
                 // Note the order is correct here for `pop %rsp`.
                 // The increment is before the read value gets placed into %rsp.
                 let val = self.pop_64();
-                self.set_rm64(&rm64, val);
+                self.set_rm64(rm64, val);
             }
             Inst::Popf16 => {
                 let val = self.pop_16();
