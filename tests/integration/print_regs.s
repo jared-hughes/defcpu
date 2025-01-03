@@ -217,7 +217,7 @@ printRegs:
             mov %bl, %dl
             sub $17, %dl
             mov flagOrder(%rdx), %al
-            shl $1, %dl
+            add %dl, %dl # shl $1, %dl
             bt %eax, r_FLAGS
             adc $0, %dl
 

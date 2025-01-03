@@ -371,8 +371,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
         0x0F => {
             let opcode2 = lex.next_u8();
             match opcode2 {
-                0x05 => Syscall,
+                0x05 => {
+                    // 0F 05
+                    Syscall
+                }
                 0x80..=0x8F => {
+                    // 0F 80 ... 0F 8F
                     let dest = match lex.get_operand_size_no_rexw() {
                         Data16 => {
                             let rel_off = lex.next_i16() as u16;
@@ -404,6 +408,63 @@ fn decode_inst_inner(lex: &mut Lexer) -> Inst {
                         0x8E => JccJle(dest, Normal),
                         0x8F => JccJle(dest, Negate),
                         _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                0xA3 => {
+                    // 0F A3
+                    let modrm = lex.next_modrm();
+                    let rex_r = lex.get_rex_r_matters();
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 0F A3 /r; BT r/m16, r16; Store selected bit in CF flag.
+                            let reg = reg16_field_select(modrm.reg3, rex_r);
+                            let rm16 = decode_rm16(lex, &modrm);
+                            BtMR16(rm16, reg)
+                        }
+                        Data32 => {
+                            // 0F A3 /r; BT r/m32, r32; Store selected bit in CF flag.
+                            let reg = reg32_field_select(modrm.reg3, rex_r);
+                            let rm32 = decode_rm32(lex, &modrm);
+                            BtMR32(rm32, reg)
+                        }
+                        Data64 => {
+                            // REX.W + 0F A3 /r; BT r/m64, r64; Store selected bit in CF flag.
+                            let reg = reg64_field_select(modrm.reg3, rex_r);
+                            let rm64 = decode_rm64(lex, &modrm);
+                            BtMR64(rm64, reg)
+                        }
+                    }
+                }
+                0xBA => {
+                    let modrm = lex.next_modrm();
+                    match modrm.reg3 {
+                        4 => {
+                            // 0F BA /4
+                            match lex.get_operand_size() {
+                                Data16 => {
+                                    // 0F BA /4 ib; BT r/m16, imm8; Store selected bit in CF flag.
+                                    let rm16 = decode_rm16(lex, &modrm);
+                                    let imm8 = lex.next_imm8();
+                                    BtMI16(rm16, imm8)
+                                }
+                                Data32 => {
+                                    // 0F BA /4 ib; BT r/m32, imm8; Store selected bit in CF flag.
+                                    let rm32 = decode_rm32(lex, &modrm);
+                                    let imm8 = lex.next_imm8();
+                                    BtMI32(rm32, imm8)
+                                }
+                                Data64 => {
+                                    // REX.W + 0F BA /4 ib; BT r/m64, imm8; Store selected bit in CF flag.
+                                    let rm64 = decode_rm64(lex, &modrm);
+                                    let imm8 = lex.next_imm8();
+                                    BtMI64(rm64, imm8)
+                                }
+                            }
+                        }
+                        _ => {
+                            lex.rollback();
+                            NotImplementedOpext(opcode, modrm.reg3)
+                        }
                     }
                 }
                 _ => NotImplemented2(opcode, opcode2),

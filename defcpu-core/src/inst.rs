@@ -264,6 +264,18 @@ pub enum Inst {
     XorRM32(GPR32, RM32),
     /// REX.W + 33 /r; XOR r64, r/m64; r64 XOR r/m64.
     XorRM64(GPR64, RM64),
+    /// 0F A3 /r; BT r/m16, r16; Store selected bit in CF flag.
+    BtMR16(RM16, GPR16),
+    /// 0F A3 /r; BT r/m32, r32; Store selected bit in CF flag.
+    BtMR32(RM32, GPR32),
+    /// REX.W + 0F A3 /r; BT r/m64, r64; Store selected bit in CF flag.
+    BtMR64(RM64, GPR64),
+    /// 0F BA /4 ib; BT r/m16, imm8; Store selected bit in CF flag.
+    BtMI16(RM16, u8),
+    /// 0F BA /4 ib; BT r/m32, imm8; Store selected bit in CF flag.
+    BtMI32(RM32, u8),
+    /// REX.W + 0F BA /4 ib; BT r/m64, imm8; Store selected bit in CF flag.
+    BtMI64(RM64, u8),
     /// F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
     DivM8(RM8),
     /// F7 /6; DIV r/m16; Unsigned divide DX:AX by r/m16, with result stored in AX := Quotient, DX := Remainder.
@@ -428,21 +440,24 @@ impl Inst {
             | AddMR16(rm16, gpr16)
             | SubMR16(rm16, gpr16)
             | CmpMR16(rm16, gpr16)
-            | XorMR16(rm16, gpr16) => {
+            | XorMR16(rm16, gpr16)
+            | BtMR16(rm16, gpr16) => {
                 format!("{}, {}", gpr16, rm16)
             }
             MovMR32(rm32, gpr32)
             | AddMR32(rm32, gpr32)
             | SubMR32(rm32, gpr32)
             | CmpMR32(rm32, gpr32)
-            | XorMR32(rm32, gpr32) => {
+            | XorMR32(rm32, gpr32)
+            | BtMR32(rm32, gpr32) => {
                 format!("{}, {}", gpr32, rm32)
             }
             MovMR64(rm64, gpr64)
             | AddMR64(rm64, gpr64)
             | SubMR64(rm64, gpr64)
             | CmpMR64(rm64, gpr64)
-            | XorMR64(rm64, gpr64) => {
+            | XorMR64(rm64, gpr64)
+            | BtMR64(rm64, gpr64) => {
                 format!("{}, {}", gpr64, rm64)
             }
             MovRM8(gpr8, rm8)
@@ -539,6 +554,9 @@ impl Inst {
             Scas(DataSize::Data16, Addr64) => "%es:(%rdi), %ax".to_owned(),
             Scas(DataSize::Data32, Addr64) => "%es:(%rdi), %eax".to_owned(),
             Scas(DataSize::Data64, Addr64) => "%es:(%rdi), %rax".to_owned(),
+            BtMI16(rm16, imm8) => format!("${:#x}, {}", imm8, rm16),
+            BtMI32(rm32, imm8) => format!("${:#x}, {}", imm8, rm32),
+            BtMI64(rm64, imm8) => format!("${:#x}, {}", imm8, rm64),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -658,6 +676,12 @@ impl Inst {
             NotM16(rm16) => rm16.either("not", "notw"),
             NotM32(rm32) => rm32.either("not", "notl"),
             NotM64(rm64) => rm64.either("not", "notq"),
+            BtMR16(_, _) => "bt",
+            BtMR32(_, _) => "bt",
+            BtMR64(_, _) => "bt",
+            BtMI16(rm16, _) => rm16.either("bt", "btw"),
+            BtMI32(rm32, _) => rm32.either("bt", "btl"),
+            BtMI64(rm64, _) => rm64.either("bt", "btq"),
         }
     }
 }

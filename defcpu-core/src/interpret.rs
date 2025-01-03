@@ -456,6 +456,42 @@ impl Machine {
                 let new = self.regs.flags.xor_64(old_dest, source);
                 self.regs.set_reg64(gpr64, new);
             }
+            Inst::BtMR16(rm16, gpr16) => {
+                let ind = self.regs.get_reg16(gpr16);
+                let bit_ind = ind % 16;
+                let byte_ind = ((u16::BITS / 8) as u16) * (ind / 16);
+                let val = self.get_rm16_with_offset(rm16, byte_ind as u64);
+                self.regs.flags.cf = 1 == (val >> bit_ind) & 1
+            }
+            Inst::BtMR32(rm32, gpr32) => {
+                let ind = self.regs.get_reg32(gpr32);
+                let bit_ind = ind % 32;
+                let byte_ind = (u32::BITS / 8) * (ind / 32);
+                let val = self.get_rm32_with_offset(rm32, byte_ind as u64);
+                self.regs.flags.cf = 1 == (val >> bit_ind) & 1
+            }
+            Inst::BtMR64(rm64, gpr64) => {
+                let ind = self.regs.get_reg64(gpr64);
+                let bit_ind = ind % 64;
+                let byte_ind = ((u64::BITS / 8) as u64) * (ind / 64);
+                let val = self.get_rm64_with_offset(rm64, byte_ind);
+                self.regs.flags.cf = 1 == (val >> bit_ind) & 1
+            }
+            Inst::BtMI16(rm16, imm8) => {
+                let bit_ind = imm8 % 16;
+                let val = self.get_rm16(rm16);
+                self.regs.flags.cf = 1 == (val >> bit_ind) & 1
+            }
+            Inst::BtMI32(rm32, imm8) => {
+                let bit_ind = imm8 % 32;
+                let val = self.get_rm32(rm32);
+                self.regs.flags.cf = 1 == (val >> bit_ind) & 1
+            }
+            Inst::BtMI64(rm64, imm8) => {
+                let bit_ind = imm8 % 64;
+                let val = self.get_rm64(rm64);
+                self.regs.flags.cf = 1 == (val >> bit_ind) & 1
+            }
             Inst::DivM8(rm8) => {
                 let dividend = self.regs.get_reg16(&GPR16::ax);
                 let divisor = self.get_rm8(rm8) as u16;
@@ -748,39 +784,58 @@ impl Machine {
     }
 
     fn get_rm8(&mut self, rm8: &RM8) -> u8 {
+        self.get_rm8_with_offset(rm8, 0)
+    }
+
+    fn get_rm16(&mut self, rm16: &RM16) -> u16 {
+        self.get_rm16_with_offset(rm16, 0)
+    }
+
+    fn get_rm32(&mut self, rm32: &RM32) -> u32 {
+        self.get_rm32_with_offset(rm32, 0)
+    }
+
+    fn get_rm64(&mut self, rm64: &RM64) -> u64 {
+        self.get_rm64_with_offset(rm64, 0)
+    }
+
+    fn get_rm8_with_offset(&mut self, rm8: &RM8, byte_offset: u64) -> u8 {
         match rm8 {
             RM8::Addr(eff_addr) => {
-                let a = eff_addr.compute(&self.regs);
+                let a = eff_addr.compute(&self.regs) + byte_offset;
                 self.mem.read_u8(a)
             }
             RM8::Reg(gpr8) => self.regs.get_reg8(gpr8),
         }
     }
 
-    fn get_rm16(&mut self, rm16: &RM16) -> u16 {
+    fn get_rm16_with_offset(&mut self, rm16: &RM16, byte_offset: u64) -> u16 {
         match rm16 {
             RM16::Addr(eff_addr) => {
-                let a = eff_addr.compute(&self.regs);
+                // TODO: Test what happens when adding byte_offset
+                // wraps around. Should it wrap around at u32::MAX
+                // in 32-bit address mode? This is relevant for the `bt` instruction.
+                let a = eff_addr.compute(&self.regs) + byte_offset;
                 self.mem.read_u16(a)
             }
             RM16::Reg(gpr16) => self.regs.get_reg16(gpr16),
         }
     }
 
-    fn get_rm32(&mut self, rm32: &RM32) -> u32 {
+    fn get_rm32_with_offset(&mut self, rm32: &RM32, byte_offset: u64) -> u32 {
         match rm32 {
             RM32::Addr(eff_addr) => {
-                let a = eff_addr.compute(&self.regs);
+                let a = eff_addr.compute(&self.regs) + byte_offset;
                 self.mem.read_u32(a)
             }
             RM32::Reg(gpr32) => self.regs.get_reg32(gpr32),
         }
     }
 
-    fn get_rm64(&mut self, rm64: &RM64) -> u64 {
+    fn get_rm64_with_offset(&mut self, rm64: &RM64, byte_offset: u64) -> u64 {
         match rm64 {
             RM64::Addr(eff_addr) => {
-                let a = eff_addr.compute(&self.regs);
+                let a = eff_addr.compute(&self.regs) + byte_offset;
                 self.mem.read_u64(a)
             }
             RM64::Reg(gpr64) => self.regs.get_reg64(gpr64),

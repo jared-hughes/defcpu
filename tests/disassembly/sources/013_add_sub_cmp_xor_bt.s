@@ -358,3 +358,49 @@
 67 48 33 23                 xor    (%ebx), %rsp
 66 48 33 23                 data16 xor (%rbx), %rsp
 66 67 48 33 23              data16 xor (%ebx), %rsp
+66 0f ba e6 12              bt     $0x12, %si
+66 0f ba e6 82              bt     $0x82, %si
+0f ba e6 12                 bt     $0x12, %esi
+0f ba e6 82                 bt     $0x82, %esi
+41 0f ba e6 12              bt     $0x12, %r14d
+41 0f ba e6 82              bt     $0x82, %r14d
+48 0f ba e6 12              bt     $0x12, %rsi
+48 0f ba e6 82              bt     $0x82, %rsi
+49 0f ba e6 12              bt     $0x12, %r14
+49 0f ba e6 82              bt     $0x82, %r14
+0f ba 23 12                 btl    $0x12, (%rbx)
+0f ba 23 82                 btl    $0x82, (%rbx)
+66 0f ba 23 12              btw    $0x12, (%rbx)
+66 0f ba 23 82              btw    $0x82, (%rbx)
+67 0f ba 23 12              btl    $0x12, (%ebx)
+67 0f ba 23 82              btl    $0x82, (%ebx)
+66 67 0f ba 23 12           btw    $0x12, (%ebx)
+66 67 0f ba 23 82           btw    $0x82, (%ebx)
+49 0f ba 23 12              btq    $0x12, (%r11)
+49 0f ba 23 82              btq    $0x82, (%r11)
+66 49 0f ba 23 12           data16 btq $0x12, (%r11)
+66 49 0f ba 23 82           data16 btq $0x82, (%r11)
+67 49 0f ba 23 12           btq    $0x12, (%r11d)
+67 49 0f ba 23 82           btq    $0x82, (%r11d)
+66 67 49 0f ba 23 12        data16 btq $0x12, (%r11d)
+66 67 49 0f ba 23 82        data16 btq $0x82, (%r11d)
+0f a3 e6                    bt     %esp, %esi
+41 0f a3 e6                 bt     %esp, %r14d
+49 0f a3 e6                 bt     %rsp, %r14
+66 0f a3 e6                 bt     %sp, %si
+0f a3 23                    bt     %esp, (%rbx)
+66 0f a3 23                 bt     %sp, (%rbx)
+67 0f a3 23                 bt     %esp, (%ebx)
+66 67 0f a3 23              bt     %sp, (%ebx)
+40 0f a3 23                 rex bt %esp, (%rbx)
+67 40 0f a3 23              rex bt %esp, (%ebx)
+66 40 0f a3 23              rex bt %sp, (%rbx)
+66 67 40 0f a3 23           rex bt %sp, (%ebx)
+41 0f a3 23                 bt     %esp, (%r11)
+67 41 0f a3 23              bt     %esp, (%r11d)
+66 41 0f a3 23              bt     %sp, (%r11)
+66 67 41 0f a3 23           bt     %sp, (%r11d)
+48 0f a3 23                 bt     %rsp, (%rbx)
+67 48 0f a3 23              bt     %rsp, (%ebx)
+66 48 0f a3 23              data16 bt %rsp, (%rbx)
+66 67 48 0f a3 23           data16 bt %rsp, (%ebx)
