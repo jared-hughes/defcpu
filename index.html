@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>DefCPU Playground</title>
+    <link href="./index.css" rel="stylesheet" />
+  </head>
+  <body>
+    <header>
+      <h1>DefCPU Playground</h1>
+    </header>
+    <p>
+      Examples:
+      <span id="examples"></span>
+    </p>
+    <form action="javascript:;">
+      <label for="editor">Source: (press Esc to tab out of the editor)</label>
+      <br />
+      <div id="editor"></div>
+      <br />
+      ctrl + enter or <button type="submit" value="Submit">Run locally</button>
+    </form>
+    Output:
+    <pre id="output"></pre>
+    Errors:
+    <pre id="errors"></pre>
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>
