@@ -1207,8 +1207,9 @@ impl EffAddr {
                         Base64::Rip => regs.rip_prev,
                     })
                     .unwrap_or(0);
+                let scale: u8 = sidb.scale.into();
                 let scaled_index = match sidb.index {
-                    Some(Index64::GPR64(gpr64)) => regs.get_reg64(&gpr64) * (sidb.scale as u64),
+                    Some(Index64::GPR64(gpr64)) => regs.get_reg64(&gpr64) * (scale as u64),
                     Some(Index64::Riz) => 0,
                     None => 0,
                 };
