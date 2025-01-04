@@ -199,7 +199,7 @@ printRegs:
     line_num_irrelevant:
 
     # Print registers
-    xor %rbx, %rbx
+    xor %ebx, %ebx
     # bl = 0. Will be incremented on each read to count number of nulls filled in.
     mov $dumpString, %esi
 

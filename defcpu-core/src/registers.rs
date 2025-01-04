@@ -702,11 +702,10 @@ impl Registers {
         self.regs[ind] |= imm16 as u64;
     }
 
-    /// Set the low 32 bits of a register without affecting any other bits.
+    /// Set the low 32 bits of a register, and clear the upper bits.
     pub fn set_reg32(&mut self, gpr32: &GPR32, imm32: u32) {
         let ind = gpr32.0.reg_index();
-        self.regs[ind] &= !0xFF_FF_FF_FF;
-        self.regs[ind] |= imm32 as u64;
+        self.regs[ind] = imm32 as u64;
     }
 
     /// Set a full register.
