@@ -184,6 +184,7 @@ printRegs:
     mov %rax, (r_FLAGS)
 
     # Print line number if relevant
+    xor %edx, %edx
     movb (line_num_len), %dl
     cmp $8, %dl
     jle line_num_len_ok
