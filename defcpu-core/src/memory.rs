@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::parse_elf::{LoadSegment, PermissionFlags};
+use crate::{
+    errors::{RResult, Rerr},
+    parse_elf::{LoadSegment, PermissionFlags},
+};
 
 const PAGE_SIZE: usize = 4096;
 fn page_index(addr: u64) -> usize {
@@ -27,11 +30,12 @@ impl MemSegment {
         self.contains_addr(other.start) || other.contains_addr(self.start)
     }
 
-    fn write_u8(&mut self, addr: u64, val: u8) {
+    fn write_u8(&mut self, addr: u64, val: u8) -> RResult<()> {
         if !self.flags.writeable {
-            panic!("Segment not writeable at address {:#016X}.", addr);
+            Err(Rerr::SegmentNotWriteable(addr))?
         }
         self.write_u8_unchecked(addr, val);
+        Ok(())
     }
 
     fn write_u8_unchecked(&mut self, addr: u64, val: u8) {
@@ -42,11 +46,11 @@ impl MemSegment {
         page_data[page_index(addr)] = val;
     }
 
-    fn read_u8(&self, addr: u64) -> u8 {
+    fn read_u8(&self, addr: u64) -> RResult<u8> {
         if !self.flags.readable {
-            panic!("Segment not readable at address {:#016X}.", addr);
+            Err(Rerr::SegmentNotReadable(addr))?
         }
-        self.read_u8_unchecked(addr)
+        Ok(self.read_u8_unchecked(addr))
     }
 
     fn read_u8_unchecked(&self, addr: u64) -> u8 {
@@ -104,74 +108,78 @@ impl Memory {
         }
     }
 
-    pub fn write_u8(&mut self, addr: u64, val: u8) {
+    pub fn write_u8(&mut self, addr: u64, val: u8) -> Result<(), Rerr> {
         let segment = self.segments.iter_mut().find(|seg| seg.contains_addr(addr));
         let Some(segment) = segment else {
-            panic!(
-                "Segmentation fault: address {:#016X} outside every segment.",
-                addr
-            );
+            return Err(Rerr::WriteOutsideSegment(addr));
         };
-        segment.write_u8(addr, val);
+        segment.write_u8(addr, val)
     }
 
-    pub fn read_u8(&self, addr: u64) -> u8 {
+    pub fn read_u8(&self, addr: u64) -> RResult<u8> {
         let segment = self.segments.iter().find(|seg| seg.contains_addr(addr));
         let Some(segment) = segment else {
-            panic!(
-                "Segmentation fault: address {:#016X} outside every segment.",
-                addr
-            );
+            return Err(Rerr::ReadOutsideSegment(addr));
         };
         segment.read_u8(addr)
     }
 
-    pub fn read_u16(&self, i: u64) -> u16 {
-        let d0 = self.read_u8(i) as u16;
-        let d1 = self.read_u8(i + 1) as u16;
-        (d1 << 8) | d0
+    pub fn read_u16(&self, i: u64) -> RResult<u16> {
+        let d0 = self.read_u8(i)? as u16;
+        let d1 = self.read_u8(i + 1)? as u16;
+        Ok((d1 << 8) | d0)
     }
 
-    pub fn read_u32(&self, i: u64) -> u32 {
-        let d0 = self.read_u8(i) as u32;
-        let d1 = self.read_u8(i + 1) as u32;
-        let d2 = self.read_u8(i + 2) as u32;
-        let d3 = self.read_u8(i + 3) as u32;
-        (d3 << 24) | (d2 << 16) | (d1 << 8) | d0
+    pub fn read_u32(&self, i: u64) -> RResult<u32> {
+        let d0 = self.read_u8(i)? as u32;
+        let d1 = self.read_u8(i + 1)? as u32;
+        let d2 = self.read_u8(i + 2)? as u32;
+        let d3 = self.read_u8(i + 3)? as u32;
+        Ok((d3 << 24) | (d2 << 16) | (d1 << 8) | d0)
     }
 
-    pub fn read_u64(&self, i: u64) -> u64 {
-        let d0 = self.read_u8(i) as u64;
-        let d1 = self.read_u8(i + 1) as u64;
-        let d2 = self.read_u8(i + 2) as u64;
-        let d3 = self.read_u8(i + 3) as u64;
-        let d4 = self.read_u8(i + 4) as u64;
-        let d5 = self.read_u8(i + 5) as u64;
-        let d6 = self.read_u8(i + 6) as u64;
-        let d7 = self.read_u8(i + 7) as u64;
-        (d7 << 56) | (d6 << 48) | (d5 << 40) | (d4 << 32) | (d3 << 24) | (d2 << 16) | (d1 << 8) | d0
+    pub fn read_u64(&self, i: u64) -> RResult<u64> {
+        let d0 = self.read_u8(i)? as u64;
+        let d1 = self.read_u8(i + 1)? as u64;
+        let d2 = self.read_u8(i + 2)? as u64;
+        let d3 = self.read_u8(i + 3)? as u64;
+        let d4 = self.read_u8(i + 4)? as u64;
+        let d5 = self.read_u8(i + 5)? as u64;
+        let d6 = self.read_u8(i + 6)? as u64;
+        let d7 = self.read_u8(i + 7)? as u64;
+        Ok((d7 << 56)
+            | (d6 << 48)
+            | (d5 << 40)
+            | (d4 << 32)
+            | (d3 << 24)
+            | (d2 << 16)
+            | (d1 << 8)
+            | d0)
     }
 
-    pub fn write_u16(&mut self, i: u64, val: u16) {
-        self.write_u8(i, (val & 0xFF).try_into().unwrap());
-        self.write_u8(i + 1, (val >> 8).try_into().unwrap());
+    pub fn write_u16(&mut self, i: u64, val: u16) -> RResult<()> {
+        self.write_u8(i, val as u8)?;
+        self.write_u8(i + 1, (val >> 8) as u8)?;
+        Ok(())
     }
 
-    pub fn write_u32(&mut self, i: u64, val: u32) {
-        self.write_u8(i, (val & 0xFF).try_into().unwrap());
-        self.write_u8(i + 1, (val >> 8 & 0xFF).try_into().unwrap());
-        self.write_u8(i + 2, (val >> 16 & 0xFF).try_into().unwrap());
-        self.write_u8(i + 3, (val >> 24 & 0xFF).try_into().unwrap());
+    pub fn write_u32(&mut self, i: u64, val: u32) -> RResult<()> {
+        self.write_u8(i, val as u8)?;
+        self.write_u8(i + 1, (val >> 8) as u8)?;
+        self.write_u8(i + 2, (val >> 16) as u8)?;
+        self.write_u8(i + 3, (val >> 24) as u8)?;
+        Ok(())
     }
 
-    pub fn write_u64(&mut self, i: u64, val: u64) {
-        self.write_u8(i, (val & 0xFF).try_into().unwrap());
-        self.write_u8(i + 1, (val >> 8 & 0xFF).try_into().unwrap());
-        self.write_u8(i + 2, (val >> 16 & 0xFF).try_into().unwrap());
-        self.write_u8(i + 3, (val >> 24 & 0xFF).try_into().unwrap());
-        self.write_u8(i + 4, (val >> 32 & 0xFF).try_into().unwrap());
-        self.write_u8(i + 5, (val >> 40 & 0xFF).try_into().unwrap());
-        self.write_u8(i + 6, (val >> 48 & 0xFF).try_into().unwrap());
-        self.write_u8(i + 7, (val >> 56 & 0xFF).try_into().unwrap());
+    pub fn write_u64(&mut self, i: u64, val: u64) -> RResult<()> {
+        self.write_u8(i, val as u8)?;
+        self.write_u8(i + 1, (val >> 8) as u8)?;
+        self.write_u8(i + 2, (val >> 16) as u8)?;
+        self.write_u8(i + 3, (val >> 24) as u8)?;
+        self.write_u8(i + 4, (val >> 32) as u8)?;
+        self.write_u8(i + 5, (val >> 40) as u8)?;
+        self.write_u8(i + 6, (val >> 48) as u8)?;
+        self.write_u8(i + 7, (val >> 56) as u8)?;
+        Ok(())
     }
 }

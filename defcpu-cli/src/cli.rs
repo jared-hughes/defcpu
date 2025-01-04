@@ -24,7 +24,7 @@ fn main() {
         }
         "dis" => {
             let contents = read_file(&args[2]);
-            disassemble(&contents);
+            disassemble(&contents).unwrap_or_else(|rerr| eprintln!("{}", rerr));
         }
         _ => {
             eprintln!("Invalid command.");

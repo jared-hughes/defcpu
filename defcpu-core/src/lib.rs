@@ -2,6 +2,7 @@
 #![allow(clippy::match_like_matches_macro)]
 
 pub(crate) mod decode_inst;
+pub(crate) mod errors;
 pub(crate) mod inst;
 pub(crate) mod inst_prefixes;
 pub(crate) mod interpret;
@@ -11,6 +12,7 @@ pub(crate) mod read_write;
 pub(crate) mod registers;
 use crate::decode_inst::decode_inst;
 
+use errors::{RResult, Rerr};
 use interpret::Machine;
 use memory::Memory;
 use parse_elf::SimpleElfFile;
@@ -43,31 +45,38 @@ pub fn interpret_to_vecs(input: &[u8]) -> VecOutput {
 }
 
 fn interpret(input: &[u8], writers: &mut Writers) {
-    let elf = SimpleElfFile::from_bytes(input).unwrap_or_else(|pe| panic!("{}", pe));
+    let rk = interpret_res(input, writers);
+    rk.unwrap_or_else(|rerr| writeln!(writers.stderr, "{}", rerr).expect("Write should succeed"));
+}
+
+fn interpret_res(input: &[u8], writers: &mut Writers) -> RResult<()> {
+    let elf = SimpleElfFile::from_bytes(input).map_err(Rerr::ElfParseError)?;
     let mut machine = Machine::from_elf(&elf);
     let max_steps = 100000;
     let mut step_index = 0;
     while step_index < max_steps && !machine.halt {
-        machine.step(writers);
+        machine.step(writers)?;
         step_index += 1;
     }
+    Ok(())
 }
 
-pub fn disassemble(input: &[u8]) {
-    let elf = SimpleElfFile::from_bytes(input).unwrap_or_else(|pe| panic!("{}", pe));
+pub fn disassemble(input: &[u8]) -> RResult<()> {
+    let elf = SimpleElfFile::from_bytes(input).map_err(Rerr::ElfParseError)?;
     let mem = Memory::from_segments(&elf.segments);
     for segment in elf.segments {
         if !segment.flags.executable {
             continue;
         }
-        disassemble_segment(&mem, segment.p_vaddr, segment.segment_data.len() as u64);
+        disassemble_segment(&mem, segment.p_vaddr, segment.segment_data.len() as u64)?;
     }
+    Ok(())
 }
 
-fn disassemble_segment(mem: &Memory, v_addr: u64, segment_len: u64) {
+fn disassemble_segment(mem: &Memory, v_addr: u64, segment_len: u64) -> RResult<()> {
     let mut i = v_addr;
     while i < v_addr + segment_len {
-        let (inst, len) = decode_inst(mem, i);
+        let (inst, len) = decode_inst(mem, i)?;
         if len == 0 {
             panic!("Empty instruction.")
         }
@@ -77,10 +86,11 @@ fn disassemble_segment(mem: &Memory, v_addr: u64, segment_len: u64) {
                 print!(" ");
             }
             first = false;
-            print!("{:02x}", mem.read_u8(j));
+            print!("{:02x}", mem.read_u8(j)?);
         }
         print!("\t");
         i += len;
         println!("{}", inst);
     }
+    Ok(())
 }
