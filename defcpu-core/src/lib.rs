@@ -54,7 +54,7 @@ fn interpret(input: &[u8], writers: &mut Writers) {
         }
     };
     let mut machine = Machine::from_elf(&elf);
-    let max_steps = 100000;
+    let max_steps: u64 = 0xFFFFFFFF;
     let mut step_index = 0;
     while step_index < max_steps {
         let s = machine.step(writers);

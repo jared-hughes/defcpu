@@ -4,6 +4,10 @@ set -euo pipefail
 echo
 echo "[Testing 'defcpu run']"
 
+trim_per_line() {
+    sed -E 's/\s+$//g'
+}
+
 # Script pre-req: build-elfs.sh built into `elfs/`.
 # Script pre-req: run-sources.sh ran and put results into `output/`
 # Will exit with a nonzero exit code if there's any test failure.
@@ -37,7 +41,7 @@ for source_path in sources/*.s; do
 
     # Failure is ok here
     ../../target/release/defcpu run "$elf" > "$output" \
-        2> >(grep -v "Detailed error:" > "$errors") \
+        2> >(grep -v "Detailed error:" | trim_per_line > "$errors") \
         || echo $'\n'"Nonzero exit code ($?) from defcpu run." >> "$errors"
         
     real_source_path="real_sources/${base}.s"

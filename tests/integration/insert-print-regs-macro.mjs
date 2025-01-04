@@ -15,6 +15,7 @@ let source = fs.readFileSync(input_filename).toString();
 let i = 0;
 let lineNum = 1;
 const lines = [];
+let hex = "0123456789abcdef";
 for (let line of source.split("\n")) {
   if (/^\s*print_regs\s*(#*)?$/.test(line)) {
     let lineStr = lineNum.toString(10) + ":\n";
@@ -22,17 +23,21 @@ for (let line of source.split("\n")) {
       throw "Why did you make such a long file? Smh.";
     }
     let lineLen = lineStr.length;
-    let lineStrQuad = 0;
-    for (let j = 7; j >= 0; j--) {
-      lineStrQuad <<= 8;
-      if (j < lineLen) {
-        lineStrQuad += lineStr.charCodeAt(j);
+    let sub_lines = [];
+    let lineStrQuad = "0x";
+    for (let j = lineLen - 1; j >= 0; j--) {
+      let c = lineStr.charCodeAt(j);
+      lineStrQuad += hex[c >> 4];
+      lineStrQuad += hex[c % 16];
+      if (j % 4 == 0) {
+        sub_lines.push(`movl $${lineStrQuad}, (${j}+line_num)`);
+        lineStrQuad = "0x";
       }
     }
 
     line = [
       `movb $${lineLen}, (line_num_len)`,
-      `movq $0x${lineStrQuad.toString(16)}, (line_num)`,
+      ...sub_lines,
       `movq $print${i}_ret, (printRegs_return)`,
       `jmp printRegs`,
       `print${i}_ret:`,

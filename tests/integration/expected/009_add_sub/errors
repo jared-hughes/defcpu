@@ -12,7 +12,7 @@ Flags (0000000000000282):
     Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 1 (negative)
     Direction = 0 (up)             Parity = 0 (odd)
- 
+
 Result from print_regs on line 19:
 Registers:
     %rax = 6000000000000001        %r8  = 0000000000000000
@@ -27,7 +27,7 @@ Flags (0000000000000203):
     Carry     = 1 (carry)          Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 0 (positive)
     Direction = 0 (up)             Parity = 0 (odd)
- 
+
 Result from print_regs on line 26:
 Registers:
     %rax = 9000000000000001        %r8  = 0000000000000000
@@ -42,7 +42,7 @@ Flags (0000000000000A07):
     Carry     = 1 (carry)          Zero   = 0 (isn't zero)
     Overflow  = 1 (overflow)       Sign   = 0 (positive)
     Direction = 0 (up)             Parity = 1 (even)
- 
+
 Result from print_regs on line 33:
 Registers:
     %rax = 7000000000000007        %r8  = 0000000000000000
@@ -57,7 +57,7 @@ Flags (0000000000000A82):
     Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
     Overflow  = 1 (overflow)       Sign   = 1 (negative)
     Direction = 0 (up)             Parity = 0 (odd)
- 
+
 Result from print_regs on line 40:
 Registers:
     %rax = 7000000000000008        %r8  = 0000000000000000
@@ -72,7 +72,7 @@ Flags (0000000000000A92):
     Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
     Overflow  = 1 (overflow)       Sign   = 1 (negative)
     Direction = 0 (up)             Parity = 0 (odd)
- 
+
 Result from print_regs on line 47:
 Registers:
     %rax = 7FFFFFFFFFFFFFFF        %r8  = 0000000000000000
@@ -87,8 +87,278 @@ Flags (0000000000000257):
     Carry     = 1 (carry)          Zero   = 1 (is zero)
     Overflow  = 0 (no overflow)    Sign   = 0 (positive)
     Direction = 0 (up)             Parity = 1 (even)
- 
+
 Result from print_regs on line 56:
+Registers:
+    %rax = 0000000001020304        %r8  = 0000000000000000
+    %rbx = 00000000A1B1C1D1        %r9  = 0000000000000000
+    %rcx = 00000000A2B3C4D5        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000282):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 63:
+Registers:
+    %rax = 0000000060000001        %r8  = 0000000000000000
+    %rbx = 00000000A0000000        %r9  = 0000000000000000
+    %rcx = 0000000000000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000203):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 70:
+Registers:
+    %rax = 0000000090000001        %r8  = 0000000000000000
+    %rbx = 00000000A0000010        %r9  = 0000000000000000
+    %rcx = 0000000030000011        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A07):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 77:
+Registers:
+    %rax = 0000000070000007        %r8  = 0000000000000000
+    %rbx = 0000000070000000        %r9  = 0000000000000000
+    %rcx = 00000000E0000007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A82):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 84:
+Registers:
+    %rax = 0000000070000008        %r8  = 0000000000000000
+    %rbx = 0000000070000008        %r9  = 0000000000000000
+    %rcx = 00000000E0000010        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A92):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 91:
+Registers:
+    %rax = 000000007FFFFFFF        %r8  = 0000000000000000
+    %rbx = 0000000080000001        %r9  = 0000000000000000
+    %rcx = 0000000000000000        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000257):
+    Carry     = 1 (carry)          Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 100:
+Registers:
+    %rax = 000000007FFF0102        %r8  = 0000000000000000
+    %rbx = 000000008000A1B1        %r9  = 0000000000000000
+    %rcx = 000000000000A2B3        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000282):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 107:
+Registers:
+    %rax = 000000007FFF6001        %r8  = 0000000000000000
+    %rbx = 000000008000A000        %r9  = 0000000000000000
+    %rcx = 0000000000000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000203):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 114:
+Registers:
+    %rax = 000000007FFF9001        %r8  = 0000000000000000
+    %rbx = 000000008000A010        %r9  = 0000000000000000
+    %rcx = 0000000000003011        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A07):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 121:
+Registers:
+    %rax = 000000007FFF7007        %r8  = 0000000000000000
+    %rbx = 0000000080007000        %r9  = 0000000000000000
+    %rcx = 000000000000E007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A82):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 128:
+Registers:
+    %rax = 000000007FFF7008        %r8  = 0000000000000000
+    %rbx = 0000000080007008        %r9  = 0000000000000000
+    %rcx = 000000000000E010        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A92):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 135:
+Registers:
+    %rax = 000000007FFF7FFF        %r8  = 0000000000000000
+    %rbx = 0000000080008001        %r9  = 0000000000000000
+    %rcx = 0000000000000000        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000257):
+    Carry     = 1 (carry)          Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 144:
+Registers:
+    %rax = 000000007FFF7F01        %r8  = 0000000000000000
+    %rbx = 00000000800080A1        %r9  = 0000000000000000
+    %rcx = 00000000000000A2        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000282):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 151:
+Registers:
+    %rax = 000000007FFF7F61        %r8  = 0000000000000000
+    %rbx = 00000000800080A0        %r9  = 0000000000000000
+    %rcx = 0000000000000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000203):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 158:
+Registers:
+    %rax = 000000007FFF7F91        %r8  = 0000000000000000
+    %rbx = 00000000800080A0        %r9  = 0000000000000000
+    %rcx = 0000000000000031        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A03):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 165:
+Registers:
+    %rax = 000000007FFF7F77        %r8  = 0000000000000000
+    %rbx = 0000000080008070        %r9  = 0000000000000000
+    %rcx = 00000000000000E7        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A86):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 172:
+Registers:
+    %rax = 000000007FFF7F78        %r8  = 0000000000000000
+    %rbx = 0000000080008078        %r9  = 0000000000000000
+    %rcx = 00000000000000F0        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A96):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 179:
+Registers:
+    %rax = 000000007FFF7F7F        %r8  = 0000000000000000
+    %rbx = 0000000080008081        %r9  = 0000000000000000
+    %rcx = 0000000000000000        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000257):
+    Carry     = 1 (carry)          Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 188:
 Registers:
     %rax = A1B1C1D1E1F1A1B1        %r8  = 0000000000000000
     %rbx = 0102030405060708        %r9  = 0000000000000000
@@ -102,8 +372,8 @@ Flags (0000000000000296):
     Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 1 (negative)
     Direction = 0 (up)             Parity = 1 (even)
- 
-Result from print_regs on line 63:
+
+Result from print_regs on line 195:
 Registers:
     %rax = 2000000000000001        %r8  = 0000000000000000
     %rbx = 4000000000000000        %r9  = 0000000000000000
@@ -117,8 +387,8 @@ Flags (0000000000000283):
     Carry     = 1 (carry)          Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 1 (negative)
     Direction = 0 (up)             Parity = 0 (odd)
- 
-Result from print_regs on line 70:
+
+Result from print_regs on line 202:
 Registers:
     %rax = 7000000000000007        %r8  = 0000000000000000
     %rbx = A000000000000000        %r9  = 0000000000000000
@@ -132,23 +402,23 @@ Flags (0000000000000A83):
     Carry     = 1 (carry)          Zero   = 0 (isn't zero)
     Overflow  = 1 (overflow)       Sign   = 1 (negative)
     Direction = 0 (up)             Parity = 0 (odd)
- 
-Result from print_regs on line 77:
+
+Result from print_regs on line 209:
 Registers:
-    %rax = 2000000000000001        %r8  = 0000000000000000
-    %rbx = A000000000000010        %r9  = 0000000000000000
-    %rcx = 7FFFFFFFFFFFFFF1        %r10 = 0000000000000000
+    %rax = A000000000000001        %r8  = 0000000000000000
+    %rbx = 7000000000000010        %r9  = 0000000000000000
+    %rcx = 2FFFFFFFFFFFFFF1        %r10 = 0000000000000000
     %rdx = 0000000000000000        %r11 = 0000000000000000
     %rsi = 0000000000000000        %r12 = 0000000000000000
     %rdi = 0000000000000000        %r13 = 0000000000000000
     %rsp = 0000000000000000        %r14 = 0000000000000000
     %rbp = 0000000000000000        %r15 = 0000000000000000
-Flags (0000000000000203):
-    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
-    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+Flags (0000000000000A02):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
     Direction = 0 (up)             Parity = 0 (odd)
- 
-Result from print_regs on line 84:
+
+Result from print_regs on line 216:
 Registers:
     %rax = 7000000000000007        %r8  = 0000000000000000
     %rbx = 7000000000000008        %r9  = 0000000000000000
@@ -162,12 +432,642 @@ Flags (0000000000000297):
     Carry     = 1 (carry)          Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 1 (negative)
     Direction = 0 (up)             Parity = 1 (even)
- 
-Result from print_regs on line 91:
+
+Result from print_regs on line 223:
 Registers:
     %rax = 8000000000000001        %r8  = 0000000000000000
     %rbx = 8000000000000001        %r9  = 0000000000000000
     %rcx = 0000000000000000        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000246):
+    Carry     = 0 (no carry)       Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 232:
+Registers:
+    %rax = 00000000A1B1C1D1        %r8  = 0000000000000000
+    %rbx = 0000000001020304        %r9  = 0000000000000000
+    %rcx = 00000000A0AFBECD        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000292):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 239:
+Registers:
+    %rax = 0000000020000001        %r8  = 0000000000000000
+    %rbx = 0000000040000000        %r9  = 0000000000000000
+    %rcx = 00000000E0000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000283):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 246:
+Registers:
+    %rax = 0000000070000007        %r8  = 0000000000000000
+    %rbx = 00000000A0000000        %r9  = 0000000000000000
+    %rcx = 00000000D0000007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A83):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 253:
+Registers:
+    %rax = 00000000A0000001        %r8  = 0000000000000000
+    %rbx = 0000000070000010        %r9  = 0000000000000000
+    %rcx = 000000002FFFFFF1        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A02):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 260:
+Registers:
+    %rax = 0000000070000007        %r8  = 0000000000000000
+    %rbx = 0000000070000008        %r9  = 0000000000000000
+    %rcx = 00000000FFFFFFFF        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000297):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 267:
+Registers:
+    %rax = 0000000080000001        %r8  = 0000000000000000
+    %rbx = 0000000080000001        %r9  = 0000000000000000
+    %rcx = 0000000000000000        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000246):
+    Carry     = 0 (no carry)       Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 276:
+Registers:
+    %rax = 000000008000A1B1        %r8  = 0000000000000000
+    %rbx = 0000000080000102        %r9  = 0000000000000000
+    %rcx = 000000000000A0AF        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000296):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 283:
+Registers:
+    %rax = 0000000080002001        %r8  = 0000000000000000
+    %rbx = 0000000080004000        %r9  = 0000000000000000
+    %rcx = 000000000000E001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000283):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 290:
+Registers:
+    %rax = 0000000080007007        %r8  = 0000000000000000
+    %rbx = 000000008000A000        %r9  = 0000000000000000
+    %rcx = 000000000000D007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A83):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 297:
+Registers:
+    %rax = 000000008000A001        %r8  = 0000000000000000
+    %rbx = 0000000080007010        %r9  = 0000000000000000
+    %rcx = 0000000000002FF1        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A02):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 304:
+Registers:
+    %rax = 0000000080007007        %r8  = 0000000000000000
+    %rbx = 0000000080007008        %r9  = 0000000000000000
+    %rcx = 000000000000FFFF        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000297):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 311:
+Registers:
+    %rax = 0000000080008001        %r8  = 0000000000000000
+    %rbx = 0000000080008001        %r9  = 0000000000000000
+    %rcx = 0000000000000000        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000246):
+    Carry     = 0 (no carry)       Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 320:
+Registers:
+    %rax = 00000000800080A1        %r8  = 0000000000000000
+    %rbx = 0000000080008001        %r9  = 0000000000000000
+    %rcx = 00000000000000A0        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000286):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 327:
+Registers:
+    %rax = 0000000080008021        %r8  = 0000000000000000
+    %rbx = 0000000080008040        %r9  = 0000000000000000
+    %rcx = 00000000000000E1        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000287):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 334:
+Registers:
+    %rax = 0000000080008077        %r8  = 0000000000000000
+    %rbx = 00000000800080A0        %r9  = 0000000000000000
+    %rcx = 00000000000000D7        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A87):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 341:
+Registers:
+    %rax = 00000000800080A1        %r8  = 0000000000000000
+    %rbx = 0000000080008070        %r9  = 0000000000000000
+    %rcx = 0000000000000031        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A02):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 348:
+Registers:
+    %rax = 0000000080008077        %r8  = 0000000000000000
+    %rbx = 0000000080008078        %r9  = 0000000000000000
+    %rcx = 00000000000000FF        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000297):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 355:
+Registers:
+    %rax = 0000000080008081        %r8  = 0000000000000000
+    %rbx = 0000000080008081        %r9  = 0000000000000000
+    %rcx = 0000000000000000        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000246):
+    Carry     = 0 (no carry)       Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 364:
+Registers:
+    %rax = A1B1C1D1E1F1A1B1        %r8  = 0000000000000000
+    %rbx = 0102030405060708        %r9  = 0000000000000000
+    %rcx = A1B1C1D1E1F1A1B1        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000296):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 371:
+Registers:
+    %rax = 2000000000000001        %r8  = 0000000000000000
+    %rbx = 4000000000000000        %r9  = 0000000000000000
+    %rcx = 2000000000000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000283):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 378:
+Registers:
+    %rax = 7000000000000007        %r8  = 0000000000000000
+    %rbx = A000000000000000        %r9  = 0000000000000000
+    %rcx = 7000000000000007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A83):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 385:
+Registers:
+    %rax = A000000000000001        %r8  = 0000000000000000
+    %rbx = 7000000000000010        %r9  = 0000000000000000
+    %rcx = A000000000000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A02):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 392:
+Registers:
+    %rax = 7000000000000007        %r8  = 0000000000000000
+    %rbx = 7000000000000008        %r9  = 0000000000000000
+    %rcx = 7000000000000007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000297):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 399:
+Registers:
+    %rax = 8000000000000001        %r8  = 0000000000000000
+    %rbx = 8000000000000001        %r9  = 0000000000000000
+    %rcx = 8000000000000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000246):
+    Carry     = 0 (no carry)       Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 408:
+Registers:
+    %rax = 00000000A1B1C1D1        %r8  = 0000000000000000
+    %rbx = 0000000001020304        %r9  = 0000000000000000
+    %rcx = 00000000A1B1C1D1        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000292):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 415:
+Registers:
+    %rax = 0000000020000001        %r8  = 0000000000000000
+    %rbx = 0000000040000000        %r9  = 0000000000000000
+    %rcx = 0000000020000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000283):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 422:
+Registers:
+    %rax = 0000000070000007        %r8  = 0000000000000000
+    %rbx = 00000000A0000000        %r9  = 0000000000000000
+    %rcx = 0000000070000007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A83):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 429:
+Registers:
+    %rax = 00000000A0000001        %r8  = 0000000000000000
+    %rbx = 0000000070000010        %r9  = 0000000000000000
+    %rcx = 00000000A0000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A02):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 436:
+Registers:
+    %rax = 0000000070000007        %r8  = 0000000000000000
+    %rbx = 0000000070000008        %r9  = 0000000000000000
+    %rcx = 0000000070000007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000297):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 443:
+Registers:
+    %rax = 0000000080000001        %r8  = 0000000000000000
+    %rbx = 0000000080000001        %r9  = 0000000000000000
+    %rcx = 0000000080000001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000246):
+    Carry     = 0 (no carry)       Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 452:
+Registers:
+    %rax = 000000008000A1B1        %r8  = 0000000000000000
+    %rbx = 0000000080000102        %r9  = 0000000000000000
+    %rcx = 000000008000A1B1        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000296):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 459:
+Registers:
+    %rax = 0000000080002001        %r8  = 0000000000000000
+    %rbx = 0000000080004000        %r9  = 0000000000000000
+    %rcx = 0000000080002001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000283):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 466:
+Registers:
+    %rax = 0000000080007007        %r8  = 0000000000000000
+    %rbx = 000000008000A000        %r9  = 0000000000000000
+    %rcx = 0000000080007007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A83):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 473:
+Registers:
+    %rax = 000000008000A001        %r8  = 0000000000000000
+    %rbx = 0000000080007010        %r9  = 0000000000000000
+    %rcx = 000000008000A001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A02):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 480:
+Registers:
+    %rax = 0000000080007007        %r8  = 0000000000000000
+    %rbx = 0000000080007008        %r9  = 0000000000000000
+    %rcx = 0000000080007007        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000297):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 487:
+Registers:
+    %rax = 0000000080008001        %r8  = 0000000000000000
+    %rbx = 0000000080008001        %r9  = 0000000000000000
+    %rcx = 0000000080008001        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000246):
+    Carry     = 0 (no carry)       Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 496:
+Registers:
+    %rax = 00000000800080A1        %r8  = 0000000000000000
+    %rbx = 0000000080008001        %r9  = 0000000000000000
+    %rcx = 00000000800080A1        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000286):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 503:
+Registers:
+    %rax = 0000000080008021        %r8  = 0000000000000000
+    %rbx = 0000000080008040        %r9  = 0000000000000000
+    %rcx = 0000000080008021        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000287):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 510:
+Registers:
+    %rax = 0000000080008077        %r8  = 0000000000000000
+    %rbx = 00000000800080A0        %r9  = 0000000000000000
+    %rcx = 0000000080008077        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A87):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 517:
+Registers:
+    %rax = 00000000800080A1        %r8  = 0000000000000000
+    %rbx = 0000000080008070        %r9  = 0000000000000000
+    %rcx = 00000000800080A1        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000A02):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 1 (overflow)       Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 524:
+Registers:
+    %rax = 0000000080008077        %r8  = 0000000000000000
+    %rbx = 0000000080008078        %r9  = 0000000000000000
+    %rcx = 0000000080008077        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000297):
+    Carry     = 1 (carry)          Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 1 (negative)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Result from print_regs on line 531:
+Registers:
+    %rax = 0000000080008081        %r8  = 0000000000000000
+    %rbx = 0000000080008081        %r9  = 0000000000000000
+    %rcx = 0000000080008081        %r10 = 0000000000000000
     %rdx = 0000000000000000        %r11 = 0000000000000000
     %rsi = 0000000000000000        %r12 = 0000000000000000
     %rdi = 0000000000000000        %r13 = 0000000000000000

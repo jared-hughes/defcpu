@@ -5,8 +5,12 @@ mkdir -p expected
 
 # TODO remove old expected
 
+trim_per_line() {
+    sed -E 's/\s+$//g'
+}
+
 unescape() {
-    sed "s/&#39;/'/g" < "$1" | sed "s/&nbsp;/ /g" | sponge "$1";
+    sed "s/&#39;/'/g" < "$1" | sed "s/&nbsp;/ /g" | trim_per_line | sponge "$1";
 }
 
 add_trailing_newline_if_missing() {

@@ -12,7 +12,7 @@ Flags (0000000000000202):
     Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 0 (positive)
     Direction = 0 (up)             Parity = 0 (odd)
- 
+
 Result from print_regs on line 17:
 Registers:
     %rax = 0000000000000000        %r8  = 0000000000000000
@@ -27,7 +27,7 @@ Flags (0000000000000202):
     Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
     Overflow  = 0 (no overflow)    Sign   = 0 (positive)
     Direction = 0 (up)             Parity = 0 (odd)
- 
+
 Result from print_regs on line 22:
 Registers:
     %rax = 0000000000000202        %r8  = 0000000000000000

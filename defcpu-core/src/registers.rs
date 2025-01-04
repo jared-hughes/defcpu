@@ -401,6 +401,17 @@ impl Flags {
     pub(crate) fn add_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
         let (result, carry) = x.overflowing_add(y);
         self.result_flags_8(result);
+        // bit 4:
+        // no carry into 4:
+        // 0 + 0 = 0
+        // 0 + 1 = 1
+        // 1 + 0 = 1
+        // 1 + 1 = 0 (carry out of 4, into 5)
+        // carry into 4:
+        // 0 + 0 = 1
+        // 0 + 1 = 0 (carry out of 4, into 5)
+        // 1 + 0 = 0 (carry out of 4, into 5)
+        // 1 + 1 = 1 (carry out of 4, into 5)
         let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
         if update_cf {
             self.cf = carry;
@@ -483,7 +494,18 @@ impl Flags {
     pub(crate) fn sub_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
         let (result, carry) = x.overflowing_sub(y);
         self.result_flags_8(result);
-        let borrow_into_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        // bit 4:
+        // no borrow into 3:
+        // 0 - 0 = 0 (no borrow into 4)
+        // 1 - 0 = 1 (no borrow into 4)
+        // 1 - 1 = 0 (no borrow into 4)
+        // 0 - 1 = 1 (borrow into 4)
+        // borrow into 3:
+        // 0 - 0 = 1 (borrow into 4)
+        // 1 - 1 = 1 (borrow into 4)
+        // 0 - 1 = 0 (borrow into 4)
+        // 1 - 0 = 0 (no borrow into 4)
+        let borrow_into_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
         if update_cf {
             self.cf = carry;
         }
@@ -505,7 +527,7 @@ impl Flags {
     pub(crate) fn sub_16(&mut self, x: u16, y: u16, update_cf: bool) -> u16 {
         let (result, carry) = x.overflowing_sub(y);
         self.result_flags_16(result);
-        let borrow_into_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        let borrow_into_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
         if update_cf {
             self.cf = carry;
         }
@@ -527,7 +549,7 @@ impl Flags {
     pub(crate) fn sub_32(&mut self, x: u32, y: u32, update_cf: bool) -> u32 {
         let (result, carry) = x.overflowing_sub(y);
         self.result_flags_32(result);
-        let borrow_into_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        let borrow_into_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
         if update_cf {
             self.cf = carry;
         }
@@ -549,7 +571,7 @@ impl Flags {
     pub(crate) fn sub_64(&mut self, x: u64, y: u64, update_cf: bool) -> u64 {
         let (result, carry) = x.overflowing_sub(y);
         self.result_flags_64(result);
-        let borrow_into_bit_3 = (result >> 3 & 1) ^ (x >> 3 & 1) ^ (y >> 3 & 1);
+        let borrow_into_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
         if update_cf {
             self.cf = carry;
         }
