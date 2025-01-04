@@ -4,8 +4,11 @@ use elf::ParseError;
 
 pub type RResult<T> = Result<T, Rerr>;
 
+// Some of these should be signals, some should be faults. I'm just willy-nillying it right now.
 pub enum Rerr {
     ElfParseError(ParseError),
+    Hlt,
+    SysExit(u8),
     DivideError,
     /// Described in "push" docs. Causes a double-fault and logical processer shutdown.
     StackFault,
@@ -23,9 +26,11 @@ pub enum Rerr {
 impl fmt::Display for Rerr {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::ElfParseError(pe) => write!(f, "Error when parsing ELF: {}", pe),
+            Self::ElfParseError(pe) => write!(f, "ELF parse error: {}", pe),
             Self::DivideError => write!(f, "Divide Error #DE."),
             Self::StackFault => write!(f, "Stack Fault Exception #SS."),
+            Self::SysExit(exit_code) => write!(f, "Clean exit with exit code {exit_code}."),
+            Self::Hlt => write!(f, "Hlt (F4) instruction executed."),
             Self::WriteOutsideSegment(addr) => write!(
                 f,
                 "Segmentation fault: write to address {addr:#016X} outside every segment."

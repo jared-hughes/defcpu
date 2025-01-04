@@ -12,7 +12,6 @@ use crate::{
 pub struct Machine {
     pub regs: Registers,
     pub mem: Memory,
-    pub halt: bool,
 }
 
 impl Machine {
@@ -24,17 +23,10 @@ impl Machine {
             rip_prev: file.e_entry,
             rip: file.e_entry,
         };
-        Machine {
-            regs,
-            mem,
-            halt: false,
-        }
+        Machine { regs, mem }
     }
 
     pub fn step(&mut self, writers: &mut Writers) -> RResult<()> {
-        if self.halt {
-            panic!("Unexpected step in a halt state.")
-        }
         let (inst, len) = decode_inst(&self.mem, self.regs.rip)?;
         self.regs.rip_prev = self.regs.rip;
         self.regs.rip += len;
@@ -154,8 +146,7 @@ impl Machine {
                 self.set_rm64(rm64, *imm64)?;
             }
             Inst::Hlt => {
-                write!(writers.stderr(), "{}", self.regs).expect("Write should succeed.");
-                self.halt = true;
+                Err(Rerr::Hlt)?;
             }
             Inst::IncM8(rm8) => {
                 let old = self.get_rm8(rm8)?;
@@ -807,7 +798,7 @@ impl Machine {
         self.regs.set_reg64(&GPR64::r11, rflags_clr_rf);
         let ret = match eax {
             1 => self.sys_write(writers)?,
-            60 => self.sys_exit(),
+            60 => self.sys_exit()?,
             _ => Err(Rerr::UnimplementedSyscall(eax))?,
         };
         self.regs.set_reg64(&GPR64::rax, ret);
@@ -840,9 +831,9 @@ impl Machine {
         Ok(count)
     }
 
-    fn sys_exit(&mut self) -> u64 {
-        self.halt = true;
-        0
+    fn sys_exit(&mut self) -> RResult<u64> {
+        let exit_code = self.regs.get_reg8(&GPR8::dil);
+        Err(Rerr::SysExit(exit_code))
     }
 
     fn get_rm8(&mut self, rm8: &RM8) -> RResult<u8> {

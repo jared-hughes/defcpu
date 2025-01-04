@@ -45,20 +45,46 @@ pub fn interpret_to_vecs(input: &[u8]) -> VecOutput {
 }
 
 fn interpret(input: &[u8], writers: &mut Writers) {
-    let rk = interpret_res(input, writers);
-    rk.unwrap_or_else(|rerr| writeln!(writers.stderr, "{}", rerr).expect("Write should succeed"));
-}
-
-fn interpret_res(input: &[u8], writers: &mut Writers) -> RResult<()> {
-    let elf = SimpleElfFile::from_bytes(input).map_err(Rerr::ElfParseError)?;
+    let elf = match SimpleElfFile::from_bytes(input) {
+        Ok(x) => x,
+        Err(parse_error) => {
+            write!(writers.stderr(), "{}", Rerr::ElfParseError(parse_error))
+                .expect("Write to stderr should not fail.");
+            return;
+        }
+    };
     let mut machine = Machine::from_elf(&elf);
     let max_steps = 100000;
     let mut step_index = 0;
-    while step_index < max_steps && !machine.halt {
-        machine.step(writers)?;
+    while step_index < max_steps {
+        let s = machine.step(writers);
+        match s {
+            Ok(_) => {}
+            Err(Rerr::SysExit(exit_code)) => {
+                if exit_code != 0 {
+                    write!(writers.stderr(), "exit status {exit_code}")
+                        .expect("Write to stderr should not fail.")
+                }
+                return;
+            }
+            Err(rerr) => {
+                write!(
+                    writers.stderr(),
+                    "Detailed error: {}\n{}",
+                    rerr,
+                    machine.regs
+                )
+                .expect("Write to stderr should not fail.");
+                return;
+            }
+        }
         step_index += 1;
     }
-    Ok(())
+    write!(
+        writers.stderr(),
+        "Aribtrary limit of {max_steps} instruction executions exceeded, giving up."
+    )
+    .expect("Write to stderr should not fail.");
 }
 
 pub fn disassemble(input: &[u8]) -> RResult<()> {

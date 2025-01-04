@@ -8,7 +8,8 @@ const dump_filename = process.argv[2];
 const asm_filename = process.argv[3];
 
 const dump = fs.readFileSync(dump_filename).toString();
-const rip_match = dump.match(/rip was ([0-9a-zA-Z]+)/);
+const rip_regex = /\(%rip was ([0-9a-zA-Z]+)\)/;
+const rip_match = dump.match(rip_regex);
 if (!rip_match) {
   // console.log("No rip in reg dump, skipping.");
   process.exit(0);
@@ -33,7 +34,10 @@ try {
 }
 
 const pos = linePosition(state, rip);
-fs.writeFileSync(dump_filename, `Signal: segmentation fault${pos} ` + dump);
+fs.writeFileSync(
+  dump_filename,
+  dump.replace(rip_regex, (s) => `Signal: segmentation fault${pos} ${s}`)
+);
 
 // The following function `findInstruction` is from @defasm/core,
 // and `linePosition` is modified from `debug` from @defasm/core as well,

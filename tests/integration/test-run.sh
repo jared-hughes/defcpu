@@ -36,10 +36,12 @@ for source_path in sources/*.s; do
     errors="$out_dir/errors"
 
     # Failure is ok here
-    ../../target/release/defcpu run "$elf" > "$output" 2> "$errors" || \
-        echo $'\n'"Nonzero exit code ($?) from defcpu run." >> "$errors"
-
-    ./insert-line-number.mjs "$errors" "$source_path"
+    ../../target/release/defcpu run "$elf" > "$output" \
+        2> >(grep -v "Detailed error:" > "$errors") \
+        || echo $'\n'"Nonzero exit code ($?) from defcpu run." >> "$errors"
+        
+    real_source_path="real_sources/${base}.s"
+    ./insert-line-number.mjs "$errors" "$real_source_path"
 
     exp_dir="./expected/${base}"
 
