@@ -77,6 +77,12 @@ hexaChars: .string "0123456789ABCDEF"
 outputBuffer: .byte 0
 dumpFile: .long STDERR_FILENO
 
+line_num_before: .string "Result from print_regs on line "
+line_num_before_len = . - line_num_before
+
+line_num: .string "\0\0\0\0\0\0\0\0"
+line_num_len: .byte 0
+
 .text
 
 # Print the value of %rax in 16 hexadecimal characters
@@ -177,7 +183,23 @@ printRegs:
     pop %rax
     mov %rax, (r_FLAGS)
 
-    xor %ebx, %ebx
+    # Print line number if relevant
+    movb (line_num_len), %dl
+    cmp $8, %dl
+    jle line_num_len_ok
+        mov $8, %dl
+    line_num_len_ok:
+    cmp $0, %dl
+    jz line_num_irrelevant
+        mov $sys_write, %eax
+        mov dumpFile, %edi
+        mov $line_num_before, %rsi
+        add $line_num_before_len, %edx
+        syscall
+    line_num_irrelevant:
+
+    # Print registers
+    xor %rbx, %rbx
     # bl = 0. Will be incremented on each read to count number of nulls filled in.
     mov $dumpString, %esi
 
