@@ -87,8 +87,21 @@ impl Machine {
             Inst::NotImplementedOpext(opcode, sub) => {
                 Err(Rerr::NotImplementedOpext(*opcode, *sub))?
             }
+            Inst::LeaRegInsteadOfAddr => Err(Rerr::LeaRegInsteadOfAddr)?,
             Inst::RexNoop => {}
             Inst::Syscall => self.syscall(writers)?,
+            Inst::LeaRM16(gpr16, eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.regs.set_reg16(gpr16, a as u16);
+            }
+            Inst::LeaRM32(gpr32, eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.regs.set_reg32(gpr32, a as u32);
+            }
+            Inst::LeaRM64(gpr64, eff_addr) => {
+                let a = eff_addr.compute(&self.regs);
+                self.regs.set_reg64(gpr64, a);
+            }
             Inst::MovMR8(rm8, gpr8) => {
                 let val = self.regs.get_reg8(gpr8);
                 self.set_rm8(rm8, val)?;

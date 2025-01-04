@@ -19,6 +19,7 @@ pub enum Rerr {
     NotImplemented(u8),
     NotImplemented2(u8, u8),
     NotImplementedOpext(u8, u8),
+    LeaRegInsteadOfAddr,
     UnimplementedSyscall(u32),
     UnknownFileDescriptor(u32),
 }
@@ -47,6 +48,12 @@ impl fmt::Display for Rerr {
                 f,
                 "Segmentation fault: address {addr:#016X} is not readable."
             ),
+            Self::LeaRegInsteadOfAddr => {
+                write!(
+                    f,
+                    "Register passed for LEA instead of effective address computation."
+                )
+            }
             Self::NotImplemented(opcode) => {
                 write!(f, "Not yet implemented opcode {opcode:02x}.")
             }

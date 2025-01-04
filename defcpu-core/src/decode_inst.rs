@@ -1236,6 +1236,31 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
             }
         }
+        0x8d => {
+            let modrm = lex.next_modrm()?;
+            if modrm.mod2 == 0b11 {
+                lex.rollback();
+                return Ok(LeaRegInsteadOfAddr);
+            };
+            let rex_r = lex.get_rex_r_matters();
+            match lex.get_operand_size() {
+                Data16 => {
+                    let gpr16 = reg16_field_select(modrm.reg3, rex_r);
+                    let eff_addr = decode_rm_00_01_10(lex, &modrm)?;
+                    LeaRM16(gpr16, eff_addr)
+                }
+                Data32 => {
+                    let gpr32 = reg32_field_select(modrm.reg3, rex_r);
+                    let eff_addr = decode_rm_00_01_10(lex, &modrm)?;
+                    LeaRM32(gpr32, eff_addr)
+                }
+                Data64 => {
+                    let gpr64 = reg64_field_select(modrm.reg3, rex_r);
+                    let eff_addr = decode_rm_00_01_10(lex, &modrm)?;
+                    LeaRM64(gpr64, eff_addr)
+                }
+            }
+        }
         0x8F => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
@@ -1329,7 +1354,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         0xC0 => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
-                0 | 1 | 2 | 3 => {
+                0..=3 => {
                     let rm8 = decode_rm8(lex, &modrm)?;
                     let imm8 = lex.next_imm8()?;
                     let rp = decode_rot_pair(modrm.reg3);
@@ -1348,7 +1373,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         0xC1 => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
-                0 | 1 | 2 | 3 => {
+                0..=3 => {
                     let rp = decode_rot_pair(modrm.reg3);
                     match lex.get_operand_size() {
                         Data16 => {
@@ -1437,7 +1462,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         0xD0 => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
-                0 | 1 | 2 | 3 => {
+                0..=3 => {
                     let rm8 = decode_rm8(lex, &modrm)?;
                     let rp = decode_rot_pair(modrm.reg3);
                     // D0 /0; ROL r/m8, 1; Rotate 8 bits r/m8 left once.
@@ -1455,7 +1480,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         0xD1 => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
-                0 | 1 | 2 | 3 => {
+                0..=3 => {
                     let rp = decode_rot_pair(modrm.reg3);
                     match lex.get_operand_size() {
                         Data16 => {
@@ -1493,7 +1518,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         0xD2 => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
-                0 | 1 | 2 | 3 => {
+                0..=3 => {
                     let rp = decode_rot_pair(modrm.reg3);
                     let rm8 = decode_rm8(lex, &modrm)?;
                     // D2 /0; ROL r/m8, CL; Rotate 8 bits r/m8 left CL times.
@@ -1511,7 +1536,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         0xD3 => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
-                0 | 1 | 2 | 3 => {
+                0..=3 => {
                     let rp = decode_rot_pair(modrm.reg3);
                     match lex.get_operand_size() {
                         Data16 => {

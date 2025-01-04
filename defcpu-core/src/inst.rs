@@ -102,10 +102,18 @@ pub enum Inst {
     /// Haven't yet implemented this. May or may not be a valid opcode.
     /// Has an opcode extension: (a,b) represents a with the 3-byte b extension.
     NotImplementedOpext(u8, u8),
+    /// A LEA instruction with a register instead of an effective address computation.
+    LeaRegInsteadOfAddr,
     /// A no-op stemming from REX not being followed by a valid expression.
     RexNoop,
     /// 0F 05; SYSCALL; Fast call to privilege level 0 system procedures.
     Syscall,
+    /// 8D /r; LEA r16,m; Store effective address for m in register r16.
+    LeaRM16(GPR16, EffAddr),
+    /// 8D /r; LEA r32,m; Store effective address for m in register r32.
+    LeaRM32(GPR32, EffAddr),
+    /// REX.W + 8D /r; LEA r64,m; Store effective address for m in register r64.
+    LeaRM64(GPR64, EffAddr),
     /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
     MovMR8(RM8, GPR8),
     /// 89 /r; MOV r/m16, r16; Move r16 to r/m16.
@@ -553,12 +561,16 @@ impl Inst {
             NotImplemented(_)
             | NotImplemented2(_, _)
             | NotImplementedOpext(_, _)
+            | LeaRegInsteadOfAddr
             | RexNoop
             | Syscall
             | Popf16
             | Popf64
             | Pushf16
             | Pushf64 => String::new(),
+            LeaRM16(gpr16, eff_addr) => format!("{}, {}", eff_addr, gpr16),
+            LeaRM32(gpr32, eff_addr) => format!("{}, {}", eff_addr, gpr32),
+            LeaRM64(gpr64, eff_addr) => format!("{}, {}", eff_addr, gpr64),
             MovMR8(rm8, gpr8)
             | AddMR8(rm8, gpr8)
             | AndMR8(rm8, gpr8)
@@ -743,9 +755,13 @@ impl Inst {
     }
     fn mnemonic(&self) -> &str {
         match self {
-            NotImplemented(_) | NotImplemented2(_, _) | NotImplementedOpext(_, _) => "(bad)",
+            NotImplemented(_)
+            | NotImplemented2(_, _)
+            | NotImplementedOpext(_, _)
+            | LeaRegInsteadOfAddr => "(bad)",
             RexNoop => "",
             Syscall => "syscall",
+            LeaRM16(_, _) | LeaRM32(_, _) | LeaRM64(_, _) => "lea",
             MovMR8(_, _)
             | MovMR16(_, _)
             | MovMR32(_, _)

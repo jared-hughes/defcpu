@@ -219,7 +219,7 @@ printRegs:
             mov flagOrder(%rdx), %al
             add %dl, %dl # shl $1, %dl
             bt %eax, r_FLAGS
-            adc $0, %dl
+            jnc adc_done; add $1, %dl; adc_done:; #adc $0, %dl
 
             imul $flagMsgLen, %edx, %edx
             lea flagMessages(%rdx), %esi
