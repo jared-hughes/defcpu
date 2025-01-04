@@ -9,10 +9,22 @@ rm -r elfs 2> /dev/null || true
 mkdir elfs
 rm -r expected 2> /dev/null || true
 mkdir expected
+mkdir -p shas
 
 for source_path in sources/*.s; do
     base="${source_path##sources/}"
     base="${base%.s}"
+
+    expected="./expected/${base}.s"
+    sha="$(sha256sum "$source_path")"
+    sha_file="./shas/${base}.sha256sum"
+    if [ -f "$sha_file" ]; then
+        old_sha="$(cat "$sha_file" 2>/dev/null)"
+        if [[ "$old_sha" == "$sha" ]]; then
+            continue
+        fi
+        rm "$sha_file"
+    fi
 
     temp_source="$(mktemp)"
     echo -n '.byte ' > "$temp_source";
@@ -36,8 +48,6 @@ for source_path in sources/*.s; do
     start_addr=$(objdump -x "$elf" | grep 'start address' | awk '{ print $3 }')
     # segment_len looks like 0x0000000000000049
     segment_len=$(objdump -x "$elf" | awk 'c{print $4;c=0}; /vaddr '"$start_addr"'/{c=1};');
-
-    expected="./expected/${base}.s"
 
     gdb -e "$elf" -batch -ex "b *$start_addr" -ex 'r' \
         -ex "disassemble /r $start_addr, +$segment_len" \
@@ -68,4 +78,7 @@ for source_path in sources/*.s; do
             echo 'Run as `'"$0"' apply` (or via `./make.sh apply`) to modify the file in-place.'
         fi
     fi
+
+    # Only update SHA if successful
+    echo "$sha" > "$sha_file"
 done

@@ -24,7 +24,7 @@ for source_file in sources/*.s; do
     # Check if it's already ran
     sha="$(sha256sum "$source_file")"
     sha_file="${out_dir}/sha256sum"
-    old_sha="$(cat "$sha_file"  2>/dev/null || true)"
+    old_sha="$(cat "$sha_file" 2>/dev/null || true)"
     if [[ "$old_sha" == "$sha" ]]; then
         continue
     fi
