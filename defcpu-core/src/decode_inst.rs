@@ -370,6 +370,79 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 AddMI64(RM64::Reg(GPR64::rax), imm32 as i32 as u64)
             }
         },
+        0x20 | 0x22 => {
+            // 20 /r; AND r/m8, r8; r/m8 AND r8.
+            // 22 /r; AND r8, r/m8; r8 AND r/m8.
+            let modrm = lex.next_modrm()?;
+            let reg = lex.reg8_field_select_r(modrm.reg3);
+            let rm8 = decode_rm8(lex, &modrm)?;
+            match opcode {
+                0x20 => AndMR8(rm8, reg),
+                0x22 => AndRM8(reg, rm8),
+                _ => panic!("Missing match arm in decode_inst_inner."),
+            }
+        }
+        0x21 | 0x23 => {
+            let modrm = lex.next_modrm()?;
+            let rex_r = lex.get_rex_r_matters();
+            match lex.get_operand_size() {
+                Data16 => {
+                    // 21 /r; AND r/m16, r16; r/m16 AND r16.
+                    // 23 /r; AND r16, r/m16; r16 AND r/m16.
+                    let reg = reg16_field_select(modrm.reg3, rex_r);
+                    let rm16 = decode_rm16(lex, &modrm)?;
+                    match opcode {
+                        0x21 => AndMR16(rm16, reg),
+                        0x23 => AndRM16(reg, rm16),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                Data32 => {
+                    // 21 /r; AND r/m32, r32; r/m32 AND r32.
+                    // 23 /r; AND r32, r/m32; r32 AND r/m32.
+                    let reg = reg32_field_select(modrm.reg3, rex_r);
+                    let rm32 = decode_rm32(lex, &modrm)?;
+                    match opcode {
+                        0x21 => AndMR32(rm32, reg),
+                        0x23 => AndRM32(reg, rm32),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+                Data64 => {
+                    // REX.W + 21 /r; AND r/m64, r64; r/m64 AND r32.
+                    // REX.W + 23 /r; AND r64, r/m64; r64 AND r/m64.
+                    let reg = reg64_field_select(modrm.reg3, rex_r);
+                    let rm64 = decode_rm64(lex, &modrm)?;
+                    match opcode {
+                        0x21 => AndMR64(rm64, reg),
+                        0x23 => AndRM64(reg, rm64),
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    }
+                }
+            }
+        }
+        0x24 => {
+            // 24 ib; AND AL, imm8; AL AND imm8.
+            let imm8 = lex.next_imm8()?;
+            AndMI8(RM8::Reg(GPR8::al), imm8)
+        }
+        0x25 => match lex.get_operand_size() {
+            Data16 => {
+                // 25 iw; AND AX, imm16; AX AND imm16.
+                let imm16 = lex.next_imm16()?;
+                AndMI16(RM16::Reg(GPR16::ax), imm16)
+            }
+            Data32 => {
+                // 25 id; AND EAX, imm32; EAX AND imm32.
+                let imm32 = lex.next_imm32()?;
+                AndMI32(RM32::Reg(GPR32::eax), imm32)
+            }
+            Data64 => {
+                // REX.W + 25 id; AND RAX, imm32; RAX AND imm32 sign-extended to 64-bits.
+                let imm32 = lex.next_imm32()?;
+                AndMI64(RM64::Reg(GPR64::rax), imm32 as i32 as u64)
+            }
+        },
         0x0F => {
             let opcode2 = lex.next_u8()?;
             match opcode2 {
@@ -829,6 +902,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                     let imm8 = lex.next_imm8()?;
                     AddMI8(rm8, imm8)
                 }
+                4 => {
+                    // 80 /4 ib; AND r/m8, imm8; r/m8 AND imm8.
+                    let rm8 = decode_rm8(lex, &modrm)?;
+                    let imm8 = lex.next_imm8()?;
+                    AndMI8(rm8, imm8)
+                }
                 5 => {
                     // 80 /5 ib; SUB r/m8, imm8; Subtract imm8 from r/m8.
                     let rm8 = decode_rm8(lex, &modrm)?;
@@ -877,6 +956,30 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                             let imm32 = lex.next_imm32()?;
                             // Sign extend imm32 to u64.
                             AddMI64(rm64, imm32 as i32 as u64)
+                        }
+                    }
+                }
+                4 => {
+                    // 81 /4
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 81 /4 iw; AND r/m16, imm16; r/m16 AND imm16.
+                            let rm16 = decode_rm16(lex, &modrm)?;
+                            let imm16 = lex.next_imm16()?;
+                            AndMI16(rm16, imm16)
+                        }
+                        Data32 => {
+                            // 81 /4 id; AND r/m32, imm32; r/m32 AND imm32.
+                            let rm32 = decode_rm32(lex, &modrm)?;
+                            let imm32 = lex.next_imm32()?;
+                            AndMI32(rm32, imm32)
+                        }
+                        Data64 => {
+                            // REX.W + 81 /4 id; AND r/m64, imm32; r/m64 AND imm32 sign extended to 64-bits.
+                            let rm64 = decode_rm64(lex, &modrm)?;
+                            let imm32 = lex.next_imm32()?;
+                            // Sign extend imm32 to u64.
+                            AndMI64(rm64, imm32 as i32 as u64)
                         }
                     }
                 }
@@ -981,6 +1084,29 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                             let rm64 = decode_rm64(lex, &modrm)?;
                             let imm8 = lex.next_imm8()?;
                             AddMI64(rm64, imm8 as i8 as u64)
+                        }
+                    }
+                }
+                4 => {
+                    // 83 /4
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            // 83 /4 ib; AND r/m16, imm8; r/m16 AND imm8 (sign-extended).
+                            let rm16 = decode_rm16(lex, &modrm)?;
+                            let imm8 = lex.next_imm8()?;
+                            AndMI16(rm16, imm8 as i8 as u16)
+                        }
+                        Data32 => {
+                            // 83 /4 ib; AND r/m32, imm8; r/m32 AND imm8 (sign-extended).
+                            let rm32 = decode_rm32(lex, &modrm)?;
+                            let imm8 = lex.next_imm8()?;
+                            AndMI32(rm32, imm8 as i8 as u32)
+                        }
+                        Data64 => {
+                            // REX.W + 83 /4 ib; AND r/m64, imm8; r/m64 AND imm8 (sign-extended).
+                            let rm64 = decode_rm64(lex, &modrm)?;
+                            let imm8 = lex.next_imm8()?;
+                            AndMI64(rm64, imm8 as i8 as u64)
                         }
                     }
                 }

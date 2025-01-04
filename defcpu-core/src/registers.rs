@@ -351,6 +351,45 @@ impl Flags {
         self.sf = result >> bm1 & 1 == 1;
     }
 
+    fn and_flags(&mut self) {
+        self.cf = false;
+        self.of = false;
+        // Behavior of AF is undefined, following code.golf CPU.
+        self.af = false;
+    }
+
+    /// Bitwise AND two numbers, update flags, and return the result.
+    pub(crate) fn and_8(&mut self, x: u8, y: u8) -> u8 {
+        let result = x & y;
+        self.result_flags_8(result);
+        self.and_flags();
+        result
+    }
+
+    /// Bitwise AND two numbers, update flags, and return the result.
+    pub(crate) fn and_16(&mut self, x: u16, y: u16) -> u16 {
+        let result = x & y;
+        self.result_flags_16(result);
+        self.and_flags();
+        result
+    }
+
+    /// Bitwise AND two numbers, update flags, and return the result.
+    pub(crate) fn and_32(&mut self, x: u32, y: u32) -> u32 {
+        let result = x & y;
+        self.result_flags_32(result);
+        self.and_flags();
+        result
+    }
+
+    /// Bitwise AND two numbers, update flags, and return the result.
+    pub(crate) fn and_64(&mut self, x: u64, y: u64) -> u64 {
+        let result = x & y;
+        self.result_flags_64(result);
+        self.and_flags();
+        result
+    }
+
     /// Add two numbers, update flags, and return the sum.
     pub(crate) fn add_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
         let (result, carry) = x.overflowing_add(y);

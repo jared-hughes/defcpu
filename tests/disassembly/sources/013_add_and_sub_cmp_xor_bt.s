@@ -86,8 +86,96 @@
 66 67 41 03 23              add    (%r11d), %sp
 48 03 23                    add    (%rbx), %rsp
 67 48 03 23                 add    (%ebx), %rsp
-66 48 03 23                 data16 add (%rbx), %rsp
-66 67 48 03 23              data16 add (%ebx), %rsp
+24 12                       and    $0x12, %al
+66 25 12 34                 and    $0x3412, %ax
+25 12 34 56 78              and    $0x78563412, %eax
+41 25 12 34 56 78           rex.B and $0x78563412, %eax
+41 25 12 34 56 88           rex.B and $0x88563412, %eax
+48 25 12 34 56 78           and    $0x78563412, %rax
+48 25 12 34 56 88           and    $0xffffffff88563412, %rax
+49 25 12 34 56 78           rex.WB and $0x78563412, %rax
+49 25 12 34 56 88           rex.WB and $0xffffffff88563412, %rax
+80 e0 12                    and    $0x12, %al
+80 e6 12                    and    $0x12, %dh
+40 80 e6 12                 and    $0x12, %sil
+66 81 e6 12 34              and    $0x3412, %si
+81 e6 12 34 56 78           and    $0x78563412, %esi
+48 81 e6 12 34 56 78        and    $0x78563412, %rsi
+48 81 e6 12 34 56 88        and    $0xffffffff88563412, %rsi
+66 83 e6 12                 and    $0x12, %si
+66 83 e6 82                 and    $0xff82, %si
+83 e6 12                    and    $0x12, %esi
+83 e6 82                    and    $0xffffff82, %esi
+41 83 e6 12                 and    $0x12, %r14d
+41 83 e6 82                 and    $0xffffff82, %r14d
+48 83 e6 12                 and    $0x12, %rsi
+48 83 e6 82                 and    $0xffffffffffffff82, %rsi
+49 83 e6 12                 and    $0x12, %r14
+49 83 e6 82                 and    $0xffffffffffffff82, %r14
+20 23                       and    %ah, (%rbx)
+66 20 23                    data16 and %ah, (%rbx)
+67 20 23                    and    %ah, (%ebx)
+66 67 20 23                 data16 and %ah, (%ebx)
+40 20 23                    and    %spl, (%rbx)
+67 40 20 23                 and    %spl, (%ebx)
+66 40 20 23                 data16 and %spl, (%rbx)
+66 67 40 20 23              data16 and %spl, (%ebx)
+41 20 23                    and    %spl, (%r11)
+67 41 20 23                 and    %spl, (%r11d)
+66 41 20 23                 data16 and %spl, (%r11)
+66 67 41 20 23              data16 and %spl, (%r11d)
+48 20 23                    rex.W and %spl, (%rbx)
+67 48 20 23                 rex.W and %spl, (%ebx)
+66 48 20 23                 data16 rex.W and %spl, (%rbx)
+66 67 48 20 23              data16 rex.W and %spl, (%ebx)
+21 23                       and    %esp, (%rbx)
+66 21 23                    and    %sp, (%rbx)
+67 21 23                    and    %esp, (%ebx)
+66 67 21 23                 and    %sp, (%ebx)
+40 21 23                    rex and %esp, (%rbx)
+67 40 21 23                 rex and %esp, (%ebx)
+66 40 21 23                 rex and %sp, (%rbx)
+66 67 40 21 23              rex and %sp, (%ebx)
+41 21 23                    and    %esp, (%r11)
+67 41 21 23                 and    %esp, (%r11d)
+66 41 21 23                 and    %sp, (%r11)
+66 67 41 21 23              and    %sp, (%r11d)
+48 21 23                    and    %rsp, (%rbx)
+67 48 21 23                 and    %rsp, (%ebx)
+66 48 21 23                 data16 and %rsp, (%rbx)
+66 67 48 21 23              data16 and %rsp, (%ebx)
+22 23                       and    (%rbx), %ah
+66 22 23                    data16 and (%rbx), %ah
+67 22 23                    and    (%ebx), %ah
+66 67 22 23                 data16 and (%ebx), %ah
+40 22 23                    and    (%rbx), %spl
+67 40 22 23                 and    (%ebx), %spl
+66 40 22 23                 data16 and (%rbx), %spl
+66 67 40 22 23              data16 and (%ebx), %spl
+41 22 23                    and    (%r11), %spl
+67 41 22 23                 and    (%r11d), %spl
+66 41 22 23                 data16 and (%r11), %spl
+66 67 41 22 23              data16 and (%r11d), %spl
+48 22 23                    rex.W and (%rbx), %spl
+67 48 22 23                 rex.W and (%ebx), %spl
+66 48 22 23                 data16 rex.W and (%rbx), %spl
+66 67 48 22 23              data16 rex.W and (%ebx), %spl
+23 23                       and    (%rbx), %esp
+66 23 23                    and    (%rbx), %sp
+67 23 23                    and    (%ebx), %esp
+66 67 23 23                 and    (%ebx), %sp
+40 23 23                    rex and (%rbx), %esp
+67 40 23 23                 rex and (%ebx), %esp
+66 40 23 23                 rex and (%rbx), %sp
+66 67 40 23 23              rex and (%ebx), %sp
+41 23 23                    and    (%r11), %esp
+67 41 23 23                 and    (%r11d), %esp
+66 41 23 23                 and    (%r11), %sp
+66 67 41 23 23              and    (%r11d), %sp
+48 23 23                    and    (%rbx), %rsp
+67 48 23 23                 and    (%ebx), %rsp
+66 48 23 23                 data16 and (%rbx), %rsp
+66 67 48 23 23              data16 and (%ebx), %rsp
 2c 12                       sub    $0x12, %al
 66 2d 12 34                 sub    $0x3412, %ax
 2d 12 34 56 78              sub    $0x78563412, %eax
