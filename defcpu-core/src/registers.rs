@@ -296,7 +296,7 @@ impl Flags {
     }
 
     pub(crate) fn to_rflags_u64(&self) -> u64 {
-        0x0000000000010202
+        0x202
             | if self.cf { 1 } else { 0 }
             | if self.pf { 1 << 2 } else { 0 }
             | if self.af { 1 << 4 } else { 0 }
@@ -304,6 +304,13 @@ impl Flags {
             | if self.sf { 1 << 7 } else { 0 }
             | if self.df { 1 << 10 } else { 0 }
             | if self.of { 1 << 11 } else { 0 }
+    }
+
+    pub(crate) fn to_rflags_u64_with_rf(&self) -> u64 {
+        // TODO: see Vol 3B 19.3.1.1 "Instruction-Breakpoint Exception Condition"
+        // for how the resume flag (RF, bit 16) works. For now, we just
+        // leave it cleared except on the segfault register printing.
+        self.to_rflags_u64() | 0x10000
     }
 
     /// Set the lower 16 bits of RFLAGS.
@@ -836,7 +843,7 @@ impl fmt::Display for Registers {
             "    %rbp = {:016X}        %r15 = {:016X}",
             self.regs[7], self.regs[15]
         )?;
-        writeln!(f, "Flags ({:016X}):", self.flags.to_rflags_u64())?;
+        writeln!(f, "Flags ({:016X}):", self.flags.to_rflags_u64_with_rf())?;
         write!(
             f,
             "    Carry     = {}",
