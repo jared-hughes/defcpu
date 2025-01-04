@@ -19,6 +19,8 @@ impl ABCDReg {
 }
 
 use QReg::*;
+
+use crate::inst::{RotDir, RotType};
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum QReg {
     Rax,
@@ -596,6 +598,30 @@ impl Flags {
         self.zf = false;
         self.sf = false;
         self.af = true;
+    }
+
+    pub(crate) fn rotate_64(&mut self, rot_pair: &(RotType, RotDir), val: u64, imm8: u8) -> u64 {
+        let count_mask = 0x3F;
+        let masked_count = imm8 & count_mask;
+        match rot_pair {
+            (RotType::RolRor, RotDir::Left) => {
+                let modded_count = masked_count % 64;
+                let new_val = val.rotate_left(modded_count as u32);
+                if masked_count != 0 {
+                    self.cf = 1 == new_val & 1;
+                }
+                if masked_count == 1 {
+                    self.of = (new_val >> 63 & 1) != (val >> 63 & 1);
+                } else {
+                    // spec says this is undefined. The code.golf CPU seems to clear it.
+                    self.of = false;
+                }
+                new_val
+            }
+            (RotType::RolRor, RotDir::Right) => todo!("rotate"),
+            (RotType::RclRcr, RotDir::Left) => todo!("rotate"),
+            (RotType::RclRcr, RotDir::Right) => todo!("rotate"),
+        }
     }
 }
 

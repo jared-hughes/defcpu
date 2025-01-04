@@ -43,8 +43,8 @@ impl Machine {
             Some(Group1PrefixExec::Repz(addr_size)) | Some(Group1PrefixExec::Repnz(addr_size)) => {
                 loop {
                     let count = match addr_size {
-                        Addr32 => self.regs.get_reg32(&GPR32::edi) as u64,
-                        Addr64 => self.regs.get_reg64(&GPR64::rdi),
+                        Addr32 => self.regs.get_reg32(&GPR32::ecx) as u64,
+                        Addr64 => self.regs.get_reg64(&GPR64::rcx),
                     };
                     // TODO: verify this is right. The documented pseudocode has
                     // two exits to the loop, since there's a break inside a while loop.
@@ -55,8 +55,8 @@ impl Machine {
                     match addr_size {
                         Addr32 => self
                             .regs
-                            .set_reg32(&GPR32::edi, (count as u32).wrapping_sub(1)),
-                        Addr64 => self.regs.set_reg64(&GPR64::rdi, count.wrapping_sub(1)),
+                            .set_reg32(&GPR32::ecx, (count as u32).wrapping_sub(1)),
+                        Addr64 => self.regs.set_reg64(&GPR64::rcx, count.wrapping_sub(1)),
                     };
                     if count == 1 {
                         // The register was just decremented to 0.
@@ -747,6 +747,23 @@ impl Machine {
                         .regs
                         .offset_reg64_by_df(&GPR64::rdi, data_size.byte_len().into()),
                 }
+            }
+            Inst::RotateMI8(_, _rm8, _) => todo!("rotate"),
+            Inst::RotateMI16(_, _rm16, _) => todo!("rotate"),
+            Inst::RotateMI32(_, _rm32, _) => todo!("rotate"),
+            Inst::RotateMI64(rot_pair, rm64, imm8) => {
+                let val = self.get_rm64(rm64)?;
+                let new = self.regs.flags.rotate_64(rot_pair, val, *imm8);
+                self.set_rm64(rm64, new)?
+            }
+            Inst::RotateMC8(_, _rm8) => todo!("rotate"),
+            Inst::RotateMC16(_, _rm16) => todo!("rotate"),
+            Inst::RotateMC32(_, _rm32) => todo!("rotate"),
+            Inst::RotateMC64(rot_pair, rm64) => {
+                let val = self.get_rm64(rm64)?;
+                let cl = self.regs.get_reg8(&GPR8::cl);
+                let new = self.regs.flags.rotate_64(rot_pair, val, cl);
+                self.set_rm64(rm64, new)?
             }
         }
         Ok(())

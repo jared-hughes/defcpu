@@ -39,6 +39,26 @@ impl DataSize {
     }
 }
 
+#[derive(Clone, Copy)]
+pub enum RotDir {
+    Left,
+    Right,
+}
+
+#[derive(Clone, Copy)]
+pub enum RotType {
+    RclRcr,
+    RolRor,
+}
+pub mod rot_pair {
+    use super::{RotDir, RotType};
+
+    pub const RCL: (RotType, RotDir) = (RotType::RclRcr, RotDir::Left);
+    pub const RCR: (RotType, RotDir) = (RotType::RclRcr, RotDir::Right);
+    pub const ROL: (RotType, RotDir) = (RotType::RolRor, RotDir::Left);
+    pub const ROR: (RotType, RotDir) = (RotType::RolRor, RotDir::Right);
+}
+
 /// Prefixes described in Vol2A: 2.1.1 "Instruction Prefixes"
 #[derive(Clone, Copy)]
 pub enum Group1Prefix {
@@ -315,6 +335,62 @@ pub enum Inst {
     /// REX.W + 6B /r ib; IMUL r64, r/m64, imm8; Quadword register := r/m64 ∗ sign-extended immediate byte.
     /// REX.W + 69 /r id; IMUL r64, r/m64, imm32; Quadword register := r/m64 ∗ immediate doubleword.
     ImulRMI64(GPR64, RM64, u64),
+    /// C0 /0 ib; ROL r/m8, imm8; Rotate 8 bits r/m8 left imm8 times.
+    /// D0 /0; ROL r/m8, 1; Rotate 8 bits r/m8 left once.
+    /// C0 /1 ib; ROR r/m8, imm8; Rotate 8 bits r/m16 right imm8 times.
+    /// D0 /1; ROR r/m8, 1; Rotate 8 bits r/m8 right once.
+    /// C0 /2 ib; RCL r/m8, imm8; Rotate 9 bits (CF, r/m8) left imm8 times.
+    /// D0 /2; RCL r/m8, 1; Rotate 9 bits (CF, r/m8) left once.
+    /// C0 /3 ib; RCR r/m8, imm8; Rotate 9 bits (CF, r/m8) right imm8 times.
+    /// D0 /3; RCR r/m8, 1; Rotate 9 bits (CF, r/m8) right once.
+    RotateMI8((RotType, RotDir), RM8, u8),
+    /// C1 /0 ib; ROL r/m16, imm8; Rotate 16 bits r/m16 left imm8 times.
+    /// D1 /0; ROL r/m16, 1; Rotate 16 bits r/m16 left once.
+    /// C1 /1 ib; ROR r/m16, imm8; Rotate 16 bits r/m16 right imm8 times.
+    /// D1 /1; ROR r/m16, 1; Rotate 16 bits r/m16 right once.
+    /// C1 /2 ib; RCL r/m16, imm8; Rotate 17 bits (CF, r/m16) left imm8 times.
+    /// D1 /2; RCL r/m16, 1; Rotate 17 bits (CF, r/m16) left once.
+    /// C1 /3 ib; RCR r/m16, imm8; Rotate 17 bits (CF, r/m16) right imm8 times.
+    /// D1 /3; RCR r/m16, 1; Rotate 17 bits (CF, r/m16) right once.
+    RotateMI16((RotType, RotDir), RM16, u8),
+    /// C1 /0 ib; ROL r/m32, imm8; Rotate 32 bits r/m32 left imm8 times.
+    /// D1 /0; ROL r/m32, 1; Rotate 32 bits r/m32 left once.
+    /// C1 /1 ib; ROR r/m32, imm8; Rotate 32 bits r/m32 right imm8 times.
+    /// D1 /1; ROR r/m32, 1; Rotate 32 bits r/m32 right once.
+    /// C1 /2 ib; RCL r/m32, imm8; Rotate 33 bits (CF, r/m32) left imm8 times.
+    /// D1 /2; RCL r/m32, 1; Rotate 33 bits (CF, r/m32) left once.
+    /// C1 /3 ib; RCR r/m32, imm8; Rotate 33 bits (CF, r/m32) right imm8 times.
+    /// D1 /3; RCR r/m32, 1; Rotate 33 bits (CF, r/m32) right once. Uses a 6 bit count.
+    RotateMI32((RotType, RotDir), RM32, u8),
+    /// REX.W + C1 /0 ib; ROL r/m64, imm8; Rotate 64 bits r/m64 left imm8 times. Uses a 6 bit count.
+    /// REX.W + D1 /0; ROL r/m64, 1; Rotate 64 bits r/m64 left once. Uses a 6 bit count.
+    /// REX.W + C1 /1 ib; ROR r/m64, imm8; Rotate 64 bits r/m64 right imm8 times. Uses a 6 bit count.
+    /// REX.W + D1 /1; ROR r/m64, 1; Rotate 64 bits r/m64 right once. Uses a 6 bit count.
+    /// REX.W + C1 /2 ib; RCL r/m64, imm8; Rotate 65 bits (CF, r/m64) left imm8 times. Uses a 6 bit count.
+    /// REX.W + D1 /2; RCL r/m64, 1; Rotate 65 bits (CF, r/m64) left once. Uses a 6 bit count.
+    /// REX.W + C1 /3 ib; RCR r/m64, imm8; Rotate 65 bits (CF, r/m64) right imm8 times. Uses a 6 bit count.
+    /// REX.W + D1 /3; RCR r/m64, 1; Rotate 65 bits (CF, r/m64) right once. Uses a 6 bit count.
+    RotateMI64((RotType, RotDir), RM64, u8),
+    /// D2 /0; ROL r/m8, CL; Rotate 8 bits r/m8 left CL times.
+    /// D2 /1; ROR r/m8, CL; Rotate 8 bits r/m8 right CL times.
+    /// D2 /2; RCL r/m8, CL; Rotate 9 bits (CF, r/m8) left CL times.
+    /// D2 /3; RCR r/m8, CL; Rotate 9 bits (CF, r/m8) right CL times.
+    RotateMC8((RotType, RotDir), RM8),
+    /// D3 /0; ROL r/m16, CL; Rotate 16 bits r/m16 left CL times.
+    /// D3 /1; ROR r/m16, CL; Rotate 16 bits r/m16 right CL times.
+    /// D3 /2; RCL r/m16, CL; Rotate 17 bits (CF, r/m16) left CL times.
+    /// D3 /3; RCR r/m16, CL; Rotate 17 bits (CF, r/m16) right CL times.
+    RotateMC16((RotType, RotDir), RM16),
+    /// D3 /0; ROL r/m32, CL; Rotate 32 bits r/m32 left CL times.
+    /// D3 /1; ROR r/m32, CL; Rotate 32 bits r/m32 right CL times.
+    /// D3 /2; RCL r/m32, CL; Rotate 33 bits (CF, r/m32) left CL times.
+    /// D3 /3; RCR r/m32, CL; Rotate 33 bits (CF, r/m32) right CL times.
+    RotateMC32((RotType, RotDir), RM32),
+    /// REX.W + D3 /0; ROL r/m64, CL; Rotate 64 bits r/m64 left CL times. Uses a 6 bit count.
+    /// REX.W + D3 /1; ROR r/m64, CL; Rotate 64 bits r/m64 right CL times. Uses a 6 bit count.
+    /// REX.W + D3 /2; RCL r/m64, CL; Rotate 65 bits (CF, r/m64) left CL times. Uses a 6 bit count.
+    /// REX.W + D3 /3; RCR r/m64, CL; Rotate 65 bits (CF, r/m64) right CL times. Uses a 6 bit count.
+    RotateMC64((RotType, RotDir), RM64),
     /// 70 cb; JO rel8; Jump short if overflow (OF=1).
     /// 0F 80 cd; JO rel32; Jump near if overflow (OF=1).
     /// 71 cb; JNO rel8; Jump short if not overflow (OF=0).
@@ -588,6 +664,38 @@ impl Inst {
             BtMI16(rm16, imm8) => format!("${:#x}, {}", imm8, rm16),
             BtMI32(rm32, imm8) => format!("${:#x}, {}", imm8, rm32),
             BtMI64(rm64, imm8) => format!("${:#x}, {}", imm8, rm64),
+            RotateMI8(_, rm8, imm8) => {
+                if *imm8 == 1 {
+                    format!("{}", rm8)
+                } else {
+                    format!("${:#x}, {}", imm8, rm8)
+                }
+            }
+            RotateMI16(_, rm16, imm8) => {
+                if *imm8 == 1 {
+                    format!("{}", rm16)
+                } else {
+                    format!("${:#x}, {}", imm8, rm16)
+                }
+            }
+            RotateMI32(_, rm32, imm8) => {
+                if *imm8 == 1 {
+                    format!("{}", rm32)
+                } else {
+                    format!("${:#x}, {}", imm8, rm32)
+                }
+            }
+            RotateMI64(_, rm64, imm8) => {
+                if *imm8 == 1 {
+                    format!("{}", rm64)
+                } else {
+                    format!("${:#x}, {}", imm8, rm64)
+                }
+            }
+            RotateMC8(_, rm8) => format!("%cl, {}", rm8),
+            RotateMC16(_, rm16) => format!("%cl, {}", rm16),
+            RotateMC32(_, rm32) => format!("%cl, {}", rm32),
+            RotateMC64(_, rm64) => format!("%cl, {}", rm64),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -671,6 +779,39 @@ impl Inst {
             | ImulRMI16(_, _, _)
             | ImulRMI32(_, _, _)
             | ImulRMI64(_, _, _) => "imul",
+            RotateMI8((RotType::RolRor, RotDir::Left), rm8, _)
+            | RotateMC8((RotType::RolRor, RotDir::Left), rm8) => rm8.either("rol", "rolb"),
+            RotateMI16((RotType::RolRor, RotDir::Left), rm16, _)
+            | RotateMC16((RotType::RolRor, RotDir::Left), rm16) => rm16.either("rol", "rolw"),
+            RotateMI32((RotType::RolRor, RotDir::Left), rm32, _)
+            | RotateMC32((RotType::RolRor, RotDir::Left), rm32) => rm32.either("rol", "roll"),
+            RotateMI64((RotType::RolRor, RotDir::Left), rm64, _)
+            | RotateMC64((RotType::RolRor, RotDir::Left), rm64) => rm64.either("rol", "rolq"),
+            RotateMI8((RotType::RolRor, RotDir::Right), rm8, _)
+            | RotateMC8((RotType::RolRor, RotDir::Right), rm8) => rm8.either("ror", "rorb"),
+            RotateMI16((RotType::RolRor, RotDir::Right), rm16, _)
+            | RotateMC16((RotType::RolRor, RotDir::Right), rm16) => rm16.either("ror", "rorw"),
+            RotateMI32((RotType::RolRor, RotDir::Right), rm32, _)
+            | RotateMC32((RotType::RolRor, RotDir::Right), rm32) => rm32.either("ror", "rorl"),
+            RotateMI64((RotType::RolRor, RotDir::Right), rm64, _)
+            | RotateMC64((RotType::RolRor, RotDir::Right), rm64) => rm64.either("ror", "rorq"),
+            RotateMI8((RotType::RclRcr, RotDir::Left), rm8, _)
+            | RotateMC8((RotType::RclRcr, RotDir::Left), rm8) => rm8.either("rcl", "rclb"),
+            RotateMI16((RotType::RclRcr, RotDir::Left), rm16, _)
+            | RotateMC16((RotType::RclRcr, RotDir::Left), rm16) => rm16.either("rcl", "rclw"),
+            RotateMI32((RotType::RclRcr, RotDir::Left), rm32, _)
+            | RotateMC32((RotType::RclRcr, RotDir::Left), rm32) => rm32.either("rcl", "rcll"),
+            RotateMI64((RotType::RclRcr, RotDir::Left), rm64, _)
+            | RotateMC64((RotType::RclRcr, RotDir::Left), rm64) => rm64.either("rcl", "rclq"),
+            RotateMI8((RotType::RclRcr, RotDir::Right), rm8, _)
+            | RotateMC8((RotType::RclRcr, RotDir::Right), rm8) => rm8.either("rcr", "rcrb"),
+            RotateMI16((RotType::RclRcr, RotDir::Right), rm16, _)
+            | RotateMC16((RotType::RclRcr, RotDir::Right), rm16) => rm16.either("rcr", "rcrw"),
+            RotateMI32((RotType::RclRcr, RotDir::Right), rm32, _)
+            | RotateMC32((RotType::RclRcr, RotDir::Right), rm32) => rm32.either("rcr", "rcrl"),
+            RotateMI64((RotType::RclRcr, RotDir::Right), rm64, _)
+            | RotateMC64((RotType::RclRcr, RotDir::Right), rm64) => rm64.either("rcr", "rcrq"),
+
             JccJo(_, Normal) => "jo",
             JccJo(_, Negate) => "jno",
             JccJb(_, Normal) => "jb",

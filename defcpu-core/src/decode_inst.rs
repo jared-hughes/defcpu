@@ -1,10 +1,11 @@
 use crate::{
     errors::RResult,
     inst::{
-        Base32, Base64, DataSize, DisInst, EffAddr, FullInst, Group1Prefix, Group1PrefixExec,
-        Index32, Index64,
+        rot_pair, Base32, Base64, DataSize, DisInst, EffAddr, FullInst, Group1Prefix,
+        Group1PrefixExec, Index32, Index64,
         Inst::{self, *},
         JumpXor::*,
+        RotDir, RotType,
         Scale::{self, *},
         RM16, RM32, RM64, RM8, SIDB32, SIDB64,
     },
@@ -1199,6 +1200,66 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
             }
         }
+        0xC0 => {
+            let modrm = lex.next_modrm()?;
+            match modrm.reg3 {
+                0 | 1 | 2 | 3 => {
+                    let rm8 = decode_rm8(lex, &modrm)?;
+                    let imm8 = lex.next_imm8()?;
+                    let rp = decode_rot_pair(modrm.reg3);
+                    // C0 /0 ib; ROL r/m8, imm8; Rotate 8 bits r/m8 left imm8 times.
+                    // C0 /1 ib; ROR r/m8, imm8; Rotate 8 bits r/m16 right imm8 times.
+                    // C0 /2 ib; RCL r/m8, imm8; Rotate 9 bits (CF, r/m8) left imm8 times.
+                    // C0 /3 ib; RCR r/m8, imm8; Rotate 9 bits (CF, r/m8) right imm8 times.
+                    RotateMI8(rp, rm8, imm8)
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
+        0xC1 => {
+            let modrm = lex.next_modrm()?;
+            match modrm.reg3 {
+                0 | 1 | 2 | 3 => {
+                    let rp = decode_rot_pair(modrm.reg3);
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            let rm16 = decode_rm16(lex, &modrm)?;
+                            let imm8 = lex.next_imm8()?;
+                            // C1 /0 ib; ROL r/m16, imm8; Rotate 16 bits r/m16 left imm8 times.
+                            // C1 /1 ib; ROR r/m16, imm8; Rotate 16 bits r/m16 right imm8 times.
+                            // C1 /2 ib; RCL r/m16, imm8; Rotate 17 bits (CF, r/m16) left imm8 times.
+                            // C1 /3 ib; RCR r/m16, imm8; Rotate 17 bits (CF, r/m16) right imm8 times.
+                            RotateMI16(rp, rm16, imm8)
+                        }
+                        Data32 => {
+                            let rm32 = decode_rm32(lex, &modrm)?;
+                            let imm8 = lex.next_imm8()?;
+                            // C1 /0 ib; ROL r/m32, imm8; Rotate 32 bits r/m32 left imm8 times.
+                            // C1 /1 ib; ROR r/m32, imm8; Rotate 32 bits r/m32 right imm8 times.
+                            // C1 /2 ib; RCL r/m32, imm8; Rotate 33 bits (CF, r/m32) left imm8 times.
+                            // C1 /3 ib; RCR r/m32, imm8; Rotate 33 bits (CF, r/m32) right imm8 times.
+                            RotateMI32(rp, rm32, imm8)
+                        }
+                        Data64 => {
+                            let rm64 = decode_rm64(lex, &modrm)?;
+                            let imm8 = lex.next_imm8()?;
+                            // REX.W + C1 /0 ib; ROL r/m64, imm8; Rotate 64 bits r/m64 left imm8 times. Uses a 6 bit count.
+                            // REX.W + C1 /1 ib; ROR r/m64, imm8; Rotate 64 bits r/m64 right imm8 times. Uses a 6 bit count.
+                            // REX.W + C1 /2 ib; RCL r/m64, imm8; Rotate 65 bits (CF, r/m64) left imm8 times. Uses a 6 bit count.
+                            // REX.W + C1 /3 ib; RCR r/m64, imm8; Rotate 65 bits (CF, r/m64) right imm8 times. Uses a 6 bit count.
+                            RotateMI64(rp, rm64, imm8)
+                        }
+                    }
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
         0xC6 => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
@@ -1238,6 +1299,118 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                             let imm32 = lex.next_imm32()?;
                             // Sign extend imm32 to u64.
                             MovMI64(rm64, imm32 as i32 as u64)
+                        }
+                    }
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
+        0xD0 => {
+            let modrm = lex.next_modrm()?;
+            match modrm.reg3 {
+                0 | 1 | 2 | 3 => {
+                    let rm8 = decode_rm8(lex, &modrm)?;
+                    let rp = decode_rot_pair(modrm.reg3);
+                    // D0 /0; ROL r/m8, 1; Rotate 8 bits r/m8 left once.
+                    // D0 /1; ROR r/m8, 1; Rotate 8 bits r/m8 right once.
+                    // D0 /2; RCL r/m8, 1; Rotate 9 bits (CF, r/m8) left once.
+                    // D0 /3; RCR r/m8, 1; Rotate 9 bits (CF, r/m8) right once.
+                    RotateMI8(rp, rm8, 1)
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
+        0xD1 => {
+            let modrm = lex.next_modrm()?;
+            match modrm.reg3 {
+                0 | 1 | 2 | 3 => {
+                    let rp = decode_rot_pair(modrm.reg3);
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            let rm16 = decode_rm16(lex, &modrm)?;
+                            // D1 /0; ROL r/m16, 1; Rotate 16 bits r/m16 left once.
+                            // D1 /1; ROR r/m16, 1; Rotate 16 bits r/m16 right once.
+                            // D1 /2; RCL r/m16, 1; Rotate 17 bits (CF, r/m16) left once.
+                            // D1 /3; RCR r/m16, 1; Rotate 17 bits (CF, r/m16) right once.
+                            RotateMI16(rp, rm16, 1)
+                        }
+                        Data32 => {
+                            let rm32 = decode_rm32(lex, &modrm)?;
+                            // D1 /0; ROL r/m32, 1; Rotate 32 bits r/m32 left once.
+                            // D1 /1; ROR r/m32, 1; Rotate 32 bits r/m32 right once.
+                            // D1 /2; RCL r/m32, 1; Rotate 33 bits (CF, r/m32) left once.
+                            // D1 /3; RCR r/m32, 1; Rotate 33 bits (CF, r/m32) right once. Uses a 6 bit count.
+                            RotateMI32(rp, rm32, 1)
+                        }
+                        Data64 => {
+                            let rm64 = decode_rm64(lex, &modrm)?;
+                            // REX.W + D1 /0; ROL r/m64, 1; Rotate 64 bits r/m64 left once. Uses a 6 bit count.
+                            // REX.W + D1 /1; ROR r/m64, 1; Rotate 64 bits r/m64 right once. Uses a 6 bit count.
+                            // REX.W + D1 /2; RCL r/m64, 1; Rotate 65 bits (CF, r/m64) left once. Uses a 6 bit count.
+                            // REX.W + D1 /3; RCR r/m64, 1; Rotate 65 bits (CF, r/m64) right once. Uses a 6 bit count.
+                            RotateMI64(rp, rm64, 1)
+                        }
+                    }
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
+        0xD2 => {
+            let modrm = lex.next_modrm()?;
+            match modrm.reg3 {
+                0 | 1 | 2 | 3 => {
+                    let rp = decode_rot_pair(modrm.reg3);
+                    let rm8 = decode_rm8(lex, &modrm)?;
+                    // D2 /0; ROL r/m8, CL; Rotate 8 bits r/m8 left CL times.
+                    // D2 /1; ROR r/m8, CL; Rotate 8 bits r/m8 right CL times.
+                    // D2 /2; RCL r/m8, CL; Rotate 9 bits (CF, r/m8) left CL times.
+                    // D2 /3; RCR r/m8, CL; Rotate 9 bits (CF, r/m8) right CL times.
+                    RotateMC8(rp, rm8)
+                }
+                _ => {
+                    lex.rollback();
+                    NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
+        0xD3 => {
+            let modrm = lex.next_modrm()?;
+            match modrm.reg3 {
+                0 | 1 | 2 | 3 => {
+                    let rp = decode_rot_pair(modrm.reg3);
+                    match lex.get_operand_size() {
+                        Data16 => {
+                            let rm16 = decode_rm16(lex, &modrm)?;
+                            // D3 /0; ROL r/m16, CL; Rotate 16 bits r/m16 left CL times.
+                            // D3 /1; ROR r/m16, CL; Rotate 16 bits r/m16 right CL times.
+                            // D3 /2; RCL r/m16, CL; Rotate 17 bits (CF, r/m16) left CL times.
+                            // D3 /3; RCR r/m16, CL; Rotate 17 bits (CF, r/m16) right CL times.
+                            RotateMC16(rp, rm16)
+                        }
+                        Data32 => {
+                            let rm32 = decode_rm32(lex, &modrm)?;
+                            // D3 /0; ROL r/m32, CL; Rotate 32 bits r/m32 left CL times.
+                            // D3 /1; ROR r/m32, CL; Rotate 32 bits r/m32 right CL times.
+                            // D3 /2; RCL r/m32, CL; Rotate 33 bits (CF, r/m32) left CL times.
+                            // D3 /3; RCR r/m32, CL; Rotate 33 bits (CF, r/m32) right CL times.
+                            RotateMC32(rp, rm32)
+                        }
+                        Data64 => {
+                            let rm64 = decode_rm64(lex, &modrm)?;
+                            // REX.W + D3 /0; ROL r/m64, CL; Rotate 64 bits r/m64 left CL times. Uses a 6 bit count.
+                            // REX.W + D3 /1; ROR r/m64, CL; Rotate 64 bits r/m64 right CL times. Uses a 6 bit count.
+                            // REX.W + D3 /2; RCL r/m64, CL; Rotate 65 bits (CF, r/m64) left CL times. Uses a 6 bit count.
+                            // REX.W + D3 /3; RCR r/m64, CL; Rotate 65 bits (CF, r/m64) right CL times. Uses a 6 bit count.
+                            RotateMC64(rp, rm64)
                         }
                     }
                 }
@@ -1482,6 +1655,16 @@ fn modrm_decode(modrm: u8) -> ModRM {
     let reg3 = modrm >> 3 & 0b111;
     let rm3 = modrm & 0b111;
     ModRM { mod2, reg3, rm3 }
+}
+
+fn decode_rot_pair(modrm_reg3: u8) -> (RotType, RotDir) {
+    match modrm_reg3 {
+        0 => rot_pair::ROL,
+        1 => rot_pair::ROR,
+        2 => rot_pair::RCL,
+        3 => rot_pair::RCR,
+        _ => panic!("Missing match arm in decode_rot_pair."),
+    }
 }
 
 // r/m8
