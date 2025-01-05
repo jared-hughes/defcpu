@@ -19,7 +19,8 @@ Eventual ideas:
 
 ## Installation
 
-- `npm install` for JS dependencies.
+- Run `npm install` for JS dependencies.
+- Install `wasm-pack` with the the [wasm-pack installer](https://rustwasm.github.io/wasm-pack/installer/).
 - Nothing for Rust dependencies -- it installs automatically.
 
 ## List of scripts:
