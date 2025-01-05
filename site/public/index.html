@@ -28,7 +28,12 @@
       <button id="continue-button">Continue</button>
       <button id="halt-button">Halt (permanent)</button>
       <span>Status: <span id="status">idle</span>
+      <span id="step-count-container">
+        (<span id="full-step-count">0</span> instructions executed)
+      </span>
     </div>
+    <h2>Registers:</h2>
+    <pre id="registers"></pre>
     <h2>Output:</h2>
     <pre id="output"></pre>
     <h2>Errors:</h2>

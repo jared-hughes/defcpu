@@ -12,6 +12,8 @@ use crate::{
 pub struct Machine {
     pub regs: Registers,
     pub mem: Memory,
+    /// Number of full steps that have executed.
+    pub full_step_count: u64,
 }
 
 impl Machine {
@@ -35,13 +37,17 @@ impl Machine {
             rip_prev: file.e_entry,
             rip: file.e_entry,
         };
-        Machine { regs, mem }
+        Machine {
+            regs,
+            mem,
+            full_step_count: 0,
+        }
     }
 
     /// Return true if the execution loop should stop.
     pub fn full_step(&mut self, writers: &mut Writers) -> bool {
         let s = self.step(writers);
-        match s {
+        let should_stop = match s {
             Ok(_) => false,
             Err(Rerr::SysExit(exit_code)) => {
                 if exit_code != 0 {
@@ -55,7 +61,9 @@ impl Machine {
                     .expect("Write to stderr should not fail.");
                 true
             }
-        }
+        };
+        self.full_step_count += 1;
+        should_stop
     }
 
     fn step(&mut self, writers: &mut Writers) -> RResult<()> {

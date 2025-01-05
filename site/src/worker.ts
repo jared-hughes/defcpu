@@ -78,6 +78,9 @@ function getStatus(om: OuterMachine): Status {
   return {
     stdout: arrToString(om.get_stdout()),
     stderr: arrToString(om.get_stderr()),
+    registersStr: arrToString(om.get_registers_str()),
+    rip: om.get_rip(),
+    fullStepCount: om.get_full_step_count(),
   };
 }
 
@@ -102,11 +105,8 @@ function startRunningCode(data: MsgRunCode) {
     setTimeout(continueRunningCode, 0);
   } catch (e) {
     postMessageFromWorker({
-      type: "done",
-      status: {
-        stdout: "",
-        stderr: `Error when running: ${e}`,
-      },
+      type: "error",
+      error: `Error when running: ${e}`,
     });
   }
 }
@@ -145,11 +145,8 @@ function continueRunningCode() {
     setTimeout(continueRunningCode, 0);
   } catch (e) {
     postMessageFromWorker({
-      type: "done",
-      status: {
-        stdout: "",
-        stderr: `Error when running: ${e}`,
-      },
+      type: "error",
+      error: `Error when running: ${e}`,
     });
   }
 }

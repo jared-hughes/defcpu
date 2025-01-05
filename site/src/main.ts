@@ -32,6 +32,11 @@ function setState(s: State) {
   state = s;
   $<HTMLSpanElement>("span#status").innerText = s;
 
+  $<HTMLSpanElement>("span#step-count-container").classList.toggle(
+    "inapplicable",
+    state === "idle"
+  );
+
   $<HTMLDivElement>("div#run-button-container").classList.toggle(
     "inapplicable",
     !canRun()
@@ -48,11 +53,12 @@ function setState(s: State) {
 }
 
 function setStatus(status: Status) {
-  const { stdout, stderr } = status;
-  const outElem = $<HTMLPreElement>("pre#output");
-  outElem.innerText = stdout ?? "";
-  const errElem = $<HTMLPreElement>("pre#errors");
-  errElem.innerText = stderr ?? "";
+  const { stdout, stderr, registersStr, fullStepCount } = status;
+  $<HTMLPreElement>("pre#registers").innerText = registersStr ?? "";
+  $<HTMLPreElement>("pre#output").innerText = stdout ?? "";
+  $<HTMLPreElement>("pre#errors").innerText = stderr ?? "";
+  $<HTMLSpanElement>("span#full-step-count").innerText =
+    fullStepCount.toString() ?? "";
 }
 
 worker.addEventListener("message", (fullMsg) => {
@@ -65,8 +71,18 @@ worker.addEventListener("message", (fullMsg) => {
       setStatus(msg.status);
       return;
     case "done":
-      setStatus(msg.status);
       setState("done");
+      setStatus(msg.status);
+      break;
+    case "error":
+      setState("done");
+      setStatus({
+        stdout: "",
+        stderr: msg.error,
+        registersStr: "",
+        fullStepCount: 0n,
+        rip: 0n,
+      });
       break;
     default:
       msg satisfies never;
@@ -91,7 +107,13 @@ function canHalt() {
 function haltRun() {
   if (!canHalt()) return;
   setState("idle");
-  setStatus({ stdout: "", stderr: "" });
+  setStatus({
+    stdout: "",
+    stderr: "",
+    registersStr: "",
+    fullStepCount: 0n,
+    rip: 0n,
+  });
   postMessageToWorker({
     type: "halt",
   });

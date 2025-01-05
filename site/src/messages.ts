@@ -10,6 +10,9 @@ export type MessageToWorker =
 export interface Status {
   stdout: string;
   stderr: string;
+  registersStr: string;
+  rip: bigint;
+  fullStepCount: bigint;
 }
 
 export interface MsgStatus {
@@ -22,4 +25,9 @@ export interface MsgDone {
   status: Status;
 }
 
-export type MessageFromWorker = MsgStatus | MsgDone;
+export interface MsgError {
+  type: "error";
+  error: string;
+}
+
+export type MessageFromWorker = MsgStatus | MsgDone | MsgError;

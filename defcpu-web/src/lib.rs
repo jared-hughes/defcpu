@@ -53,8 +53,33 @@ impl OuterMachine {
     pub fn get_stdout(&self) -> Vec<u8> {
         self.stdout.clone()
     }
+
     #[wasm_bindgen]
     pub fn get_stderr(&self) -> Vec<u8> {
         self.stderr.clone()
+    }
+
+    #[wasm_bindgen]
+    pub fn get_registers_str(&self) -> Vec<u8> {
+        match self.machine {
+            Some(ref machine) => format!("{}", machine.regs).as_bytes().to_vec(),
+            None => Vec::new(),
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn get_rip(&self) -> u64 {
+        match self.machine {
+            Some(ref machine) => machine.regs.rip,
+            None => 0,
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn get_full_step_count(&self) -> u64 {
+        match self.machine {
+            Some(ref machine) => machine.full_step_count,
+            None => 0,
+        }
     }
 }

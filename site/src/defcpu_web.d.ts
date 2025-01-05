@@ -8,6 +8,9 @@ export class OuterMachine {
   is_done(): boolean;
   get_stdout(): Uint8Array;
   get_stderr(): Uint8Array;
+  get_registers_str(): Uint8Array;
+  get_rip(): bigint;
+  get_full_step_count(): bigint;
 }
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
@@ -20,6 +23,9 @@ export interface InitOutput {
   readonly outermachine_is_done: (a: number) => number;
   readonly outermachine_get_stdout: (a: number, b: number) => void;
   readonly outermachine_get_stderr: (a: number, b: number) => void;
+  readonly outermachine_get_registers_str: (a: number, b: number) => void;
+  readonly outermachine_get_rip: (a: number) => bigint;
+  readonly outermachine_get_full_step_count: (a: number) => bigint;
   readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
