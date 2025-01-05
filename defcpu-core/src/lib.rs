@@ -82,7 +82,7 @@ fn interpret(input: &[u8], writers: &mut Writers) {
     }
     write!(
         writers.stderr(),
-        "Aribtrary limit of {max_steps} instruction executions exceeded, giving up."
+        "Arbitrary limit of {max_steps} instruction executions exceeded, giving up."
     )
     .expect("Write to stderr should not fail.");
 }

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import esbuild from "esbuild";
 import { promises as fs } from "fs";
 
@@ -7,7 +8,7 @@ const args = process.argv.slice(2);
 const watch = args.includes("--watch") || args.includes("-w");
 
 const opts = {
-  entryPoints: ["src/main.ts"],
+  entryPoints: ["src/main.ts", "src/worker.ts"],
   sourcemap: true,
   bundle: true,
   format: "esm",

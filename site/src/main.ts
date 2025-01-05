@@ -1,63 +1,53 @@
-import init, { run } from "./defcpu_web.js";
 import { examples } from "./examples.js";
-import { AssemblyState } from "@defasm/core";
-import { createExecutable } from "defasm-cli-browser";
 import { getExtensions, reconfigureTheme } from "./codemirror";
 import { $ } from "./util.js";
 import { EditorState, EditorView } from "./codemirror";
 import { ViewUpdate } from "@codemirror/view";
+import { MessageFromWorker, MessageToWorker } from "./messages.js";
 
-let wasmReady = false;
+const worker = new Worker(new URL("worker.js", import.meta.url), {
+  type: "module",
+  credentials: "omit",
+  name: "defcpu-main-worker",
+});
+
+function postMessageToWorker(msg: MessageToWorker) {
+  worker.postMessage(msg);
+}
+
+worker.addEventListener("message", (msg) => {
+  const data = msg.data as MessageFromWorker;
+  switch (data.type) {
+    case "result":
+      const { stdout, stderr } = data;
+      const outElem = $<HTMLPreElement>("pre#output");
+      outElem.innerText = stdout ?? "";
+      const errElem = $<HTMLPreElement>("pre#errors");
+      errElem.innerText = stderr ?? "";
+      break;
+    default:
+      console.error("Unrecognized message type", data);
+      break;
+  }
+});
 
 const form = $<HTMLFormElement>("form");
-form.addEventListener("submit", runAndUpdateView);
+form.addEventListener("submit", startRun);
 
 document.documentElement.addEventListener("keypress", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key == "Enter") {
     // Ctrl-Enter
-    runAndUpdateView();
+    startRun();
   }
 });
 
-function runAndUpdateView() {
-  const { stdout, stderr } = compileAndRun();
-  const outElem = $<HTMLPreElement>("pre#output");
-  outElem.innerText = stdout ?? "";
-  const errElem = $<HTMLPreElement>("pre#errors");
-  errElem.innerText = stderr ?? "";
-}
-
-/** For now, just assume it's UTF-8 output. */
-function arrToString(arr: Uint8Array): string {
-  return new TextDecoder("utf-8").decode(arr);
-}
-
-function compileAndRun(): { stdout?: string; stderr?: string } {
-  if (!wasmReady) {
-    return { stderr: "Wasm module not yet loaded." };
-  }
+function startRun() {
   const src = editor.state.sliceDoc();
 
-  const state = new AssemblyState();
-  try {
-    state.compile(src, { haltOnError: true });
-  } catch (e) {
-    console.error(e);
-    return { stderr: `Error in compiling: ${e}.` };
-  }
-
-  const elf = createExecutable(state);
-
-  try {
-    const output = run(elf);
-    return {
-      stdout: arrToString(output.get_stdout()),
-      stderr: arrToString(output.get_stderr()),
-    };
-  } catch (e) {
-    console.error(e);
-    return { stderr: `Error when running: ${e}` };
-  }
+  postMessageToWorker({
+    type: "run",
+    src,
+  });
 }
 
 function debounce<T extends Function>(cb: T, timeout = 20) {
@@ -134,7 +124,3 @@ for (const example of examples) {
   examplesSpan.appendChild(btn);
   examplesSpan.appendChild(document.createTextNode(" "));
 }
-
-init().then(() => {
-  wasmReady = true;
-});
