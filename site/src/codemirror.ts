@@ -4,7 +4,6 @@ import {
   keymap,
   lineNumbers,
   drawSelection,
-  highlightWhitespace,
   ViewUpdate,
 } from "@codemirror/view";
 export { EditorState, EditorView };

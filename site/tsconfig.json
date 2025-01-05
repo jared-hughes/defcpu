@@ -1,0 +1,8 @@
+{
+  "extends": "../tsconfig-base",
+  "compilerOptions": {
+    "lib": ["es2024", "dom"]
+  },
+  "references": [],
+  "include": ["**/*"]
+}
