@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig-base",
+  "compilerOptions": {
+    "lib": ["es2024"],
+    "types": ["node", "yargs", "yargs-parser"]
+  },
+  "references": [],
+  "include": ["**/*"]
+}

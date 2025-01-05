@@ -1,5 +1,5 @@
 {
   "extends": "./tsconfig-base",
   "include": [],
-  "references": [{ "path": "./site" }]
+  "references": [{ "path": "./site" }, { "path": "./scripts" }]
 }

@@ -11,6 +11,8 @@ rm -r expected 2> /dev/null || true
 mkdir expected
 mkdir -p shas
 
+exit_code=0
+
 for source_path in sources/*.s; do
     base="${source_path##sources/}"
     base="${base%.s}"
@@ -69,16 +71,17 @@ for source_path in sources/*.s; do
     if [[ "$old_dis" != "$exp_dis" ]]; then
         echo "Difference in '$source_path'."
         git --no-pager diff --no-index "$source_path" "$expected" || true
-        if [[ "${1:-}" == "apply" ]]; then
+        if [[ "${1:-}" == "-w" ]]; then
             echo "Applying new contents for '$source_path'...";
             echo "If the file is open in your editor, you may wish to revert it to the version on disk.";
             cp "$expected" "$source_path"
+            # Only update SHA if successful
+            echo "$sha" > "$sha_file"
         else
             # shellcheck disable=SC2016
-            echo 'Run as `'"$0"' apply` (or via `./make.sh apply`) to modify the file in-place.'
+            echo 'Run as `'"$0"' -w` (or `./make build -w`) to modify the file in-place.'
+            exit_code=1
         fi
     fi
-
-    # Only update SHA if successful
-    echo "$sha" > "$sha_file"
 done
+exit "$exit_code"

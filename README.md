@@ -25,16 +25,15 @@ Eventual ideas:
 
 ## List of scripts:
 
-- `./lint.sh`: Lint (Rust is linted with `cargo clippy` and Typescript with `tsc`).
+- `./make lint`: Lint (Rust is linted with `cargo clippy` and Typescript with `tsc`).
+- `./make build`: Build everything else. Pass `./make build -w` to fix.
+- `./make test`: Test (It's currently an amalgamation of bash scripts).
 - `./build-site.sh`: Build site (TODO: auto-rebuild).
   - This generated static files in the `public-deploy/` folder, including wasm builds of the Rust code.
   - To serve locally, I run (TODO: make this proper, and hook to a watch server)
     ```sh
     ./build-site.sh && npx http-server public-deploy/ -c-1
     ```
-- `./make.sh apply`: Build everything else.
-- `./test.sh`: Test (It's currently an amalgamation of bash scripts).
-  - Run `./make.sh apply` first to ensure test expectations are up-to-date. (TODO: make this automatic in the test script).
 - `cargo run -- run file.elf`: Interpret an ELF file
 - `cargo run -- dis file.elf`: Disassemble an ELF file
 
