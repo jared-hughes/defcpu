@@ -14,6 +14,9 @@ init().then(() => {
   wasmReady = true;
 });
 
+let om: OuterMachine | undefined;
+let running = false;
+
 globalThis.addEventListener("message", (fullMsg) => {
   const msg = fullMsg.data as MessageToWorker;
   switch (msg.type) {
@@ -29,6 +32,26 @@ globalThis.addEventListener("message", (fullMsg) => {
         type: "status",
         status: getStatus(om),
       });
+      break;
+    case "halt":
+      if (!om) {
+        console.warn("Halt while not running");
+        return;
+      }
+      om.free();
+      om = undefined;
+      break;
+    case "pause":
+      // Will really pause on the next `continueRunningCode`,
+      // which is probably the next queued event in the event loop.
+      running = false;
+      break;
+    case "continue":
+      running = true;
+      continueRunningCode();
+      break;
+    case "single-step":
+      singleStep();
       break;
     default:
       msg satisfies never;
@@ -50,8 +73,6 @@ function arrToString(arr: Uint8Array): string {
   return new TextDecoder("utf-8").decode(arr);
 }
 
-let om: OuterMachine | undefined;
-
 function getStatus(om: OuterMachine): Status {
   // TODO: only send message if there's a change.
   return {
@@ -62,6 +83,7 @@ function getStatus(om: OuterMachine): Status {
 
 function startRunningCode(data: MsgRunCode) {
   try {
+    running = true;
     const src = data.src;
     const state = new AssemblyState();
     // state.compile may throw
@@ -89,18 +111,36 @@ function startRunningCode(data: MsgRunCode) {
   }
 }
 
+function checkDone() {
+  if (!om) return;
+  if (om.is_done()) {
+    running = false;
+    postMessageFromWorker({
+      type: "done",
+      status: getStatus(om),
+    });
+  }
+}
+
+function singleStep() {
+  checkDone();
+  if (om && !om.is_done()) {
+    om.step();
+    checkDone();
+  }
+}
+
 function continueRunningCode() {
   if (!om) return;
+  if (!running) {
+    return;
+  }
   try {
+    checkDone();
     for (let i = 0; i < 65536; i++) {
-      if (om.is_done()) {
-        postMessageFromWorker({
-          type: "done",
-          status: getStatus(om),
-        });
-        return;
-      }
       om.step();
+      checkDone();
+      if (om.is_done()) return;
     }
     setTimeout(continueRunningCode, 0);
   } catch (e) {

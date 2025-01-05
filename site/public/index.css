@@ -48,10 +48,9 @@ h2 {
 #action-buttons {
   display: flex;
   flex-direction: row;
+  gap: 0.5rem;
 }
 
-.running {
-  #run-button-container {
-    color: var(--gray);
-  }
+.inapplicable {
+  color: var(--gray);
 }

@@ -15,8 +15,37 @@ function postMessageToWorker(msg: MessageToWorker) {
   worker.postMessage(msg);
 }
 
-let running = false;
+/**
+ * idle = machine is empty.
+ * running = currently running.
+ * paused = machine is paused and can continue.
+ * done = machine is paused and cannot continue.
+ */
+type State = "idle" | "running" | "paused" | "done";
+
+let state: State = "idle";
 let pollInterval: number | undefined;
+
+setState("idle");
+
+function setState(s: State) {
+  state = s;
+  $<HTMLSpanElement>("span#status").innerText = s;
+
+  $<HTMLDivElement>("div#run-button-container").classList.toggle(
+    "inapplicable",
+    !canRun()
+  );
+  $<HTMLButtonElement>("button#run-button").disabled = !canRun();
+  $<HTMLButtonElement>("button#continue-button").disabled = !canContinue();
+  $<HTMLButtonElement>("button#step-button").disabled = !canStep();
+  $<HTMLButtonElement>("button#pause-button").disabled = !canPause();
+  $<HTMLButtonElement>("button#halt-button").disabled = !canHalt();
+  if (s === "idle" || s === "done") {
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = undefined;
+  }
+}
 
 function setStatus(status: Status) {
   const { stdout, stderr } = status;
@@ -28,7 +57,7 @@ function setStatus(status: Status) {
 
 worker.addEventListener("message", (fullMsg) => {
   const msg = fullMsg.data as MessageFromWorker;
-  if (!running) {
+  if (state === "idle" || state === "done") {
     console.error("Unexpected message while not running", msg);
   }
   switch (msg.type) {
@@ -37,7 +66,7 @@ worker.addEventListener("message", (fullMsg) => {
       return;
     case "done":
       setStatus(msg.status);
-      setRunning(false);
+      setState("done");
       break;
     default:
       msg satisfies never;
@@ -47,6 +76,61 @@ worker.addEventListener("message", (fullMsg) => {
 });
 
 $<HTMLButtonElement>("button#run-button").addEventListener("click", startRun);
+$<HTMLButtonElement>("button#halt-button").addEventListener("click", haltRun);
+$<HTMLButtonElement>("button#pause-button").addEventListener("click", pauseRun);
+$<HTMLButtonElement>("button#continue-button").addEventListener(
+  "click",
+  continueRun
+);
+$<HTMLButtonElement>("button#step-button").addEventListener("click", stepRun);
+
+function canHalt() {
+  return state !== "idle";
+}
+
+function haltRun() {
+  if (!canHalt()) return;
+  setState("idle");
+  setStatus({ stdout: "", stderr: "" });
+  postMessageToWorker({
+    type: "halt",
+  });
+}
+
+function canPause() {
+  return state === "running";
+}
+
+function pauseRun() {
+  if (!canPause()) return;
+  setState("paused");
+  postMessageToWorker({
+    type: "pause",
+  });
+}
+
+function canContinue() {
+  return state === "paused";
+}
+
+function continueRun() {
+  if (!canContinue()) return;
+  setState("running");
+  postMessageToWorker({
+    type: "continue",
+  });
+}
+
+function canStep() {
+  return state === "paused";
+}
+
+function stepRun() {
+  if (!canStep()) return;
+  postMessageToWorker({
+    type: "single-step",
+  });
+}
 
 document.documentElement.addEventListener("keypress", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key == "Enter") {
@@ -55,22 +139,13 @@ document.documentElement.addEventListener("keypress", (e) => {
   }
 });
 
-function setRunning(r: boolean) {
-  running = r;
-  $<HTMLSpanElement>("span#status").innerText = r ? "running" : "idle";
-  $<HTMLBodyElement>("body").classList.toggle("running", r);
-  $<HTMLButtonElement>("button#run-button").disabled = r;
-  if (!r) {
-    clearInterval(pollInterval);
-    pollInterval = undefined;
-  }
+function canRun() {
+  return state === "idle";
 }
 
 function startRun() {
-  if (running) {
-    return;
-  }
-  setRunning(true);
+  if (!canRun()) return;
+  setState("running");
   const src = editor.state.sliceDoc();
 
   postMessageToWorker({

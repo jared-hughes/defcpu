@@ -3,11 +3,9 @@ export interface MsgRunCode {
   src: string;
 }
 
-export interface MsgPollStatus {
-  type: "poll-status";
-}
-
-export type MessageToWorker = MsgRunCode | MsgPollStatus;
+export type MessageToWorker =
+  | MsgRunCode
+  | { type: "poll-status" | "halt" | "pause" | "continue" | "single-step" };
 
 export interface Status {
   stdout: string;
