@@ -15,6 +15,18 @@ pub struct Machine {
 }
 
 impl Machine {
+    pub fn from_elf_bytes_with_writers(input: &[u8], writers: &mut Writers) -> Option<Machine> {
+        let elf = match SimpleElfFile::from_bytes(input) {
+            Ok(x) => x,
+            Err(parse_error) => {
+                write!(writers.stderr(), "{}", Rerr::ElfParseError(parse_error))
+                    .expect("Write to stderr should not fail.");
+                return None;
+            }
+        };
+        Some(Machine::from_elf(&elf))
+    }
+
     pub fn from_elf(file: &SimpleElfFile) -> Machine {
         let mem = Memory::from_segments(&file.segments);
         let regs = Registers {
@@ -26,7 +38,27 @@ impl Machine {
         Machine { regs, mem }
     }
 
-    pub fn step(&mut self, writers: &mut Writers) -> RResult<()> {
+    /// Return true if the execution loop should stop.
+    pub fn full_step(&mut self, writers: &mut Writers) -> bool {
+        let s = self.step(writers);
+        match s {
+            Ok(_) => false,
+            Err(Rerr::SysExit(exit_code)) => {
+                if exit_code != 0 {
+                    write!(writers.stderr(), "exit status {exit_code}")
+                        .expect("Write to stderr should not fail.")
+                }
+                true
+            }
+            Err(rerr) => {
+                write!(writers.stderr(), "Detailed error: {}\n{}", rerr, self.regs)
+                    .expect("Write to stderr should not fail.");
+                true
+            }
+        }
+    }
+
+    fn step(&mut self, writers: &mut Writers) -> RResult<()> {
         let (inst, len) = decode_inst(&self.mem, self.regs.rip)?;
         self.regs.rip_prev = self.regs.rip;
         self.regs.rip += len;

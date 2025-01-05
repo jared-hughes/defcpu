@@ -1,9 +1,11 @@
 /* tslint:disable */
 /* eslint-disable */
-export function run(elf: Uint8Array): VecOutputJS;
-export class VecOutputJS {
+export class OuterMachine {
   private constructor();
   free(): void;
+  static init(input: Uint8Array): OuterMachine;
+  step(): void;
+  is_done(): boolean;
   get_stdout(): Uint8Array;
   get_stderr(): Uint8Array;
 }
@@ -12,13 +14,15 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
-  readonly __wbg_vecoutputjs_free: (a: number, b: number) => void;
-  readonly vecoutputjs_get_stdout: (a: number, b: number) => void;
-  readonly vecoutputjs_get_stderr: (a: number, b: number) => void;
-  readonly run: (a: number, b: number) => number;
+  readonly __wbg_outermachine_free: (a: number, b: number) => void;
+  readonly outermachine_init: (a: number, b: number) => number;
+  readonly outermachine_step: (a: number) => void;
+  readonly outermachine_is_done: (a: number) => number;
+  readonly outermachine_get_stdout: (a: number, b: number) => void;
+  readonly outermachine_get_stderr: (a: number, b: number) => void;
+  readonly __wbindgen_malloc: (a: number, b: number) => number;
   readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;
-  readonly __wbindgen_malloc: (a: number, b: number) => number;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

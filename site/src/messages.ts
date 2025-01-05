@@ -1,14 +1,27 @@
-export interface RunCode {
+export interface MsgRunCode {
   type: "run";
   src: string;
 }
 
-export type MessageToWorker = RunCode;
+export interface MsgPollStatus {
+  type: "poll-status";
+}
 
-export interface GotResult {
-  type: "result";
+export type MessageToWorker = MsgRunCode | MsgPollStatus;
+
+export interface Status {
   stdout: string;
   stderr: string;
 }
 
-export type MessageFromWorker = GotResult;
+export interface MsgStatus {
+  type: "status";
+  status: Status;
+}
+
+export interface MsgDone {
+  type: "done";
+  status: Status;
+}
+
+export type MessageFromWorker = MsgStatus | MsgDone;

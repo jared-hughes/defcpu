@@ -5,10 +5,10 @@ pub(crate) mod decode_inst;
 pub(crate) mod errors;
 pub(crate) mod inst;
 pub(crate) mod inst_prefixes;
-pub(crate) mod interpret;
+pub mod interpret;
 pub(crate) mod memory;
 pub(crate) mod parse_elf;
-pub(crate) mod read_write;
+pub mod read_write;
 pub(crate) mod registers;
 use crate::decode_inst::decode_inst;
 
@@ -28,55 +28,16 @@ pub fn interpret_to_streams(input: &[u8]) {
     interpret(input, &mut writers);
 }
 
-pub struct VecOutput {
-    pub stdout: Vec<u8>,
-    pub stderr: Vec<u8>,
-}
-
-pub fn interpret_to_vecs(input: &[u8]) -> VecOutput {
-    let mut stdout = Vec::new();
-    let mut stderr = Vec::new();
-    let mut writers = Writers {
-        stdout: &mut stdout,
-        stderr: &mut stderr,
-    };
-    interpret(input, &mut writers);
-    VecOutput { stdout, stderr }
-}
-
 fn interpret(input: &[u8], writers: &mut Writers) {
-    let elf = match SimpleElfFile::from_bytes(input) {
-        Ok(x) => x,
-        Err(parse_error) => {
-            write!(writers.stderr(), "{}", Rerr::ElfParseError(parse_error))
-                .expect("Write to stderr should not fail.");
-            return;
-        }
+    let Some(mut machine) = Machine::from_elf_bytes_with_writers(input, writers) else {
+        return;
     };
-    let mut machine = Machine::from_elf(&elf);
     let max_steps: u64 = 0xFFFFFFFF;
     let mut step_index = 0;
     while step_index < max_steps {
-        let s = machine.step(writers);
-        match s {
-            Ok(_) => {}
-            Err(Rerr::SysExit(exit_code)) => {
-                if exit_code != 0 {
-                    write!(writers.stderr(), "exit status {exit_code}")
-                        .expect("Write to stderr should not fail.")
-                }
-                return;
-            }
-            Err(rerr) => {
-                write!(
-                    writers.stderr(),
-                    "Detailed error: {}\n{}",
-                    rerr,
-                    machine.regs
-                )
-                .expect("Write to stderr should not fail.");
-                return;
-            }
+        let should_stop = machine.full_step(writers);
+        if should_stop {
+            return;
         }
         step_index += 1;
     }

@@ -3,7 +3,7 @@ import { getExtensions, reconfigureTheme } from "./codemirror";
 import { $ } from "./util.js";
 import { EditorState, EditorView } from "./codemirror";
 import { ViewUpdate } from "@codemirror/view";
-import { MessageFromWorker, MessageToWorker } from "./messages.js";
+import { MessageFromWorker, MessageToWorker, Status } from "./messages.js";
 
 const worker = new Worker(new URL("worker.js", import.meta.url), {
   type: "module",
@@ -15,24 +15,38 @@ function postMessageToWorker(msg: MessageToWorker) {
   worker.postMessage(msg);
 }
 
-worker.addEventListener("message", (msg) => {
-  const data = msg.data as MessageFromWorker;
-  switch (data.type) {
-    case "result":
-      const { stdout, stderr } = data;
-      const outElem = $<HTMLPreElement>("pre#output");
-      outElem.innerText = stdout ?? "";
-      const errElem = $<HTMLPreElement>("pre#errors");
-      errElem.innerText = stderr ?? "";
+let running = false;
+let pollInterval: number | undefined;
+
+function setStatus(status: Status) {
+  const { stdout, stderr } = status;
+  const outElem = $<HTMLPreElement>("pre#output");
+  outElem.innerText = stdout ?? "";
+  const errElem = $<HTMLPreElement>("pre#errors");
+  errElem.innerText = stderr ?? "";
+}
+
+worker.addEventListener("message", (fullMsg) => {
+  const msg = fullMsg.data as MessageFromWorker;
+  if (!running) {
+    console.error("Unexpected message while not running", msg);
+  }
+  switch (msg.type) {
+    case "status":
+      setStatus(msg.status);
+      return;
+    case "done":
+      setStatus(msg.status);
+      setRunning(false);
       break;
     default:
-      console.error("Unrecognized message type", data);
+      msg satisfies never;
+      console.error("Unrecognized message type", msg);
       break;
   }
 });
 
-const form = $<HTMLFormElement>("form");
-form.addEventListener("submit", startRun);
+$<HTMLButtonElement>("button#run-button").addEventListener("click", startRun);
 
 document.documentElement.addEventListener("keypress", (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key == "Enter") {
@@ -41,13 +55,33 @@ document.documentElement.addEventListener("keypress", (e) => {
   }
 });
 
+function setRunning(r: boolean) {
+  running = r;
+  $<HTMLSpanElement>("span#status").innerText = r ? "running" : "idle";
+  $<HTMLBodyElement>("body").classList.toggle("running", r);
+  $<HTMLButtonElement>("button#run-button").disabled = r;
+  if (!r) {
+    clearInterval(pollInterval);
+    pollInterval = undefined;
+  }
+}
+
 function startRun() {
+  if (running) {
+    return;
+  }
+  setRunning(true);
   const src = editor.state.sliceDoc();
 
   postMessageToWorker({
     type: "run",
     src,
   });
+  pollInterval = setInterval(() => {
+    postMessageToWorker({
+      type: "poll-status",
+    });
+  }, 250);
 }
 
 function debounce<T extends Function>(cb: T, timeout = 20) {

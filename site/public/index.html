@@ -13,16 +13,22 @@
       Examples:
       <span id="examples"></span>
     </p>
-    <form action="javascript:;">
-      <label for="editor">Source: (press Esc to tab out of the editor)</label>
-      <br />
-      <div id="editor"></div>
-      <br />
-      ctrl + enter or <button type="submit" value="Submit">Run locally</button>
-    </form>
-    Output:
+    <h2>Source:</h2>
+    <p>(press Esc to tab out of the editor)</p>
+    <br />
+    <div id="editor"></div>
+    <br />
+    <div id="action-buttons">
+      <div id="run-button-container">
+        ctrl + enter or
+        <button id="run-button">Run locally</button>
+      </div>
+      <!-- TODO: stop execution button. -->
+    </div>
+    <p>Status: <span id="status">idle</span>.</p>
+    <h2>Output:</h2>
     <pre id="output"></pre>
-    Errors:
+    <h2>Errors:</h2>
     <pre id="errors"></pre>
     <script type="module" src="./js/main.js"></script>
   </body>

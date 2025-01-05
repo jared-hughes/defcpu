@@ -32,6 +32,29 @@ const _examples: Example[] = [
       mov $0, %edi
       syscall`,
   },
+  {
+    name: "Many hellos",
+    source: String.raw`SYS_WRITE = 1
+      STDOUT_FILENO = 1
+
+      .data
+      buffer: .string "Hello, World!\n"
+      bufferLen = . - buffer
+
+      .text
+      hello_world:
+      mov $SYS_WRITE, %eax
+      mov $STDOUT_FILENO, %edi
+      mov $buffer, %esi
+      mov $bufferLen, %edx
+      syscall
+
+      mov $0x3FFFF, %r9d
+      busy_loop:
+      dec %r9d
+      jnz busy_loop
+      jmp hello_world`,
+  },
 ];
 
 export const examples: Example[] = _examples.map((ex) => ({

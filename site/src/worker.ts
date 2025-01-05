@@ -1,5 +1,10 @@
-import init, { run } from "./defcpu_web.js";
-import { MessageFromWorker, MessageToWorker, RunCode } from "./messages.js";
+import init, { OuterMachine } from "./defcpu_web.js";
+import {
+  MessageFromWorker,
+  MessageToWorker,
+  MsgRunCode,
+  Status,
+} from "./messages.js";
 import { AssemblyState } from "@defasm/core";
 import { createExecutable } from "defasm-cli-browser";
 
@@ -9,14 +14,25 @@ init().then(() => {
   wasmReady = true;
 });
 
-globalThis.addEventListener("message", (msg) => {
-  const data = msg.data as MessageToWorker;
-  switch (data.type) {
+globalThis.addEventListener("message", (fullMsg) => {
+  const msg = fullMsg.data as MessageToWorker;
+  switch (msg.type) {
     case "run":
-      tryRunCode(data);
+      startRunningCode(msg);
+      break;
+    case "poll-status":
+      if (!om) {
+        console.warn("Poll while not running");
+        return;
+      }
+      postMessageFromWorker({
+        type: "status",
+        status: getStatus(om),
+      });
       break;
     default:
-      console.error("Unrecognized message type", data);
+      msg satisfies never;
+      console.error("Unrecognized message type", msg);
       break;
   }
 });
@@ -27,38 +43,73 @@ function postMessageFromWorker(msg: MessageFromWorker) {
 
 /** For now, just assume it's UTF-8 output. */
 function arrToString(arr: Uint8Array): string {
+  const maxLen = 128 * 1024; // 128 KB
+  if (arr.length > maxLen) {
+    arr = arr.slice(0, maxLen);
+  }
   return new TextDecoder("utf-8").decode(arr);
 }
 
-function runCode(data: RunCode) {
-  const src = data.src;
-  const state = new AssemblyState();
-  // state.compile may throw
-  state.compile(src, { haltOnError: true });
-  const elf = createExecutable(state);
+let om: OuterMachine | undefined;
 
-  // This clearly may throw
-  if (!wasmReady) {
-    throw new Error("Wasm module not yet loaded");
-  }
-
-  // run() may throw.
-  const output = run(elf);
-  postMessageFromWorker({
-    type: "result",
-    stdout: arrToString(output.get_stdout()),
-    stderr: arrToString(output.get_stderr()),
-  });
+function getStatus(om: OuterMachine): Status {
+  // TODO: only send message if there's a change.
+  return {
+    stdout: arrToString(om.get_stdout()),
+    stderr: arrToString(om.get_stderr()),
+  };
 }
 
-function tryRunCode(data: RunCode) {
+function startRunningCode(data: MsgRunCode) {
   try {
-    runCode(data);
+    const src = data.src;
+    const state = new AssemblyState();
+    // state.compile may throw
+    state.compile(src, { haltOnError: true });
+    const elf = createExecutable(state);
+
+    // This clearly may throw
+    if (!wasmReady) {
+      throw new Error("Wasm module not yet loaded");
+    }
+
+    if (om) {
+      om.free();
+    }
+    om = OuterMachine.init(elf);
+    setTimeout(continueRunningCode, 0);
   } catch (e) {
     postMessageFromWorker({
-      type: "result",
-      stdout: "",
-      stderr: `Error when running: ${e}`,
+      type: "done",
+      status: {
+        stdout: "",
+        stderr: `Error when running: ${e}`,
+      },
+    });
+  }
+}
+
+function continueRunningCode() {
+  if (!om) return;
+  try {
+    for (let i = 0; i < 65536; i++) {
+      if (om.is_done()) {
+        postMessageFromWorker({
+          type: "done",
+          status: getStatus(om),
+        });
+        return;
+      }
+      om.step();
+    }
+    setTimeout(continueRunningCode, 0);
+  } catch (e) {
+    postMessageFromWorker({
+      type: "done",
+      status: {
+        stdout: "",
+        stderr: `Error when running: ${e}`,
+      },
     });
   }
 }
