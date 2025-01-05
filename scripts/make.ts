@@ -1,5 +1,6 @@
-import child_process, { SpawnOptionsWithoutStdio } from "node:child_process";
 import yargs from "yargs/yargs";
+import { exec } from "./script-helpers";
+import { lintDisassemblyTests } from "./lint-disassembly-tests";
 
 // Assumes it is called from the project directory.
 yargs(process.argv.slice(2))
@@ -45,9 +46,7 @@ async function cmdLint() {
 }
 
 async function cmdBuild(write: boolean) {
-  await exec("./validate-sources.sh", write ? ["-w"] : [], {
-    cwd: "./tests/disassembly",
-  });
+  await lintDisassemblyTests(write);
   await exec("./run-sources.sh", [], { cwd: "./tests/integration" });
   await exec("./build-elfs.sh", [], { cwd: "./tests/integration" });
 }
@@ -61,37 +60,5 @@ async function cmdTest() {
   });
   await exec("./test-run.sh", [], {
     cwd: "./tests/integration",
-  });
-}
-
-async function exec(
-  command: string,
-  args: readonly string[],
-  options: SpawnOptionsWithoutStdio
-) {
-  const dbg = `'${command}' ${JSON.stringify(args)}`;
-  console.log("Spawning", dbg);
-
-  return new Promise<void>((resolve) => {
-    const ps = child_process.spawn(command, args, {
-      ...options,
-      stdio: "inherit",
-    });
-
-    ps.on("close", (code) => {
-      if (code !== 0) {
-        console.error(`Script failed: code ${code} for ${dbg}.`);
-        process.exit(code);
-      }
-      resolve();
-    });
-
-    ps.on("error", (err) => {
-      console.error(
-        `Failed to start subprocess for ${dbg}`,
-        typeof err === "object" && err != null ? (err as any).code : ""
-      );
-      process.exit(1);
-    });
   });
 }
