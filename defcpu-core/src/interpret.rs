@@ -931,9 +931,8 @@ impl Machine {
     fn syscall(&mut self, writers: &mut Writers) -> RResult<()> {
         let eax = self.regs.get_reg32(&GPR32::eax);
         self.regs.set_reg64(&GPR64::rcx, self.regs.rip);
-        // The r11 register is set while the RF flag is cleared.
-        let rflags_clr_rf = self.regs.get_rflags() & !(1 << 16);
-        self.regs.set_reg64(&GPR64::r11, rflags_clr_rf);
+        let rflags = self.regs.get_rflags();
+        self.regs.set_reg64(&GPR64::r11, rflags);
         let ret = match eax {
             1 => self.sys_write(writers)?,
             60 => self.sys_exit()?,
