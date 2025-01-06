@@ -7,11 +7,16 @@ export type MessageToWorker =
   | MsgRunCode
   | { type: "poll-status" | "halt" | "pause" | "continue" | "single-step" };
 
+type LinePos = {
+  pos: "on" | "after";
+  errLine: number;
+} | null;
+
 export interface Status {
   stdout: string;
   stderr: string;
   registersStr: string;
-  rip: bigint;
+  linePos: LinePos;
   fullStepCount: bigint;
 }
 

@@ -28,6 +28,7 @@ import {
   oneDarkTheme,
   oneDarkHighlightStyle,
 } from "@codemirror/theme-one-dark";
+import { highlightLineExt } from "./cm-extensions/highlight-line";
 
 const themeCompartment = new Compartment();
 
@@ -64,6 +65,7 @@ export function getExtensions(onViewUpdate: (vu: ViewUpdate) => void) {
       ".cm-tooltip-autocomplete": { fontFamily },
     }),
     themeCompartment.of([]),
+    highlightLineExt(),
   ];
 
   // More extensions that we won't need for output boxes.

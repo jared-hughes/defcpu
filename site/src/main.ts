@@ -4,6 +4,7 @@ import { $ } from "./util.js";
 import { EditorState, EditorView } from "./codemirror";
 import { ViewUpdate } from "@codemirror/view";
 import { MessageFromWorker, MessageToWorker, Status } from "./messages.js";
+import { setHighlightedLines } from "./cm-extensions/highlight-line.js";
 
 const worker = new Worker(new URL("worker.js", import.meta.url), {
   type: "module",
@@ -53,12 +54,15 @@ function setState(s: State) {
 }
 
 function setStatus(status: Status) {
-  const { stdout, stderr, registersStr, fullStepCount } = status;
+  const { stdout, stderr, registersStr, fullStepCount, linePos } = status;
   $<HTMLPreElement>("pre#registers").innerText = registersStr ?? "";
   $<HTMLPreElement>("pre#output").innerText = stdout ?? "";
   $<HTMLPreElement>("pre#errors").innerText = stderr ?? "";
   $<HTMLSpanElement>("span#full-step-count").innerText =
     fullStepCount.toString() ?? "";
+  const highlighedLines =
+    linePos && linePos.pos === "on" ? [linePos.errLine] : [];
+  editor.dispatch({ effects: setHighlightedLines(highlighedLines) });
 }
 
 worker.addEventListener("message", (fullMsg) => {
@@ -81,7 +85,7 @@ worker.addEventListener("message", (fullMsg) => {
         stderr: msg.error,
         registersStr: "",
         fullStepCount: 0n,
-        rip: 0n,
+        linePos: null,
       });
       break;
     default:
@@ -112,7 +116,7 @@ function haltRun() {
     stderr: "",
     registersStr: "",
     fullStepCount: 0n,
-    rip: 0n,
+    linePos: null,
   });
   postMessageToWorker({
     type: "halt",

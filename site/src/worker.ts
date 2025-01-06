@@ -1,4 +1,5 @@
 import init, { OuterMachine } from "./defcpu_web.js";
+import { linePosition } from "./line-number.mjs";
 import {
   MessageFromWorker,
   MessageToWorker,
@@ -14,7 +15,10 @@ init().then(() => {
   wasmReady = true;
 });
 
+type AssemblyStateT = any;
+
 let om: OuterMachine | undefined;
+let state: AssemblyStateT | undefined;
 let running = false;
 
 globalThis.addEventListener("message", (fullMsg) => {
@@ -24,13 +28,13 @@ globalThis.addEventListener("message", (fullMsg) => {
       startRunningCode(msg);
       break;
     case "poll-status":
-      if (!om) {
+      if (!om || !state) {
         console.warn("Poll while not running");
         return;
       }
       postMessageFromWorker({
         type: "status",
-        status: getStatus(om),
+        status: getStatus(om, state),
       });
       break;
     case "halt":
@@ -40,6 +44,7 @@ globalThis.addEventListener("message", (fullMsg) => {
       }
       om.free();
       om = undefined;
+      state = undefined;
       break;
     case "pause":
       // Will really pause on the next `continueRunningCode`,
@@ -73,13 +78,16 @@ function arrToString(arr: Uint8Array): string {
   return new TextDecoder("utf-8").decode(arr);
 }
 
-function getStatus(om: OuterMachine): Status {
+function getStatus(om: OuterMachine, state: AssemblyStateT): Status {
   // TODO: only send message if there's a change.
+  const rip = om.get_rip();
+  const linePos =
+    rip < Number.MAX_SAFE_INTEGER ? linePosition(state, Number(rip)) : null;
   return {
     stdout: arrToString(om.get_stdout()),
     stderr: arrToString(om.get_stderr()),
     registersStr: arrToString(om.get_registers_str()),
-    rip: om.get_rip(),
+    linePos,
     fullStepCount: om.get_full_step_count(),
   };
 }
@@ -88,7 +96,7 @@ function startRunningCode(data: MsgRunCode) {
   try {
     running = true;
     const src = data.src;
-    const state = new AssemblyState();
+    state = new AssemblyState();
     // state.compile may throw
     state.compile(src, { haltOnError: true });
     const elf = createExecutable(state);
@@ -112,12 +120,12 @@ function startRunningCode(data: MsgRunCode) {
 }
 
 function checkDone() {
-  if (!om) return;
+  if (!om || !state) return;
   if (om.is_done()) {
     running = false;
     postMessageFromWorker({
       type: "done",
-      status: getStatus(om),
+      status: getStatus(om, state),
     });
   }
 }
