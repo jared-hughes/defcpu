@@ -62,6 +62,12 @@ export function getBreakpointFroms(state: EditorState): number[] {
   return breakpointFroms(breakpoints);
 }
 
+export function setBreakpointInit(breakpointFroms: number[]) {
+  return breakpointFroms.map((from) =>
+    breakpointEffect.of({ pos: from, on: true })
+  );
+}
+
 export function breakpointGutterExt(onNewGutters: (froms: number[]) => void) {
   return [
     breakpointField,

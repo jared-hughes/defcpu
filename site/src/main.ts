@@ -9,7 +9,10 @@ import { EditorState, EditorView } from "./codemirror";
 import { ViewUpdate } from "@codemirror/view";
 import { MessageFromWorker, MessageToWorker, Status } from "./messages.js";
 import { setHighlightedLines } from "./cm-extensions/highlight-line.js";
-import { getBreakpointFroms } from "./cm-extensions/breakpoint-gutter.js";
+import {
+  getBreakpointFroms,
+  setBreakpointInit,
+} from "./cm-extensions/breakpoint-gutter.js";
 
 const worker = new Worker(new URL("worker.js", import.meta.url), {
   type: "module",
@@ -221,6 +224,8 @@ const editor = new EditorView({
 function saveToLocalStorage() {
   const code = editor.state.sliceDoc();
   localStorage.setItem("saved-src", code);
+  const breakpointFroms = getBreakpointFroms(editor.state);
+  localStorage.setItem("saved-breakpoints", JSON.stringify(breakpointFroms));
 }
 
 const debouncedSave = debounce(saveToLocalStorage, 250);
@@ -239,12 +244,30 @@ function getDefaultSource() {
   }
 }
 
+function getDefaultBreakpointFroms() {
+  const saved = localStorage.getItem("saved-breakpoints");
+  if (!saved) return [];
+  try {
+    const breakpointFroms = JSON.parse(saved);
+    if (
+      Array.isArray(breakpointFroms) &&
+      breakpointFroms.every((x) => typeof x === "number")
+    ) {
+      return breakpointFroms;
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
 function onNewGutters(breakpointFroms: number[]) {
   if (state !== "idle")
     postMessageToWorker({
       type: "set-breakpoints",
       breakpointFroms,
     });
+  debouncedSave();
 }
 
 editor.setState(
@@ -253,6 +276,10 @@ editor.setState(
     extensions: getExtensions(onViewUpdate, onNewGutters),
   })
 );
+
+editor.dispatch({
+  effects: setBreakpointInit(getDefaultBreakpointFroms()),
+});
 
 const themeMatch = matchMedia("(prefers-color-scheme: light)");
 
