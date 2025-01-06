@@ -237,10 +237,11 @@ function getDefaultSource() {
 }
 
 function onNewGutters(breakpointFroms: number[]) {
-  postMessageToWorker({
-    type: "set-breakpoints",
-    breakpointFroms,
-  });
+  if (state !== "idle")
+    postMessageToWorker({
+      type: "set-breakpoints",
+      breakpointFroms,
+    });
 }
 
 editor.setState(

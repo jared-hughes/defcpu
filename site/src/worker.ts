@@ -54,7 +54,7 @@ globalThis.addEventListener("message", (fullMsg) => {
       break;
     case "continue":
       running = true;
-      continueRunningCode();
+      continueRunningCode(true);
       break;
     case "single-step":
       singleStep();
@@ -126,7 +126,7 @@ function startRunningCode(data: MsgRunCode) {
       om.free();
     }
     om = OuterMachine.init(elf);
-    setTimeout(continueRunningCode, 0);
+    setTimeout(() => continueRunningCode(false), 0);
   } catch (e) {
     postMessageFromWorker({
       type: "error",
@@ -143,38 +143,49 @@ function checkDone() {
       type: "done",
       status: getStatus(om, state),
     });
+    return true;
+  }
+}
+
+function checkBreakpoint() {
+  if (!om || !state) return;
+  if (breakpoints.has(om.get_rip())) {
+    running = false;
+    postMessageFromWorker({
+      type: "pause",
+      status: getStatus(om, state),
+    });
+    return true;
   }
 }
 
 function singleStep() {
-  checkDone();
-  if (om && !om.is_done()) {
-    om.step();
-    checkDone();
-  }
+  if (!om || !state) return;
+  if (checkDone()) return;
+  om.step();
+  if (checkDone()) return;
+  postMessageFromWorker({
+    type: "pause",
+    status: getStatus(om, state),
+  });
 }
 
-function continueRunningCode() {
+function continueRunningCode(firstAfterContinue: boolean) {
   if (!om) return;
   if (!running) {
     return;
   }
   try {
-    checkDone();
+    if (checkDone()) return;
+    if (!firstAfterContinue) {
+      if (checkBreakpoint()) return;
+    }
     for (let i = 0; i < 65536; i++) {
       om.step();
-      checkDone();
-      if (breakpoints.has(om.get_rip())) {
-        running = false;
-        postMessageFromWorker({
-          type: "pause",
-          status: getStatus(om, state),
-        });
-        return;
-      }
-      if (om.is_done()) return;
+      if (checkDone()) return;
+      if (checkBreakpoint()) return;
     }
-    setTimeout(continueRunningCode, 0);
+    setTimeout(() => continueRunningCode(false), 0);
   } catch (e) {
     postMessageFromWorker({
       type: "error",
