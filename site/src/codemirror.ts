@@ -32,6 +32,7 @@ import { highlightLineExt } from "./cm-extensions/highlight-line";
 import { breakpointGutterExt } from "./cm-extensions/breakpoint-gutter";
 
 const themeCompartment = new Compartment();
+const readonlyCompartment = new Compartment();
 
 export function getExtensions(
   onViewUpdate: (vu: ViewUpdate) => void,
@@ -69,6 +70,7 @@ export function getExtensions(
       ".cm-tooltip-autocomplete": { fontFamily },
     }),
     themeCompartment.of([]),
+    readonlyCompartment.of([]),
     highlightLineExt(),
     breakpointGutterExt(onNewGutters),
   ];
@@ -92,6 +94,10 @@ export function getExtensions(
 
 export function reconfigureTheme(theme: "dark" | "light") {
   return themeCompartment.reconfigure(themeExtensions(theme));
+}
+
+export function reconfigureReadonly(readonly: boolean) {
+  return readonlyCompartment.reconfigure([EditorState.readOnly.of(readonly)]);
 }
 
 function themeExtensions(theme: "dark" | "light") {

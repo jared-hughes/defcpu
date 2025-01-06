@@ -1,5 +1,9 @@
 import { examples } from "./examples.js";
-import { getExtensions, reconfigureTheme } from "./codemirror";
+import {
+  getExtensions,
+  reconfigureTheme,
+  reconfigureReadonly,
+} from "./codemirror";
 import { $ } from "./util.js";
 import { EditorState, EditorView } from "./codemirror";
 import { ViewUpdate } from "@codemirror/view";
@@ -52,6 +56,10 @@ function setState(s: State) {
     if (pollInterval) clearInterval(pollInterval);
     pollInterval = undefined;
   }
+  if (editor)
+    editor.dispatch({
+      effects: reconfigureReadonly(state !== "idle"),
+    });
 }
 
 function setStatus(status: Status) {
