@@ -5,6 +5,7 @@ import { EditorState, EditorView } from "./codemirror";
 import { ViewUpdate } from "@codemirror/view";
 import { MessageFromWorker, MessageToWorker, Status } from "./messages.js";
 import { setHighlightedLines } from "./cm-extensions/highlight-line.js";
+import { getBreakpointFroms } from "./cm-extensions/breakpoint-gutter.js";
 
 const worker = new Worker(new URL("worker.js", import.meta.url), {
   type: "module",
@@ -87,6 +88,10 @@ worker.addEventListener("message", (fullMsg) => {
         fullStepCount: 0n,
         linePos: null,
       });
+      break;
+    case "pause":
+      setState("paused");
+      setStatus(msg.status);
       break;
     default:
       msg satisfies never;
@@ -177,6 +182,7 @@ function startRun() {
   postMessageToWorker({
     type: "run",
     src,
+    breakpointFroms: getBreakpointFroms(editor.state),
   });
   pollInterval = setInterval(() => {
     postMessageToWorker({
@@ -222,10 +228,17 @@ function getDefaultSource() {
   }
 }
 
+function onNewGutters(breakpointFroms: number[]) {
+  postMessageToWorker({
+    type: "set-breakpoints",
+    breakpointFroms,
+  });
+}
+
 editor.setState(
   EditorState.create({
     doc: getDefaultSource(),
-    extensions: getExtensions(onViewUpdate),
+    extensions: getExtensions(onViewUpdate, onNewGutters),
   })
 );
 

@@ -1,3 +1,25 @@
+/**
+ * Char offset to RIP address of instruction.
+ * @param {AssemblyState} state
+ * @param {Number} from
+ * @returns {Number | undefined}
+ */
+export function findInstructionFromOffset(state, from) {
+  let node = state.head.next;
+  while (node && node.statement.range.end < from) {
+    node = node.next;
+  }
+  if (node) {
+    const { statement } = node;
+    const sectionStart = statement.section.programHeader.p_vaddr;
+    const start = sectionStart + statement.address;
+    // statement.length gives the length in bytes.
+    return start;
+  } else {
+    return undefined;
+  }
+}
+
 // The following function `findInstruction` is from @defasm/core,
 // and `linePosition` is modified from `debug` from @defasm/core as well,
 // under the following license.
@@ -16,10 +38,11 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 /**
+ * RIP address to section and instruction.
  * @param {AssemblyState} state
  * @param {Number} address
  */
-export function findInstruction(state, address) {
+function findInstruction(state, address) {
   for (const section of state.sections) {
     const segment = section.programHeader;
     if (
@@ -52,6 +75,7 @@ export function linePositionStr(state, address) {
 }
 
 /**
+ * RIP address to line number.
  * @param {AssemblyState} state
  * @param {Number} address
  * @returns {{pos: "on" | "after", errLine: number}  | null}

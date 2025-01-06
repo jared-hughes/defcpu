@@ -22,7 +22,6 @@ const lineHighlightField = StateField.define({
         lines = Decoration.none;
         const decorations = [];
         for (const lineNumber of e.value) {
-          console.log("lineNumber", lineNumber);
           const { from } = tr.newDoc.line(lineNumber);
           decorations.push(highlightLineDecoration.range(from));
         }

@@ -29,10 +29,14 @@ import {
   oneDarkHighlightStyle,
 } from "@codemirror/theme-one-dark";
 import { highlightLineExt } from "./cm-extensions/highlight-line";
+import { breakpointGutterExt } from "./cm-extensions/breakpoint-gutter";
 
 const themeCompartment = new Compartment();
 
-export function getExtensions(onViewUpdate: (vu: ViewUpdate) => void) {
+export function getExtensions(
+  onViewUpdate: (vu: ViewUpdate) => void,
+  onNewGutters: (breakpointFroms: number[]) => void
+) {
   const asmErrorTooltip = {
     "&:before": { borderTopColor: "var(--color)" },
     background: "var(--color)",
@@ -66,6 +70,7 @@ export function getExtensions(onViewUpdate: (vu: ViewUpdate) => void) {
     }),
     themeCompartment.of([]),
     highlightLineExt(),
+    breakpointGutterExt(onNewGutters),
   ];
 
   // More extensions that we won't need for output boxes.

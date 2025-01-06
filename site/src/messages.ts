@@ -1,10 +1,19 @@
 export interface MsgRunCode {
   type: "run";
   src: string;
+  // Char offsets from the start of the code.
+  breakpointFroms: number[];
+}
+
+export interface MsgSetGutters {
+  type: "set-breakpoints";
+  // Char offsets from the start of the code.
+  breakpointFroms: number[];
 }
 
 export type MessageToWorker =
   | MsgRunCode
+  | MsgSetGutters
   | { type: "poll-status" | "halt" | "pause" | "continue" | "single-step" };
 
 type LinePos = {
@@ -30,9 +39,14 @@ export interface MsgDone {
   status: Status;
 }
 
+export interface MsgPause {
+  type: "pause";
+  status: Status;
+}
+
 export interface MsgError {
   type: "error";
   error: string;
 }
 
-export type MessageFromWorker = MsgStatus | MsgDone | MsgError;
+export type MessageFromWorker = MsgStatus | MsgDone | MsgError | MsgPause;

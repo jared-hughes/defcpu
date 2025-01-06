@@ -1,5 +1,5 @@
 import init, { OuterMachine } from "./defcpu_web.js";
-import { linePosition } from "./line-number.mjs";
+import { findInstructionFromOffset, linePosition } from "./line-number.mjs";
 import {
   MessageFromWorker,
   MessageToWorker,
@@ -19,6 +19,7 @@ type AssemblyStateT = any;
 
 let om: OuterMachine | undefined;
 let state: AssemblyStateT | undefined;
+let breakpoints: Set<bigint> = new Set();
 let running = false;
 
 globalThis.addEventListener("message", (fullMsg) => {
@@ -58,6 +59,9 @@ globalThis.addEventListener("message", (fullMsg) => {
     case "single-step":
       singleStep();
       break;
+    case "set-breakpoints":
+      setBreakpoints(msg.breakpointFroms);
+      break;
     default:
       msg satisfies never;
       console.error("Unrecognized message type", msg);
@@ -67,6 +71,16 @@ globalThis.addEventListener("message", (fullMsg) => {
 
 function postMessageFromWorker(msg: MessageFromWorker) {
   globalThis.postMessage(msg);
+}
+
+function setBreakpoints(breakpointFroms: number[]) {
+  if (!state) return;
+  breakpoints = new Set();
+  for (const from of breakpointFroms) {
+    const addr = findInstructionFromOffset(state, from);
+    if (addr === undefined) continue;
+    breakpoints.add(BigInt(addr));
+  }
 }
 
 /** For now, just assume it's UTF-8 output. */
@@ -105,6 +119,8 @@ function startRunningCode(data: MsgRunCode) {
     if (!wasmReady) {
       throw new Error("Wasm module not yet loaded");
     }
+
+    setBreakpoints(data.breakpointFroms);
 
     if (om) {
       om.free();
@@ -148,6 +164,14 @@ function continueRunningCode() {
     for (let i = 0; i < 65536; i++) {
       om.step();
       checkDone();
+      if (breakpoints.has(om.get_rip())) {
+        running = false;
+        postMessageFromWorker({
+          type: "pause",
+          status: getStatus(om, state),
+        });
+        return;
+      }
       if (om.is_done()) return;
     }
     setTimeout(continueRunningCode, 0);
