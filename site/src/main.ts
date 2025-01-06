@@ -52,7 +52,15 @@ function setState(s: State) {
   $<HTMLButtonElement>("button#step-button").disabled = !canStep();
   $<HTMLButtonElement>("button#pause-button").disabled = !canPause();
   $<HTMLButtonElement>("button#halt-button").disabled = !canHalt();
-  if (s === "idle" || s === "done") {
+  if (s === "running") {
+    if (!pollInterval)
+      pollInterval = setInterval(() => {
+        postMessageToWorker({
+          type: "poll-status",
+        });
+      }, 100);
+  } else {
+    // TODO: no need for polling. Just send updates from the worker periodically.
     if (pollInterval) clearInterval(pollInterval);
     pollInterval = undefined;
   }
@@ -192,11 +200,6 @@ function startRun() {
     src,
     breakpointFroms: getBreakpointFroms(editor.state),
   });
-  pollInterval = setInterval(() => {
-    postMessageToWorker({
-      type: "poll-status",
-    });
-  }, 250);
 }
 
 function debounce<T extends Function>(cb: T, timeout = 20) {
