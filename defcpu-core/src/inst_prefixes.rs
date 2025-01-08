@@ -230,7 +230,7 @@ impl fmt::Display for AddressSizeAttribute {
 /// Vol 1. 3.6.1 "Operand Size and Address Size in 64-Bit Mode"
 /// Operand size is 32 by default, but 64 if the REX.W prefix is present,
 /// else 16 if the Operand-Size Prefix 0x66 is present. The REX.W takes precedence.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum OperandSizeAttribute {
     Data64,
     Data32,

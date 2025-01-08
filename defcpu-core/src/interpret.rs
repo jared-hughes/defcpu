@@ -129,6 +129,7 @@ impl Machine {
             }
             Inst::LeaRegInsteadOfAddr => Err(Rerr::LeaRegInsteadOfAddr)?,
             Inst::RexNoop => {}
+            Inst::Nop => {}
             Inst::Syscall => self.syscall(writers)?,
             Inst::LeaRM16(gpr16, eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
@@ -885,6 +886,38 @@ impl Machine {
                 let cl = self.regs.get_reg8(&GPR8::cl);
                 let new = self.regs.flags.rotate_64(rot_pair, val, cl);
                 self.set_rm64(rm64, new)?
+            }
+            Inst::XchgMR8(rm8, gpr8) => {
+                let x = self.get_rm8(rm8)?;
+                let y = self.regs.get_reg8(gpr8);
+                // Note the rm8 has to be first because it implicitly
+                // needs to calculate the effective address, depending on registers.
+                self.set_rm8(rm8, y)?;
+                self.regs.set_reg8(gpr8, x);
+            }
+            Inst::XchgMR16(rm16, gpr16) => {
+                let x = self.get_rm16(rm16)?;
+                let y = self.regs.get_reg16(gpr16);
+                // Note the rm8 has to be first because it implicitly
+                // needs to calculate the effective address, depending on registers.
+                self.set_rm16(rm16, y)?;
+                self.regs.set_reg16(gpr16, x);
+            }
+            Inst::XchgMR32(rm32, gpr32) => {
+                let x = self.get_rm32(rm32)?;
+                let y = self.regs.get_reg32(gpr32);
+                // Note the rm8 has to be first because it implicitly
+                // needs to calculate the effective address, depending on registers.
+                self.set_rm32(rm32, y)?;
+                self.regs.set_reg32(gpr32, x);
+            }
+            Inst::XchgMR64(rm64, gpr64) => {
+                let x = self.get_rm64(rm64)?;
+                let y = self.regs.get_reg64(gpr64);
+                // Note the rm8 has to be first because it implicitly
+                // needs to calculate the effective address, depending on registers.
+                self.set_rm64(rm64, y)?;
+                self.regs.set_reg64(gpr64, x);
             }
         }
         Ok(())

@@ -106,6 +106,8 @@ pub enum Inst {
     LeaRegInsteadOfAddr,
     /// A no-op stemming from REX not being followed by a valid expression.
     RexNoop,
+    /// NP 90; NOP; One byte no-operation instruction.
+    Nop,
     /// 0F 05; SYSCALL; Fast call to privilege level 0 system procedures.
     Syscall,
     /// 8D /r; LEA r16,m; Store effective address for m in register r16.
@@ -553,6 +555,24 @@ pub enum Inst {
     /// Note the e.g. m32 form is "explicit-operand form". You put in a register,
     /// but it only represents the %al/%ax/%eax/%rax of the same size.
     Scas(DataSize, AddressSizeAttribute),
+    // 86 /r; XCHG r/m8, r8; Exchange r8 (byte register) with byte from r/m8.
+    // 86 /r; XCHG r8, r/m8; Exchange byte from r/m8 with r8 (byte register).
+    XchgMR8(RM8, GPR8),
+    // 90+rw; XCHG AX, r16; Exchange r16 with AX.
+    // 90+rw; XCHG r16, AX; Exchange AX with r16.
+    // 87 /r; XCHG r/m16, r16; Exchange r16 with word from r/m16.
+    // 87 /r; XCHG r16, r/m16; Exchange word from r/m16 with r16.
+    XchgMR16(RM16, GPR16),
+    // 90+rd; XCHG EAX, r32; Exchange r32 with EAX.
+    // 90+rd; XCHG r32, EAX; Exchange EAX with r32.
+    // 87 /r; XCHG r/m32, r32; Exchange r32 with doubleword from r/m32.
+    // 87 /r; XCHG r32, r/m32; Exchange doubleword from r/m32 with r32.
+    XchgMR32(RM32, GPR32),
+    // REX.W + 90+rd; XCHG RAX, r64; Exchange r64 with RAX.
+    // REX.W + 90+rd; XCHG r64, RAX; Exchange RAX with r64.
+    // REX.W + 87 /r; XCHG r/m64, r64; Exchange r64 with quadword from r/m64.
+    // REX.W + 87 /r; XCHG r64, r/m64; Exchange quadword from r/m64 with r64.
+    XchgMR64(RM64, GPR64),
 }
 
 impl Inst {
@@ -568,6 +588,7 @@ impl Inst {
             | Popf64
             | Pushf16
             | Pushf64 => String::new(),
+            Nop => String::new(),
             LeaRM16(gpr16, eff_addr) => format!("{}, {}", eff_addr, gpr16),
             LeaRM32(gpr32, eff_addr) => format!("{}, {}", eff_addr, gpr32),
             LeaRM64(gpr64, eff_addr) => format!("{}, {}", eff_addr, gpr64),
@@ -576,7 +597,8 @@ impl Inst {
             | AndMR8(rm8, gpr8)
             | SubMR8(rm8, gpr8)
             | CmpMR8(rm8, gpr8)
-            | XorMR8(rm8, gpr8) => {
+            | XorMR8(rm8, gpr8)
+            | XchgMR8(rm8, gpr8) => {
                 format!("{}, {}", gpr8, rm8)
             }
             MovMR16(rm16, gpr16)
@@ -585,6 +607,7 @@ impl Inst {
             | SubMR16(rm16, gpr16)
             | CmpMR16(rm16, gpr16)
             | XorMR16(rm16, gpr16)
+            | XchgMR16(rm16, gpr16)
             | BtMR16(rm16, gpr16) => {
                 format!("{}, {}", gpr16, rm16)
             }
@@ -594,6 +617,7 @@ impl Inst {
             | SubMR32(rm32, gpr32)
             | CmpMR32(rm32, gpr32)
             | XorMR32(rm32, gpr32)
+            | XchgMR32(rm32, gpr32)
             | BtMR32(rm32, gpr32) => {
                 format!("{}, {}", gpr32, rm32)
             }
@@ -603,6 +627,7 @@ impl Inst {
             | SubMR64(rm64, gpr64)
             | CmpMR64(rm64, gpr64)
             | XorMR64(rm64, gpr64)
+            | XchgMR64(rm64, gpr64)
             | BtMR64(rm64, gpr64) => {
                 format!("{}, {}", gpr64, rm64)
             }
@@ -760,6 +785,7 @@ impl Inst {
             | NotImplementedOpext(_, _)
             | LeaRegInsteadOfAddr => "(bad)",
             RexNoop => "",
+            Nop => "nop",
             Syscall => "syscall",
             LeaRM16(_, _) | LeaRM32(_, _) | LeaRM64(_, _) => "lea",
             MovMR8(_, _)
@@ -935,6 +961,7 @@ impl Inst {
             BtMI16(rm16, _) => rm16.either("bt", "btw"),
             BtMI32(rm32, _) => rm32.either("bt", "btl"),
             BtMI64(rm64, _) => rm64.either("bt", "btq"),
+            XchgMR8(_, _) | XchgMR16(_, _) | XchgMR32(_, _) | XchgMR64(_, _) => "xchg",
         }
     }
 }

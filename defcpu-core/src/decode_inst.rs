@@ -786,6 +786,35 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
             }
         }
+        0x90..=0x97 => {
+            let rex_b = lex.get_rex_b_matters();
+            if opcode == 0x90 && lex.get_operand_size_no_rexw() != Data16 && !rex_b {
+                // XCHG (E)AX, (E)AX (encoded instruction byte is 90H) is an alias
+                // for NOP regardless of data size prefixes, including REX.W.
+                return Ok(Nop);
+            }
+            let size = lex.get_operand_size();
+            match size {
+                Data16 => {
+                    // 90+rw; XCHG AX, r16; Exchange r16 with AX.
+                    // 90+rw; XCHG r16, AX; Exchange AX with r16.
+                    let reg = reg16_field_select(opcode, rex_b);
+                    XchgMR16(RM16::Reg(reg), GPR16::ax)
+                }
+                Data32 => {
+                    // 90+rd; XCHG EAX, r32; Exchange r32 with EAX.
+                    // 90+rd; XCHG r32, EAX; Exchange EAX with r32.
+                    let reg = reg32_field_select(opcode, rex_b);
+                    XchgMR32(RM32::Reg(reg), GPR32::eax)
+                }
+                Data64 => {
+                    // REX.W + 90+rd; XCHG RAX, r64; Exchange r64 with RAX.
+                    // REX.W + 90+rd; XCHG r64, RAX; Exchange RAX with r64.
+                    let reg = reg64_field_select(opcode, rex_b);
+                    XchgMR64(RM64::Reg(reg), GPR64::rax)
+                }
+            }
+        }
         0x68 => {
             // 0x68
             match lex.get_operand_size_64_default() {
@@ -1182,6 +1211,41 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 _ => {
                     lex.rollback();
                     NotImplementedOpext(opcode, modrm.reg3)
+                }
+            }
+        }
+        0x86 => {
+            // 86 /r; XCHG r/m8, r8; Exchange r8 (byte register) with byte from r/m8.
+            // 86 /r; XCHG r8, r/m8; Exchange byte from r/m8 with r8 (byte register).
+            let modrm = lex.next_modrm()?;
+            let reg = lex.reg8_field_select_r(modrm.reg3);
+            let rm8 = decode_rm8(lex, &modrm)?;
+            XchgMR8(rm8, reg)
+        }
+        0x87 => {
+            let modrm = lex.next_modrm()?;
+            let rex_r = lex.get_rex_r_matters();
+            match lex.get_operand_size() {
+                Data16 => {
+                    // 87 /r; XCHG r/m16, r16; Exchange r16 with word from r/m16.
+                    // 87 /r; XCHG r16, r/m16; Exchange word from r/m16 with r16.
+                    let reg = reg16_field_select(modrm.reg3, rex_r);
+                    let rm16 = decode_rm16(lex, &modrm)?;
+                    XchgMR16(rm16, reg)
+                }
+                Data32 => {
+                    // 87 /r; XCHG r/m32, r32; Exchange r32 with doubleword from r/m32.
+                    // 87 /r; XCHG r32, r/m32; Exchange doubleword from r/m32 with r32.
+                    let reg = reg32_field_select(modrm.reg3, rex_r);
+                    let rm32 = decode_rm32(lex, &modrm)?;
+                    XchgMR32(rm32, reg)
+                }
+                Data64 => {
+                    // REX.W + 87 /r; XCHG r/m64, r64; Exchange r64 with quadword from r/m64.
+                    // REX.W + 87 /r; XCHG r64, r/m64; Exchange quadword from r/m64 with r64.
+                    let reg = reg64_field_select(modrm.reg3, rex_r);
+                    let rm64 = decode_rm64(lex, &modrm)?;
+                    XchgMR64(rm64, reg)
                 }
             }
         }

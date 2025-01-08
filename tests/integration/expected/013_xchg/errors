@@ -1,0 +1,44 @@
+Result from print_regs on line 13:
+Registers:
+    %rax = 0000000000000000        %r8  = 0000000000000000
+    %rbx = 0000000000000000        %r9  = 0000000000000000
+    %rcx = A1B1C1D1E1F1A1B1        %r10 = 0000000000000000
+    %rdx = 0000000005060708        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000202):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 18:
+Registers:
+    %rax = 0000000000000708        %r8  = 0000000000000000
+    %rbx = 0000000000000000        %r9  = 0000000000000000
+    %rcx = A1B1C1D1E1F1A1B1        %r10 = 0000000000000000
+    %rdx = 0000000005060000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000202):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
+
+Result from print_regs on line 26:
+Registers:
+    %rax = 0000000000401000        %r8  = 0000000000000000
+    %rbx = AB123456050600AB        %r9  = 0000000000000000
+    %rcx = A1B1C1D1E1F17800        %r10 = 0000000000000000
+    %rdx = 0000000078ABCDEF        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 0000000000000000        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000202):
+    Carry     = 0 (no carry)       Zero   = 0 (isn't zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 0 (odd)
