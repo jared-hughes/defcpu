@@ -90,6 +90,64 @@ pub struct FullInst {
 
 // Flags aren't updated until after the last iteration to make the operation faster
 
+/// An operation that takes one U and returns a U.
+#[derive(PartialEq, Eq)]
+pub enum PlainOneOp {
+    /// FE /0; INC r/m8; Increment r/m byte by 1.
+    /// FF /0; INC r/m16; Increment r/m word by 1.
+    /// Note the 40+rw increment isn't encodeable in 64-bit mode.
+    /// FF /0; INC r/m32; Increment r/m doubleword by 1.
+    /// Note the 40+rd increment isn't encodeable in 64-bit mode.
+    /// REX.W + FF /0; INC r/m64; Increment r/m quadword by 1.
+    Inc,
+    /// FE /1; DEC r/m8; Decrement r/m byte by 1.
+    /// FF /1; DEC r/m16; Decrement r/m word by 1.
+    /// Note the 48+rw decrement isn't encodeable in 64-bit mode.
+    /// FF /1; DEC r/m32; Decrement r/m doubleword by 1.
+    /// Note the 48+rd decrement isn't encodeable in 64-bit mode.
+    /// REX.W + FF /1; DEC r/m64; Decrement r/m quadword by 1.
+    Dec,
+    /// F6 /2; NOT r/m8; Reverse each bit of r/m8.
+    /// F7 /2; NOT r/m16; Reverse each bit of r/m16.
+    /// F7 /2; NOT r/m32; Reverse each bit of r/m32.
+    /// REX.W + F7 /2; NOT r/m64; Reverse each bit of r/m64.
+    Not,
+}
+
+/// An operation that takes a U::DoubleWidth and returns a U and a U.
+#[derive(PartialEq, Eq)]
+pub enum ShrinkOp {
+    /// F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
+    /// F7 /6; DIV r/m16; Unsigned divide DX:AX by r/m16, with result stored in AX := Quotient, DX := Remainder.
+    /// F7 /6; DIV r/m32; Unsigned divide EDX:EAX by r/m32, with result stored in EAX := Quotient, EDX := Remainder.
+    /// REX.W + F7 /6; DIV r/m64; Unsigned divide RDX:RAX by r/m64, with result stored in RAX := Quotient, RDX := Remainder.
+    Div,
+}
+
+/// An operation that takes a U and a U and returns a U::DoubleWidth.
+#[derive(PartialEq, Eq)]
+pub enum WidenOp {
+    /// F6 /5; IMUL r/m8; AX:= AL ∗ r/m byte.
+    /// F7 /5; IMUL r/m16; DX:AX := AX ∗ r/m word.
+    /// F7 /5; IMUL r/m32; EDX:EAX := EAX ∗ r/m32.
+    /// REX.W + F7 /5; IMUL r/m64; RDX:RAX := RAX ∗ r/m64.
+    Imul,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum AnyOneRMOp {
+    Plain(PlainOneOp),
+    Shrink(ShrinkOp),
+    Widen(WidenOp),
+}
+impl AnyOneRMOp {
+    pub(crate) const INC: Self = Self::Plain(PlainOneOp::Inc);
+    pub(crate) const DEC: Self = Self::Plain(PlainOneOp::Dec);
+    pub(crate) const NOT: Self = Self::Plain(PlainOneOp::Not);
+    pub(crate) const DIV: Self = Self::Shrink(ShrinkOp::Div);
+    pub(crate) const IMUL: Self = Self::Widen(WidenOp::Imul);
+}
+
 use Inst::*;
 /// Instructions. Tuple args are in Intel order.
 /// For valid opcodes, the name of each variant is the mnemonic,
@@ -110,6 +168,10 @@ pub enum Inst {
     Nop,
     /// 0F 05; SYSCALL; Fast call to privilege level 0 system procedures.
     Syscall,
+    OneRMInst8(AnyOneRMOp, RM8),
+    OneRMInst16(AnyOneRMOp, RM16),
+    OneRMInst32(AnyOneRMOp, RM32),
+    OneRMInst64(AnyOneRMOp, RM64),
     /// 8D /r; LEA r16,m; Store effective address for m in register r16.
     LeaRM16(GPR16, EffAddr),
     /// 8D /r; LEA r32,m; Store effective address for m in register r32.
@@ -150,26 +212,6 @@ pub enum Inst {
     MovMI64(RM64, u64),
     /// F4; HLT
     Hlt,
-    /// FE /0; INC r/m8; Increment r/m byte by 1.
-    IncM8(RM8),
-    /// FF /0; INC r/m16; Increment r/m word by 1.
-    /// Note the 40+rw increment isn't encodeable in 64-bit mode.
-    IncM16(RM16),
-    /// FF /0; INC r/m32; Increment r/m doubleword by 1.
-    /// Note the 40+rd increment isn't encodeable in 64-bit mode.
-    IncM32(RM32),
-    /// REX.W + FF /0; INC r/m64; Increment r/m quadword by 1.
-    IncM64(RM64),
-    /// FE /1; DEC r/m8; Decrement r/m byte by 1.
-    DecM8(RM8),
-    /// FF /1; DEC r/m16; Decrement r/m word by 1.
-    /// Note the 48+rw decrement isn't encodeable in 64-bit mode.
-    DecM16(RM16),
-    /// FF /1; DEC r/m32; Decrement r/m doubleword by 1.
-    /// Note the 48+rd decrement isn't encodeable in 64-bit mode.
-    DecM32(RM32),
-    /// REX.W + FF /1; DEC r/m64; Decrement r/m quadword by 1.
-    DecM64(RM64),
     /// 04 ib; ADD AL, imm8; Add imm8 to AL.
     /// 80 /0 ib; ADD r/m8, imm8; Add imm8 to r/m8.
     AddMI8(RM8, u8),
@@ -337,30 +379,6 @@ pub enum Inst {
     BtMI32(RM32, u8),
     /// REX.W + 0F BA /4 ib; BT r/m64, imm8; Store selected bit in CF flag.
     BtMI64(RM64, u8),
-    /// F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
-    DivM8(RM8),
-    /// F7 /6; DIV r/m16; Unsigned divide DX:AX by r/m16, with result stored in AX := Quotient, DX := Remainder.
-    DivM16(RM16),
-    /// F7 /6; DIV r/m32; Unsigned divide EDX:EAX by r/m32, with result stored in EAX := Quotient, EDX := Remainder.
-    DivM32(RM32),
-    /// REX.W + F7 /6; DIV r/m64; Unsigned divide RDX:RAX by r/m64, with result stored in RAX := Quotient, RDX := Remainder.
-    DivM64(RM64),
-    /// F6 /2; NOT r/m8; Reverse each bit of r/m8.
-    NotM8(RM8),
-    /// F7 /2; NOT r/m16; Reverse each bit of r/m16.
-    NotM16(RM16),
-    /// F7 /2; NOT r/m32; Reverse each bit of r/m32.
-    NotM32(RM32),
-    /// REX.W + F7 /2; NOT r/m64; Reverse each bit of r/m64.
-    NotM64(RM64),
-    /// F6 /5; IMUL r/m8; AX:= AL ∗ r/m byte.
-    ImulM8(RM8),
-    /// F7 /5; IMUL r/m16; DX:AX := AX ∗ r/m word.
-    ImulM16(RM16),
-    /// F7 /5; IMUL r/m32; EDX:EAX := EAX ∗ r/m32.
-    ImulM32(RM32),
-    /// REX.W + F7 /5; IMUL r/m64; RDX:RAX := RAX ∗ r/m64.
-    ImulM64(RM64),
     /// 0F AF /r; IMUL r16, r/m16; word register := word register ∗ r/m16.
     ImulRM16(GPR16, RM16),
     /// 0F AF /r; IMUL r32, r/m32; doubleword register := doubleword register ∗ r/m32.
@@ -703,16 +721,14 @@ impl Inst {
                 format!("${:#x}, {}", imm64, rm64)
             }
             Hlt => String::new(),
-            IncM8(rm8) | DecM8(rm8) | DivM8(rm8) | NotM8(rm8) | ImulM8(rm8) => format!("{}", rm8),
-            IncM16(rm16) | DecM16(rm16) | DivM16(rm16) | NotM16(rm16) | ImulM16(rm16)
-            | PushM16(rm16) | PopM16(rm16) => {
+            OneRMInst8(_, rm8) => format!("{}", rm8),
+            OneRMInst16(_, rm16) | PushM16(rm16) | PopM16(rm16) => {
                 format!("{}", rm16)
             }
-            IncM32(rm32) | DecM32(rm32) | DivM32(rm32) | NotM32(rm32) | ImulM32(rm32) => {
+            OneRMInst32(_, rm32) => {
                 format!("{}", rm32)
             }
-            IncM64(rm64) | DecM64(rm64) | DivM64(rm64) | NotM64(rm64) | ImulM64(rm64)
-            | PushM64(rm64) | PopM64(rm64) => {
+            OneRMInst64(_, rm64) | PushM64(rm64) | PopM64(rm64) => {
                 format!("{}", rm64)
             }
             ImulRMI16(gpr16, rm16, imm16) => format!("${imm16:#x}, {rm16}, {gpr16}"),
@@ -806,14 +822,26 @@ impl Inst {
             // movabs just does the same, idk why gdb dumps as movabs.
             MovOI64(_, _) => "movabs",
             Hlt => "hlt",
-            IncM8(rm8) => rm8.either("inc", "incb"),
-            IncM16(rm16) => rm16.either("inc", "incw"),
-            IncM32(rm32) => rm32.either("inc", "incl"),
-            IncM64(rm64) => rm64.either("inc", "incq"),
-            DecM8(rm8) => rm8.either("dec", "decb"),
-            DecM16(rm16) => rm16.either("dec", "decw"),
-            DecM32(rm32) => rm32.either("dec", "decl"),
-            DecM64(rm64) => rm64.either("dec", "decq"),
+            OneRMInst8(AnyOneRMOp::INC, rm8) => rm8.either("inc", "incb"),
+            OneRMInst16(AnyOneRMOp::INC, rm16) => rm16.either("inc", "incw"),
+            OneRMInst32(AnyOneRMOp::INC, rm32) => rm32.either("inc", "incl"),
+            OneRMInst64(AnyOneRMOp::INC, rm64) => rm64.either("inc", "incq"),
+            OneRMInst8(AnyOneRMOp::DEC, rm8) => rm8.either("dec", "decb"),
+            OneRMInst16(AnyOneRMOp::DEC, rm16) => rm16.either("dec", "decw"),
+            OneRMInst32(AnyOneRMOp::DEC, rm32) => rm32.either("dec", "decl"),
+            OneRMInst64(AnyOneRMOp::DEC, rm64) => rm64.either("dec", "decq"),
+            OneRMInst8(AnyOneRMOp::NOT, rm8) => rm8.either("not", "notb"),
+            OneRMInst16(AnyOneRMOp::NOT, rm16) => rm16.either("not", "notw"),
+            OneRMInst32(AnyOneRMOp::NOT, rm32) => rm32.either("not", "notl"),
+            OneRMInst64(AnyOneRMOp::NOT, rm64) => rm64.either("not", "notq"),
+            OneRMInst8(AnyOneRMOp::DIV, rm8) => rm8.either("div", "divb"),
+            OneRMInst16(AnyOneRMOp::DIV, rm16) => rm16.either("div", "divw"),
+            OneRMInst32(AnyOneRMOp::DIV, rm32) => rm32.either("div", "divl"),
+            OneRMInst64(AnyOneRMOp::DIV, rm64) => rm64.either("div", "divq"),
+            OneRMInst8(AnyOneRMOp::IMUL, rm8) => rm8.either("imul", "imulb"),
+            OneRMInst16(AnyOneRMOp::IMUL, rm16) => rm16.either("imul", "imulw"),
+            OneRMInst32(AnyOneRMOp::IMUL, rm32) => rm32.either("imul", "imull"),
+            OneRMInst64(AnyOneRMOp::IMUL, rm64) => rm64.either("imul", "imulq"),
             AddMI8(rm8, _) => rm8.either("add", "addb"),
             AddMI16(rm16, _) => rm16.either("add", "addw"),
             AddMI32(rm32, _) => rm32.either("add", "addl"),
@@ -862,14 +890,6 @@ impl Inst {
             | CmpRM16(_, _)
             | CmpRM32(_, _)
             | CmpRM64(_, _) => "cmp",
-            DivM8(rm8) => rm8.either("div", "divb"),
-            DivM16(rm16) => rm16.either("div", "divw"),
-            DivM32(rm32) => rm32.either("div", "divl"),
-            DivM64(rm64) => rm64.either("div", "divq"),
-            ImulM8(rm8) => rm8.either("imul", "imulb"),
-            ImulM16(rm16) => rm16.either("imul", "imulw"),
-            ImulM32(rm32) => rm32.either("imul", "imull"),
-            ImulM64(rm64) => rm64.either("imul", "imulq"),
             ImulRM16(_, _)
             | ImulRM32(_, _)
             | ImulRM64(_, _)
@@ -951,10 +971,6 @@ impl Inst {
             | XorRM32(_, _)
             | XorRM64(_, _) => "xor",
             Scas(_, _) => "scas",
-            NotM8(rm8) => rm8.either("not", "notb"),
-            NotM16(rm16) => rm16.either("not", "notw"),
-            NotM32(rm32) => rm32.either("not", "notl"),
-            NotM64(rm64) => rm64.either("not", "notq"),
             BtMR16(_, _) => "bt",
             BtMR32(_, _) => "bt",
             BtMR64(_, _) => "bt",

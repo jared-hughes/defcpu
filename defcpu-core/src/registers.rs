@@ -545,6 +545,22 @@ impl Registers {
         self.regs[ind]
     }
 
+    pub fn get_al(&self) -> u8 {
+        self.get_reg8(&GPR8::al)
+    }
+
+    pub fn get_ax(&self) -> u16 {
+        self.get_reg16(&GPR16::ax)
+    }
+
+    pub fn get_eax(&self) -> u32 {
+        self.get_reg32(&GPR32::eax)
+    }
+
+    pub fn get_rax(&self) -> u64 {
+        self.get_reg64(&GPR64::rax)
+    }
+
     pub fn get_dx_ax(&self) -> u32 {
         (self.get_reg16(&GPR16::dx) as u32) << 16 | (self.get_reg16(&GPR16::ax) as u32)
     }
@@ -555,6 +571,10 @@ impl Registers {
 
     pub fn get_rdx_rax(&self) -> u128 {
         (self.get_reg64(&GPR64::rdx) as u128) << 64 | (self.get_reg64(&GPR64::rax) as u128)
+    }
+
+    pub fn set_ax(&mut self, val: u16) {
+        self.set_reg16(&GPR16::ax, val);
     }
 
     pub fn set_dx_ax(&mut self, val: u32) {

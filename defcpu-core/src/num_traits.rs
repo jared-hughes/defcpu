@@ -7,22 +7,21 @@ use std::ops::{
 
 use crate::num_u1::{Sign, U1};
 
-pub trait HasDoubleWidth {
-    type DoubleWidth: UNum + HasHalfWidth;
+pub trait HasDoubleWidth: Sized {
+    type DoubleWidth: UNum + HasHalfWidth<Self>;
 
     /// Send to double width, zero-extending.
-    #[allow(unused)]
     fn zero_extend_double_width(&self) -> Self::DoubleWidth;
 
     /// Send to double width, sign-extending.
     fn sign_extend_double_width(&self) -> Self::DoubleWidth;
 }
 
-pub trait HasHalfWidth {
-    type HalfWidth: UNum + HasDoubleWidth;
-
+pub trait HasHalfWidth<HalfWidth>: Sized {
     /// Discard higher bits, keeping the lower half of the bits.
-    fn truncate_to_half_width(&self) -> Self::HalfWidth;
+    fn truncate_to_half_width(&self) -> HalfWidth;
+
+    fn try_into_half_width(&self) -> Result<HalfWidth, ()>;
 }
 
 macro_rules! double_width_impl {
@@ -30,23 +29,31 @@ macro_rules! double_width_impl {
         impl HasDoubleWidth for $t {
             type DoubleWidth = $td;
 
-            fn zero_extend_double_width(&self) -> Self::DoubleWidth {
+            fn zero_extend_double_width(&self) -> $td {
                 *self as $td
             }
 
-            fn sign_extend_double_width(&self) -> Self::DoubleWidth {
+            fn sign_extend_double_width(&self) -> $td {
                 *self as $i as $td
             }
         }
-        impl HasHalfWidth for $td {
-            type HalfWidth = $t;
-
-            fn truncate_to_half_width(&self) -> Self::HalfWidth {
+        impl HasHalfWidth<$t> for $td {
+            fn truncate_to_half_width(&self) -> $t {
                 *self as $t
+            }
+
+            fn try_into_half_width(&self) -> Result<$t, ()> {
+                let x = self.truncate_to_half_width();
+                if (x as $td) == *self {
+                    Ok(x)
+                } else {
+                    Err(())
+                }
             }
         }
     };
 }
+
 double_width_impl!(u8, i8, u16);
 double_width_impl!(u16, i16, u32);
 double_width_impl!(u32, i32, u64);
@@ -150,7 +157,7 @@ impl UNum for u128 {
     const MAX: Self = Self::MAX;
 }
 
-macro_rules! overflowing_impl {
+macro_rules! builtin_method_impl {
     ($trait_name:ident, $method:ident, $t:ty) => {
         impl $trait_name for $t {
             #[inline]
@@ -170,11 +177,11 @@ pub trait OverflowingAdd: Sized + Add<Self, Output = Self> {
     fn overflowing_add(&self, rhs: &Self) -> (Self, bool);
 }
 
-overflowing_impl!(OverflowingAdd, overflowing_add, u8);
-overflowing_impl!(OverflowingAdd, overflowing_add, u16);
-overflowing_impl!(OverflowingAdd, overflowing_add, u32);
-overflowing_impl!(OverflowingAdd, overflowing_add, u64);
-overflowing_impl!(OverflowingAdd, overflowing_add, u128);
+builtin_method_impl!(OverflowingAdd, overflowing_add, u8);
+builtin_method_impl!(OverflowingAdd, overflowing_add, u16);
+builtin_method_impl!(OverflowingAdd, overflowing_add, u32);
+builtin_method_impl!(OverflowingAdd, overflowing_add, u64);
+builtin_method_impl!(OverflowingAdd, overflowing_add, u128);
 
 pub trait OverflowingSub: Sized + Sub<Self, Output = Self> {
     /// Calculates `self` - `rhs`
@@ -185,11 +192,11 @@ pub trait OverflowingSub: Sized + Sub<Self, Output = Self> {
     fn overflowing_sub(&self, rhs: &Self) -> (Self, bool);
 }
 
-overflowing_impl!(OverflowingSub, overflowing_sub, u8);
-overflowing_impl!(OverflowingSub, overflowing_sub, u16);
-overflowing_impl!(OverflowingSub, overflowing_sub, u32);
-overflowing_impl!(OverflowingSub, overflowing_sub, u64);
-overflowing_impl!(OverflowingSub, overflowing_sub, u128);
+builtin_method_impl!(OverflowingSub, overflowing_sub, u8);
+builtin_method_impl!(OverflowingSub, overflowing_sub, u16);
+builtin_method_impl!(OverflowingSub, overflowing_sub, u32);
+builtin_method_impl!(OverflowingSub, overflowing_sub, u64);
+builtin_method_impl!(OverflowingSub, overflowing_sub, u128);
 
 pub trait WideningSignedMul: HasDoubleWidth + Sized {
     /// Calculates `self` * `rhs`, with `self` and `rhs` treated as signed,

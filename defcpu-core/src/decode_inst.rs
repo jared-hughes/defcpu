@@ -1,7 +1,7 @@
 use crate::{
     errors::RResult,
     inst::{
-        rot_pair, Base32, Base64, DataSize, DisInst, EffAddr, FullInst, Group1Prefix,
+        rot_pair, AnyOneRMOp, Base32, Base64, DataSize, DisInst, EffAddr, FullInst, Group1Prefix,
         Group1PrefixExec, Index32, Index64,
         Inst::{self, *},
         JumpXor::*,
@@ -1683,17 +1683,17 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 2 => {
                     // F6 /2; NOT r/m8; Reverse each bit of r/m8.
                     let rm8 = decode_rm8(lex, &modrm)?;
-                    NotM8(rm8)
+                    OneRMInst8(AnyOneRMOp::NOT, rm8)
                 }
                 5 => {
                     // F6 /5; IMUL r/m8; AX:= AL ∗ r/m byte.
                     let rm8 = decode_rm8(lex, &modrm)?;
-                    ImulM8(rm8)
+                    OneRMInst8(AnyOneRMOp::IMUL, rm8)
                 }
                 6 => {
                     // F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
                     let rm8 = decode_rm8(lex, &modrm)?;
-                    DivM8(rm8)
+                    OneRMInst8(AnyOneRMOp::DIV, rm8)
                 }
                 _ => {
                     lex.rollback();
@@ -1703,127 +1703,76 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         }
         0xF7 => {
             let modrm = lex.next_modrm()?;
-            match modrm.reg3 {
-                2 => {
-                    // F7 /2
-                    match lex.get_operand_size() {
-                        Data16 => {
-                            // F7 /2; NOT r/m16; Reverse each bit of r/m16.
-                            let rm16 = decode_rm16(lex, &modrm)?;
-                            NotM16(rm16)
-                        }
-                        Data32 => {
-                            // F7 /2; NOT r/m32; Reverse each bit of r/m32.
-                            let rm32 = decode_rm32(lex, &modrm)?;
-                            NotM32(rm32)
-                        }
-                        Data64 => {
-                            // REX.W + F7 /2; NOT r/m64; Reverse each bit of r/m64.
-                            let rm64 = decode_rm64(lex, &modrm)?;
-                            NotM64(rm64)
-                        }
-                    }
-                }
-                5 => {
-                    // F7 /5
-                    match lex.get_operand_size() {
-                        Data16 => {
-                            // F7 /5; IMUL r/m16; DX:AX := AX ∗ r/m word.
-                            let rm16 = decode_rm16(lex, &modrm)?;
-                            ImulM16(rm16)
-                        }
-                        Data32 => {
-                            // F7 /5; IMUL r/m32; EDX:EAX := EAX ∗ r/m32.
-                            let rm32 = decode_rm32(lex, &modrm)?;
-                            ImulM32(rm32)
-                        }
-                        Data64 => {
-                            // REX.W + F7 /5; IMUL r/m64; RDX:RAX := RAX ∗ r/m64.
-                            let rm64 = decode_rm64(lex, &modrm)?;
-                            ImulM64(rm64)
-                        }
-                    }
-                }
-                6 => {
-                    // F7 /6
-                    match lex.get_operand_size() {
-                        Data16 => {
-                            // F7 /6; DIV r/m16; Unsigned divide DX:AX by r/m16, with result stored in AX := Quotient, DX := Remainder.
-                            let rm16 = decode_rm16(lex, &modrm)?;
-                            DivM16(rm16)
-                        }
-                        Data32 => {
-                            // F7 /6; DIV r/m32; Unsigned divide EDX:EAX by r/m32, with result stored in EAX := Quotient, EDX := Remainder.
-                            let rm32 = decode_rm32(lex, &modrm)?;
-                            DivM32(rm32)
-                        }
-                        Data64 => {
-                            // REX.W + F7 /6; DIV r/m64; Unsigned divide RDX:RAX by r/m64, with result stored in RAX := Quotient, RDX := Remainder.
-                            let rm64 = decode_rm64(lex, &modrm)?;
-                            DivM64(rm64)
-                        }
-                    }
-                }
+            let op = match modrm.reg3 {
+                // F7 /2
+                2 => AnyOneRMOp::NOT,
+                // F7 /5
+                5 => AnyOneRMOp::IMUL,
+                // F7 /6
+                6 => AnyOneRMOp::DIV,
                 _ => {
                     lex.rollback();
-                    NotImplementedOpext(opcode, modrm.reg3)
+                    return Ok(NotImplementedOpext(opcode, modrm.reg3));
+                }
+            };
+            match lex.get_operand_size() {
+                Data16 => {
+                    let rm16 = decode_rm16(lex, &modrm)?;
+                    OneRMInst16(op, rm16)
+                }
+                Data32 => {
+                    let rm32 = decode_rm32(lex, &modrm)?;
+                    OneRMInst32(op, rm32)
+                }
+                Data64 => {
+                    let rm64 = decode_rm64(lex, &modrm)?;
+                    OneRMInst64(op, rm64)
                 }
             }
         }
         0xFE => {
             let modrm = lex.next_modrm()?;
-            match modrm.reg3 {
-                0 | 1 => {
-                    // FE /0; INC r/m8; Increment r/m byte by 1.
-                    // FE /1; DEC r/m8; Decrement r/m byte by 1.
-                    let rm8 = decode_rm8(lex, &modrm)?;
-                    match modrm.reg3 {
-                        0 => IncM8(rm8),
-                        1 => DecM8(rm8),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
+            let op = match modrm.reg3 {
+                // FE /0
+                0 => AnyOneRMOp::INC,
+                // FE /1
+                1 => AnyOneRMOp::DEC,
                 _ => {
                     lex.rollback();
-                    NotImplementedOpext(opcode, modrm.reg3)
+                    return Ok(NotImplementedOpext(opcode, modrm.reg3));
                 }
-            }
+            };
+            let rm8 = decode_rm8(lex, &modrm)?;
+            OneRMInst8(op, rm8)
         }
         0xFF => {
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
                 0 | 1 => {
+                    let op = match modrm.reg3 {
+                        0 => AnyOneRMOp::INC,
+                        1 => AnyOneRMOp::DEC,
+                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    };
                     // FF /0, FF /1
                     match lex.get_operand_size() {
                         Data16 => {
                             // FF /0; INC r/m16; Increment r/m word by 1.
                             // FF /1; DEC r/m16; Decrement r/m word by 1.
                             let rm16 = decode_rm16(lex, &modrm)?;
-                            match modrm.reg3 {
-                                0 => IncM16(rm16),
-                                1 => DecM16(rm16),
-                                _ => panic!("Missing match arm in decode_inst_inner."),
-                            }
+                            OneRMInst16(op, rm16)
                         }
                         Data32 => {
                             // FF /0; INC r/m32; Increment r/m doubleword by 1.
                             // FF /1; DEC r/m32; Decrement r/m doubleword by 1.
                             let rm32 = decode_rm32(lex, &modrm)?;
-                            match modrm.reg3 {
-                                0 => IncM32(rm32),
-                                1 => DecM32(rm32),
-                                _ => panic!("Missing match arm in decode_inst_inner."),
-                            }
+                            OneRMInst32(op, rm32)
                         }
                         Data64 => {
                             // REX.W + FF /0; INC r/m64; Increment r/m quadword by 1.
                             // REX.W + FF /1; DEC r/m64; Decrement r/m quadword by 1.
                             let rm64 = decode_rm64(lex, &modrm)?;
-                            match modrm.reg3 {
-                                0 => IncM64(rm64),
-                                1 => DecM64(rm64),
-                                _ => panic!("Missing match arm in decode_inst_inner."),
-                            }
+                            OneRMInst64(op, rm64)
                         }
                     }
                 }

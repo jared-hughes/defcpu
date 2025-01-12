@@ -1,4 +1,5 @@
-use crate::num_traits::UNum;
+use crate::inst::{AnyOneRMOp, PlainOneOp, ShrinkOp, WidenOp};
+use crate::num_traits::{HasHalfWidth, UNum, UNum8To64};
 use crate::{
     decode_inst::decode_inst,
     errors::{RResult, Rerr},
@@ -203,44 +204,24 @@ impl Machine {
             Inst::Hlt => {
                 Err(Rerr::Hlt)?;
             }
-            Inst::IncM8(rm8) => {
+            Inst::OneRMInst8(AnyOneRMOp::Plain(op), rm8) => {
                 let old = self.get_rm8(rm8)?;
-                let new = self.regs.flags.add(old, 1, false);
+                let new = self.compute_result_onerm(op, old)?;
                 self.set_rm8(rm8, new)?;
             }
-            Inst::IncM16(rm16) => {
+            Inst::OneRMInst16(AnyOneRMOp::Plain(op), rm16) => {
                 let old = self.get_rm16(rm16)?;
-                let new = self.regs.flags.add(old, 1, false);
+                let new = self.compute_result_onerm(op, old)?;
                 self.set_rm16(rm16, new)?;
             }
-            Inst::IncM32(rm32) => {
+            Inst::OneRMInst32(AnyOneRMOp::Plain(op), rm32) => {
                 let old = self.get_rm32(rm32)?;
-                let new = self.regs.flags.add(old, 1, false);
+                let new = self.compute_result_onerm(op, old)?;
                 self.set_rm32(rm32, new)?;
             }
-            Inst::IncM64(rm64) => {
+            Inst::OneRMInst64(AnyOneRMOp::Plain(op), rm64) => {
                 let old = self.get_rm64(rm64)?;
-                let new = self.regs.flags.add(old, 1, false);
-                self.set_rm64(rm64, new)?;
-            }
-            Inst::DecM8(rm8) => {
-                let old = self.get_rm8(rm8)?;
-                let new = self.regs.flags.sub(old, 1, false);
-                self.set_rm8(rm8, new)?;
-            }
-            Inst::DecM16(rm16) => {
-                let old = self.get_rm16(rm16)?;
-                let new = self.regs.flags.sub(old, 1, false);
-                self.set_rm16(rm16, new)?;
-            }
-            Inst::DecM32(rm32) => {
-                let old = self.get_rm32(rm32)?;
-                let new = self.regs.flags.sub(old, 1, false);
-                self.set_rm32(rm32, new)?;
-            }
-            Inst::DecM64(rm64) => {
-                let old = self.get_rm64(rm64)?;
-                let new = self.regs.flags.sub(old, 1, false);
+                let new = self.compute_result_onerm(op, old)?;
                 self.set_rm64(rm64, new)?;
             }
             Inst::AddMI8(rm8, imm8) => {
@@ -607,106 +588,61 @@ impl Machine {
                 let val = self.get_rm64(rm64)?;
                 self.regs.flags.cf = 1 == (val >> bit_ind) & 1
             }
-            Inst::DivM8(rm8) => {
-                let dividend = self.regs.get_reg16(&GPR16::ax);
-                let divisor = self.get_rm8(rm8)? as u16;
-                if divisor == 0 {
-                    Err(Rerr::DivideError)?;
-                }
-                self.regs.flags.div_flags();
-                let quotient = dividend.div_euclid(divisor);
-                let remainder = dividend.rem_euclid(divisor);
-                self.regs.set_reg8(
-                    &GPR8::al,
-                    // TODO: Verify try_into actually does what I expect
-                    // (gives None if the quotient exceeds u8::MAX).
-                    quotient.try_into().map_err(|_| Rerr::DivideError)?,
-                );
-                self.regs.set_reg8(&GPR8::ah, remainder as u8);
+            Inst::OneRMInst8(AnyOneRMOp::Shrink(op), rm8) => {
+                let dividend = self.regs.get_ax();
+                let divisor = self.get_rm8(rm8)?;
+                let (quotient, remainder) =
+                    self.compute_result_shrink_onerm(op, dividend, divisor)?;
+                self.regs.set_reg8(&GPR8::al, quotient);
+                self.regs.set_reg8(&GPR8::ah, remainder);
             }
-            Inst::DivM16(rm16) => {
+            Inst::OneRMInst16(AnyOneRMOp::Shrink(op), rm16) => {
                 let dividend = self.regs.get_dx_ax();
-                let divisor = self.get_rm16(rm16)? as u32;
-                if divisor == 0 {
-                    Err(Rerr::DivideError)?;
-                }
-                self.regs.flags.div_flags();
-                let quotient = dividend.div_euclid(divisor);
-                let remainder = dividend.rem_euclid(divisor);
-                self.regs.set_reg16(
-                    &GPR16::ax,
-                    quotient.try_into().map_err(|_| Rerr::DivideError)?,
-                );
-                self.regs.set_reg16(&GPR16::dx, remainder as u16);
+                let divisor = self.get_rm16(rm16)?;
+                let (quotient, remainder) =
+                    self.compute_result_shrink_onerm(op, dividend, divisor)?;
+                self.regs.set_reg16(&GPR16::ax, quotient);
+                self.regs.set_reg16(&GPR16::dx, remainder);
             }
-            Inst::DivM32(rm32) => {
+            Inst::OneRMInst32(AnyOneRMOp::Shrink(op), rm32) => {
                 let dividend = self.regs.get_edx_eax();
-                let divisor = self.get_rm32(rm32)? as u64;
-                if divisor == 0 {
-                    Err(Rerr::DivideError)?;
-                }
-                self.regs.flags.div_flags();
-                let quotient = dividend.div_euclid(divisor);
-                let remainder = dividend.rem_euclid(divisor);
-                self.regs.set_reg32(
-                    &GPR32::eax,
-                    quotient.try_into().map_err(|_| Rerr::DivideError)?,
-                );
-                self.regs.set_reg32(&GPR32::edx, remainder as u32);
+                let divisor = self.get_rm32(rm32)?;
+                let (quotient, remainder) =
+                    self.compute_result_shrink_onerm(op, dividend, divisor)?;
+                self.regs.set_reg32(&GPR32::eax, quotient);
+                self.regs.set_reg32(&GPR32::edx, remainder);
             }
-            Inst::DivM64(rm64) => {
+            Inst::OneRMInst64(AnyOneRMOp::Shrink(op), rm64) => {
                 let dividend = self.regs.get_rdx_rax();
-                let divisor = self.get_rm64(rm64)? as u128;
-                if divisor == 0 {
-                    Err(Rerr::DivideError)?;
-                }
-                self.regs.flags.div_flags();
-                let quotient = dividend.div_euclid(divisor);
-                let remainder = dividend.rem_euclid(divisor);
-                self.regs.set_reg64(
-                    &GPR64::rax,
-                    quotient.try_into().map_err(|_| Rerr::DivideError)?,
-                );
-                self.regs.set_reg64(&GPR64::rdx, remainder as u64);
+                let divisor = self.get_rm64(rm64)?;
+                let (quotient, remainder) =
+                    self.compute_result_shrink_onerm(op, dividend, divisor)?;
+                self.regs.set_reg64(&GPR64::rax, quotient);
+                self.regs.set_reg64(&GPR64::rdx, remainder);
             }
-            Inst::NotM8(rm8) => {
-                let val = self.get_rm8(rm8)?;
-                self.set_rm8(rm8, !val)?;
-            }
-            Inst::NotM16(rm16) => {
-                let val = self.get_rm16(rm16)?;
-                self.set_rm16(rm16, !val)?;
-            }
-            Inst::NotM32(rm32) => {
-                let val = self.get_rm32(rm32)?;
-                self.set_rm32(rm32, !val)?;
-            }
-            Inst::NotM64(rm64) => {
-                let val = self.get_rm64(rm64)?;
-                self.set_rm64(rm64, !val)?;
-            }
-            Inst::ImulM8(rm8) => {
-                let x = self.regs.get_reg8(&GPR8::al);
+            // ==============================================================
+            Inst::OneRMInst8(AnyOneRMOp::Widen(op), rm8) => {
+                let x = self.regs.get_al();
                 let y = self.get_rm8(rm8)?;
-                let prod = self.regs.flags.imul(x, y);
-                self.regs.set_reg16(&GPR16::ax, prod);
+                let prod = self.compute_result_widen_onerm(op, x, y)?;
+                self.regs.set_ax(prod);
             }
-            Inst::ImulM16(rm16) => {
-                let x = self.regs.get_reg16(&GPR16::ax);
+            Inst::OneRMInst16(AnyOneRMOp::Widen(op), rm16) => {
+                let x = self.regs.get_ax();
                 let y = self.get_rm16(rm16)?;
-                let prod = self.regs.flags.imul(x, y);
+                let prod = self.compute_result_widen_onerm(op, x, y)?;
                 self.regs.set_dx_ax(prod);
             }
-            Inst::ImulM32(rm32) => {
-                let x = self.regs.get_reg32(&GPR32::eax);
+            Inst::OneRMInst32(AnyOneRMOp::Widen(op), rm32) => {
+                let x = self.regs.get_eax();
                 let y = self.get_rm32(rm32)?;
-                let prod = self.regs.flags.imul(x, y);
+                let prod = self.compute_result_widen_onerm(op, x, y)?;
                 self.regs.set_edx_eax(prod);
             }
-            Inst::ImulM64(rm64) => {
-                let x = self.regs.get_reg64(&GPR64::rax);
+            Inst::OneRMInst64(AnyOneRMOp::Widen(op), rm64) => {
+                let x = self.regs.get_rax();
                 let y = self.get_rm64(rm64)?;
-                let prod = self.regs.flags.imul(x, y);
+                let prod = self.compute_result_widen_onerm(op, x, y)?;
                 self.regs.set_rdx_rax(prod);
             }
             Inst::ImulRM16(gpr16, rm16) => {
@@ -922,6 +858,48 @@ impl Machine {
             }
         }
         Ok(())
+    }
+
+    fn compute_result_onerm<U: UNum>(&mut self, inst: &PlainOneOp, x: U) -> RResult<U> {
+        Ok(match inst {
+            PlainOneOp::Inc => self.regs.flags.add(x, 1.into(), false),
+            PlainOneOp::Dec => self.regs.flags.sub(x, 1.into(), false),
+            PlainOneOp::Not => !x,
+        })
+    }
+
+    fn compute_result_shrink_onerm<U: UNum8To64>(
+        &mut self,
+        inst: &ShrinkOp,
+        dividend: U::DoubleWidth,
+        divisor: U,
+    ) -> RResult<(U, U)> {
+        Ok(match inst {
+            ShrinkOp::Div => {
+                if divisor == 0.into() {
+                    Err(Rerr::DivideError)?;
+                }
+                self.regs.flags.div_flags();
+                let quotient = dividend / divisor.zero_extend_double_width();
+                let remainder = dividend % divisor.zero_extend_double_width();
+                // let quotient_u: U
+                let quotient_u = quotient
+                    .try_into_half_width()
+                    .map_err(|_| Rerr::DivideError)?;
+                (quotient_u, remainder.truncate_to_half_width())
+            }
+        })
+    }
+
+    fn compute_result_widen_onerm<U: UNum8To64>(
+        &mut self,
+        inst: &WidenOp,
+        x: U,
+        y: U,
+    ) -> RResult<U::DoubleWidth> {
+        Ok(match inst {
+            WidenOp::Imul => self.regs.flags.imul(x, y),
+        })
     }
 
     fn pop_16(&mut self) -> RResult<u16> {
