@@ -309,41 +309,47 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 _ => panic!("Missing match arm in decode_inst_inner."),
             }
         }
-        0x01 | 0x03 => {
+        0x01 | 0x03 | 0x21 | 0x23 | 0x29 | 0x2B | 0x31 | 0x33 | 0x39 | 0x3B | 0x89 | 0x8B => {
             let modrm = lex.next_modrm()?;
             let rex_r = lex.get_rex_r_matters();
+            let (op, reverse) = match opcode {
+                0x01 => (AnyTwoMROp::ADD, false),
+                0x03 => (AnyTwoMROp::ADD, true),
+                0x21 => (AnyTwoMROp::AND, false),
+                0x23 => (AnyTwoMROp::AND, true),
+                0x29 => (AnyTwoMROp::SUB, false),
+                0x2B => (AnyTwoMROp::SUB, true),
+                0x31 => (AnyTwoMROp::XOR, false),
+                0x33 => (AnyTwoMROp::XOR, true),
+                0x39 => (AnyTwoMROp::CMP, false),
+                0x3B => (AnyTwoMROp::CMP, true),
+                0x89 => (AnyTwoMROp::MOV, false),
+                0x8B => (AnyTwoMROp::MOV, true),
+                _ => unreachable!(),
+            };
             match lex.get_operand_size() {
                 Data16 => {
-                    // 01 /r; ADD r/m16, r16; Add r16 to r/m16.
-                    // 03 /r; ADD r16, r/m16; Add r/m16 to r16.
                     let reg = reg16_field_select(modrm.reg3, rex_r);
                     let rm16 = decode_rm16(lex, &modrm)?;
-                    match opcode {
-                        0x01 => TwoMRInst16(AnyTwoMROp::ADD, rm16, reg),
-                        0x03 => TwoRMInst16(AnyTwoMROp::ADD, reg, rm16),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    match reverse {
+                        false => TwoMRInst16(op, rm16, reg),
+                        true => TwoRMInst16(op, reg, rm16),
                     }
                 }
                 Data32 => {
-                    // 01 /r; ADD r/m32, r32; Add r32 to r/m32.
-                    // 03 /r; ADD r32, r/m32; Add r/m32 to r32.
                     let reg = reg32_field_select(modrm.reg3, rex_r);
                     let rm32 = decode_rm32(lex, &modrm)?;
-                    match opcode {
-                        0x01 => TwoMRInst32(AnyTwoMROp::ADD, rm32, reg),
-                        0x03 => TwoRMInst32(AnyTwoMROp::ADD, reg, rm32),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    match reverse {
+                        false => TwoMRInst32(op, rm32, reg),
+                        true => TwoRMInst32(op, reg, rm32),
                     }
                 }
                 Data64 => {
-                    // REX.W + 01 /r; ADD r/m64, r64; Add r64 to r/m64.
-                    // REX.W + 03 /r; ADD r64, r/m64; Add r/m64 to r64.
                     let reg = reg64_field_select(modrm.reg3, rex_r);
                     let rm64 = decode_rm64(lex, &modrm)?;
-                    match opcode {
-                        0x01 => TwoMRInst64(AnyTwoMROp::ADD, rm64, reg),
-                        0x03 => TwoRMInst64(AnyTwoMROp::ADD, reg, rm64),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
+                    match reverse {
+                        false => TwoMRInst64(op, rm64, reg),
+                        true => TwoRMInst64(op, reg, rm64),
                     }
                 }
             }
@@ -380,45 +386,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 0x20 => TwoMRInst8(AnyTwoMROp::AND, rm8, reg),
                 0x22 => TwoRMInst8(AnyTwoMROp::AND, reg, rm8),
                 _ => panic!("Missing match arm in decode_inst_inner."),
-            }
-        }
-        0x21 | 0x23 => {
-            let modrm = lex.next_modrm()?;
-            let rex_r = lex.get_rex_r_matters();
-            match lex.get_operand_size() {
-                Data16 => {
-                    // 21 /r; AND r/m16, r16; r/m16 AND r16.
-                    // 23 /r; AND r16, r/m16; r16 AND r/m16.
-                    let reg = reg16_field_select(modrm.reg3, rex_r);
-                    let rm16 = decode_rm16(lex, &modrm)?;
-                    match opcode {
-                        0x21 => TwoMRInst16(AnyTwoMROp::AND, rm16, reg),
-                        0x23 => TwoRMInst16(AnyTwoMROp::AND, reg, rm16),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-                Data32 => {
-                    // 21 /r; AND r/m32, r32; r/m32 AND r32.
-                    // 23 /r; AND r32, r/m32; r32 AND r/m32.
-                    let reg = reg32_field_select(modrm.reg3, rex_r);
-                    let rm32 = decode_rm32(lex, &modrm)?;
-                    match opcode {
-                        0x21 => TwoMRInst32(AnyTwoMROp::AND, rm32, reg),
-                        0x23 => TwoRMInst32(AnyTwoMROp::AND, reg, rm32),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-                Data64 => {
-                    // REX.W + 21 /r; AND r/m64, r64; r/m64 AND r32.
-                    // REX.W + 23 /r; AND r64, r/m64; r64 AND r/m64.
-                    let reg = reg64_field_select(modrm.reg3, rex_r);
-                    let rm64 = decode_rm64(lex, &modrm)?;
-                    match opcode {
-                        0x21 => TwoMRInst64(AnyTwoMROp::AND, rm64, reg),
-                        0x23 => TwoRMInst64(AnyTwoMROp::AND, reg, rm64),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
             }
         }
         0x24 => {
@@ -582,45 +549,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 _ => panic!("Missing match arm in decode_inst_inner."),
             }
         }
-        0x29 | 0x2B => {
-            let modrm = lex.next_modrm()?;
-            let rex_r = lex.get_rex_r_matters();
-            match lex.get_operand_size() {
-                Data16 => {
-                    // 29 /r; SUB r/m16, r16; Subtract r16 from r/m16.
-                    // 2B /r; SUB r16, r/m16; Subtract r/m16 from r16.
-                    let reg = reg16_field_select(modrm.reg3, rex_r);
-                    let rm16 = decode_rm16(lex, &modrm)?;
-                    match opcode {
-                        0x29 => TwoMRInst16(AnyTwoMROp::SUB, rm16, reg),
-                        0x2B => TwoRMInst16(AnyTwoMROp::SUB, reg, rm16),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-                Data32 => {
-                    // 29 /r; SUB r/m32, r32; Subtract r32 from r/m32.
-                    // 2B /r; SUB r32, r/m32; Subtract r/m32 from r32.
-                    let reg = reg32_field_select(modrm.reg3, rex_r);
-                    let rm32 = decode_rm32(lex, &modrm)?;
-                    match opcode {
-                        0x29 => TwoMRInst32(AnyTwoMROp::SUB, rm32, reg),
-                        0x2B => TwoRMInst32(AnyTwoMROp::SUB, reg, rm32),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-                Data64 => {
-                    // REX.W + 29 /r; SUB r/m64, r64; Subtract r64 from r/m64.
-                    // REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
-                    let reg = reg64_field_select(modrm.reg3, rex_r);
-                    let rm64 = decode_rm64(lex, &modrm)?;
-                    match opcode {
-                        0x29 => TwoMRInst64(AnyTwoMROp::SUB, rm64, reg),
-                        0x2B => TwoRMInst64(AnyTwoMROp::SUB, reg, rm64),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-            }
-        }
         0x2C => {
             // 2C ib; SUB AL, imm8; Subtract imm8 from AL.
             let imm8 = lex.next_imm8()?;
@@ -701,57 +629,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 0x38 => TwoMRInst8(AnyTwoMROp::CMP, rm8, reg),
                 0x3A => TwoRMInst8(AnyTwoMROp::CMP, reg, rm8),
                 _ => panic!("Missing match arm in decode_inst_inner."),
-            }
-        }
-        0x31 | 0x33 | 0x39 | 0x3B => {
-            let modrm = lex.next_modrm()?;
-            let rex_r = lex.get_rex_r_matters();
-            match lex.get_operand_size() {
-                Data16 => {
-                    // 31 /r; XOR r/m16, r16; r/m16 XOR r16.
-                    // 33 /r; XOR r16, r/m16; r16 XOR r/m16.
-                    // 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
-                    // 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
-                    let reg = reg16_field_select(modrm.reg3, rex_r);
-                    let rm16 = decode_rm16(lex, &modrm)?;
-                    match opcode {
-                        0x31 => TwoMRInst16(AnyTwoMROp::XOR, rm16, reg),
-                        0x33 => TwoRMInst16(AnyTwoMROp::XOR, reg, rm16),
-                        0x39 => TwoMRInst16(AnyTwoMROp::CMP, rm16, reg),
-                        0x3B => TwoRMInst16(AnyTwoMROp::CMP, reg, rm16),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-                Data32 => {
-                    // 31 /r; XOR r/m32, r32; r/m32 XOR r32.
-                    // 33 /r; XOR r32, r/m32; r32 XOR r/m32.
-                    // 39 /r; CMP r/m32, r32; Compare r32 with r/m32.
-                    // 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
-                    let reg = reg32_field_select(modrm.reg3, rex_r);
-                    let rm32 = decode_rm32(lex, &modrm)?;
-                    match opcode {
-                        0x31 => TwoMRInst32(AnyTwoMROp::XOR, rm32, reg),
-                        0x33 => TwoRMInst32(AnyTwoMROp::XOR, reg, rm32),
-                        0x39 => TwoMRInst32(AnyTwoMROp::CMP, rm32, reg),
-                        0x3B => TwoRMInst32(AnyTwoMROp::CMP, reg, rm32),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-                Data64 => {
-                    // REX.W + 31 /r; XOR r/m64, r64; r/m64 XOR r64.
-                    // REX.W + 33 /r; XOR r64, r/m64; r64 XOR r/m64.
-                    // REX.W + 39 /r; CMP r/m64, r64; Compare r64 with r/m64.
-                    // REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
-                    let reg = reg64_field_select(modrm.reg3, rex_r);
-                    let rm64 = decode_rm64(lex, &modrm)?;
-                    match opcode {
-                        0x31 => TwoMRInst64(AnyTwoMROp::XOR, rm64, reg),
-                        0x33 => TwoRMInst64(AnyTwoMROp::XOR, reg, rm64),
-                        0x39 => TwoMRInst64(AnyTwoMROp::CMP, rm64, reg),
-                        0x3B => TwoRMInst64(AnyTwoMROp::CMP, reg, rm64),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
             }
         }
         0x50..=0x57 => {
@@ -1259,45 +1136,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 0x88 => TwoMRInst8(AnyTwoMROp::MOV, rm8, reg),
                 0x8A => TwoRMInst8(AnyTwoMROp::MOV, reg, rm8),
                 _ => panic!("Missing match arm in decode_inst_inner."),
-            }
-        }
-        0x89 | 0x8B => {
-            let modrm = lex.next_modrm()?;
-            let rex_r = lex.get_rex_r_matters();
-            match lex.get_operand_size() {
-                Data16 => {
-                    // 8B /r; MOV r16, r/m16; Move r/m16 to r16.
-                    // 89 /r; MOV r/m16, r16; Move r16 to r/m16.
-                    let reg = reg16_field_select(modrm.reg3, rex_r);
-                    let rm16 = decode_rm16(lex, &modrm)?;
-                    match opcode {
-                        0x89 => TwoMRInst16(AnyTwoMROp::MOV, rm16, reg),
-                        0x8B => TwoRMInst16(AnyTwoMROp::MOV, reg, rm16),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-                Data32 => {
-                    // 8B /r; MOV r32, r/m32; Move r/m32 to r32.
-                    // 89 /r; MOV r/m32, r32; Move r32 to r/m32.
-                    let reg = reg32_field_select(modrm.reg3, rex_r);
-                    let rm32 = decode_rm32(lex, &modrm)?;
-                    match opcode {
-                        0x89 => TwoMRInst32(AnyTwoMROp::MOV, rm32, reg),
-                        0x8B => TwoRMInst32(AnyTwoMROp::MOV, reg, rm32),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
-                Data64 => {
-                    // REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
-                    // REX.W + 89 /r; MOV r/m64, r64; Move r64 to r/m64.
-                    let reg = reg64_field_select(modrm.reg3, rex_r);
-                    let rm64 = decode_rm64(lex, &modrm)?;
-                    match opcode {
-                        0x89 => TwoMRInst64(AnyTwoMROp::MOV, rm64, reg),
-                        0x8B => TwoRMInst64(AnyTwoMROp::MOV, reg, rm64),
-                        _ => panic!("Missing match arm in decode_inst_inner."),
-                    }
-                }
             }
         }
         0x8d => {

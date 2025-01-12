@@ -151,15 +151,6 @@ impl AnyOneRMOp {
 /// An operation that takes a U and a U and returns a U, putting the result in Dest.
 #[derive(PartialEq, Eq)]
 pub enum DestMROp {
-    /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
-    /// 89 /r; MOV r/m16, r16; Move r16 to r/m16.
-    /// 89 /r; MOV r/m32, r32; Move r32 to r/m32.
-    /// REX.W + 89 /r; MOV r/m64, r64; Move r64 to r/m64.
-    /// 8A /r; MOV r8, r/m8; Move r/m8 to r8.
-    /// 8B /r; MOV r16, r/m16; Move r/m16 to r16.
-    /// 8B /r; MOV r32, r/m32; Move r/m32 to r32.
-    /// REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
-    Mov,
     /// 00 /r; ADD r/m8, r8; Add r8 to r/m8.
     /// 01 /r; ADD r/m16, r16; Add r16 to r/m16.
     /// 01 /r; ADD r/m32, r32; Add r32 to r/m32.
@@ -169,24 +160,6 @@ pub enum DestMROp {
     /// 03 /r; ADD r32, r/m32; Add r/m32 to r32.
     /// REX.W + 03 /r; ADD r64, r/m64; Add r/m64 to r64.
     Add,
-    /// 28 /r; SUB r/m8, r8; Subtract r8 from r/m8.
-    /// 29 /r; SUB r/m16, r16; Subtract r16 from r/m16.
-    /// 29 /r; SUB r/m32, r32; Subtract r32 from r/m32.
-    /// REX.W + 29 /r; SUB r/m64, r64; Subtract r64 from r/m64.
-    /// 2A /r; SUB r8, r/m8; Subtract r/m8 from r8.
-    /// 2B /r; SUB r16, r/m16; Subtract r/m16 from r16.
-    /// 2B /r; SUB r32, r/m32; Subtract r/m32 from r32.
-    /// REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
-    Sub,
-    /// 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
-    /// 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
-    /// 39 /r; CMP r/m32, r32; Compare r32 with r/m32.
-    /// REX.W + 39 /r; CMP r/m64, r64; Compare r64 with r/m64.
-    /// 3A /r; CMP r8, r/m8; Compare r/m8 with r8.
-    /// 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
-    /// 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
-    /// REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
-    Cmp,
     /// 20 /r; AND r/m8, r8; r/m8 AND r8.
     /// 21 /r; AND r/m16, r16; r/m16 AND r16.
     /// 21 /r; AND r/m32, r32; r/m32 AND r32.
@@ -197,6 +170,15 @@ pub enum DestMROp {
     /// REX.W + 23 /r; AND r64, r/m64; r64 AND r/m64.
     /// 2C ib; SUB AL, imm8; Subtract imm8 from AL.
     And,
+    /// 28 /r; SUB r/m8, r8; Subtract r8 from r/m8.
+    /// 29 /r; SUB r/m16, r16; Subtract r16 from r/m16.
+    /// 29 /r; SUB r/m32, r32; Subtract r32 from r/m32.
+    /// REX.W + 29 /r; SUB r/m64, r64; Subtract r64 from r/m64.
+    /// 2A /r; SUB r8, r/m8; Subtract r/m8 from r8.
+    /// 2B /r; SUB r16, r/m16; Subtract r/m16 from r16.
+    /// 2B /r; SUB r32, r/m32; Subtract r/m32 from r32.
+    /// REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
+    Sub,
     /// 30 /r; XOR r/m8, r8; r/m8 XOR r8.
     /// 31 /r; XOR r/m16, r16; r/m16 XOR r16.
     /// 31 /r; XOR r/m32, r32; r/m32 XOR r32.
@@ -206,6 +188,24 @@ pub enum DestMROp {
     /// 33 /r; XOR r32, r/m32; r32 XOR r/m32.
     /// REX.W + 33 /r; XOR r64, r/m64; r64 XOR r/m64.
     Xor,
+    /// 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
+    /// 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
+    /// 39 /r; CMP r/m32, r32; Compare r32 with r/m32.
+    /// REX.W + 39 /r; CMP r/m64, r64; Compare r64 with r/m64.
+    /// 3A /r; CMP r8, r/m8; Compare r/m8 with r8.
+    /// 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
+    /// 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
+    /// REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
+    Cmp,
+    /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
+    /// 89 /r; MOV r/m16, r16; Move r16 to r/m16.
+    /// 89 /r; MOV r/m32, r32; Move r32 to r/m32.
+    /// REX.W + 89 /r; MOV r/m64, r64; Move r64 to r/m64.
+    /// 8A /r; MOV r8, r/m8; Move r/m8 to r8.
+    /// 8B /r; MOV r16, r/m16; Move r/m16 to r16.
+    /// 8B /r; MOV r32, r/m32; Move r/m32 to r32.
+    /// REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
+    Mov,
 }
 
 #[derive(PartialEq, Eq)]
@@ -213,12 +213,12 @@ pub enum AnyTwoMROp {
     Dest(DestMROp),
 }
 impl AnyTwoMROp {
-    pub(crate) const MOV: Self = Self::Dest(DestMROp::Mov);
     pub(crate) const ADD: Self = Self::Dest(DestMROp::Add);
-    pub(crate) const SUB: Self = Self::Dest(DestMROp::Sub);
-    pub(crate) const CMP: Self = Self::Dest(DestMROp::Cmp);
     pub(crate) const AND: Self = Self::Dest(DestMROp::And);
+    pub(crate) const SUB: Self = Self::Dest(DestMROp::Sub);
     pub(crate) const XOR: Self = Self::Dest(DestMROp::Xor);
+    pub(crate) const CMP: Self = Self::Dest(DestMROp::Cmp);
+    pub(crate) const MOV: Self = Self::Dest(DestMROp::Mov);
 }
 
 use Inst::*;
