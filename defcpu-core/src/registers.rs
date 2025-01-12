@@ -1,4 +1,10 @@
-use std::{fmt, ops::BitXor};
+use std::fmt;
+
+use crate::{
+    inst::{RotDir, RotType},
+    num_traits::{HasHalfWidth, UNum, UNum8To64},
+    num_u1::Sign::{Neg, Pos},
+};
 
 #[derive(Clone, Copy)]
 pub enum ABCDReg {
@@ -19,8 +25,6 @@ impl ABCDReg {
 }
 
 use QReg::*;
-
-use crate::inst::{RotDir, RotType};
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum QReg {
     Rax,
@@ -316,13 +320,13 @@ impl Flags {
     /// Set the lower 16 bits of RFLAGS.
     pub(crate) fn set_rflags16(&mut self, val: u16) {
         // TODO: check out the bits other than the 7 flags we treat special
-        self.cf = val & 1 == 1;
-        self.pf = val >> 2 & 1 == 1;
-        self.af = val >> 4 & 1 == 1;
-        self.zf = val >> 6 & 1 == 1;
-        self.sf = val >> 7 & 1 == 1;
-        self.df = val >> 10 & 1 == 1;
-        self.of = val >> 11 & 1 == 1;
+        self.cf = val.bit(0).into();
+        self.pf = val.bit(2).into();
+        self.af = val.bit(4).into();
+        self.zf = val.bit(6).into();
+        self.sf = val.bit(7).into();
+        self.df = val.bit(10).into();
+        self.of = val.bit(11).into();
     }
 
     pub(crate) fn set_rflags64(&mut self, val: u64) {
@@ -330,77 +334,30 @@ impl Flags {
         self.set_rflags16(val as u16);
     }
 
-    fn result_flags_8(&mut self, result: u8) {
-        self.pf = result.count_ones() % 2 == 0;
-        self.zf = result == 0;
-        let bm1 = u8::BITS - 1;
-        self.sf = result >> bm1 & 1 == 1;
+    fn result_flags<U: UNum>(&mut self, result: U) {
+        self.pf = result.as_u8().count_ones() % 2 == 0;
+        self.zf = result == 0.into();
+        self.sf = result.msb_bit().into();
     }
 
-    fn result_flags_16(&mut self, result: u16) {
-        self.pf = (result as u8).count_ones() % 2 == 0;
-        self.zf = result == 0;
-        let bm1 = u16::BITS - 1;
-        self.sf = result >> bm1 & 1 == 1;
-    }
-
-    fn result_flags_32(&mut self, result: u32) {
-        self.pf = (result as u8).count_ones() % 2 == 0;
-        self.zf = result == 0;
-        let bm1 = u32::BITS - 1;
-        self.sf = result >> bm1 & 1 == 1;
-    }
-
-    fn result_flags_64(&mut self, result: u64) {
-        self.pf = (result as u8).count_ones() % 2 == 0;
-        self.zf = result == 0;
-        let bm1 = u64::BITS - 1;
-        self.sf = result >> bm1 & 1 == 1;
-    }
-
-    fn and_flags(&mut self) {
+    /// Bitwise AND two numbers, update flags, and return the result.
+    pub(crate) fn and<U: UNum>(&mut self, x: U, y: U) -> U {
+        let result = x & y;
+        self.result_flags(result);
         self.cf = false;
         self.of = false;
         // Behavior of AF is undefined, following code.golf CPU.
         self.af = false;
-    }
-
-    /// Bitwise AND two numbers, update flags, and return the result.
-    pub(crate) fn and_8(&mut self, x: u8, y: u8) -> u8 {
-        let result = x & y;
-        self.result_flags_8(result);
-        self.and_flags();
-        result
-    }
-
-    /// Bitwise AND two numbers, update flags, and return the result.
-    pub(crate) fn and_16(&mut self, x: u16, y: u16) -> u16 {
-        let result = x & y;
-        self.result_flags_16(result);
-        self.and_flags();
-        result
-    }
-
-    /// Bitwise AND two numbers, update flags, and return the result.
-    pub(crate) fn and_32(&mut self, x: u32, y: u32) -> u32 {
-        let result = x & y;
-        self.result_flags_32(result);
-        self.and_flags();
-        result
-    }
-
-    /// Bitwise AND two numbers, update flags, and return the result.
-    pub(crate) fn and_64(&mut self, x: u64, y: u64) -> u64 {
-        let result = x & y;
-        self.result_flags_64(result);
-        self.and_flags();
         result
     }
 
     /// Add two numbers, update flags, and return the sum.
-    pub(crate) fn add_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
-        let (result, carry) = x.overflowing_add(y);
-        self.result_flags_8(result);
+    pub(crate) fn add<U: UNum>(&mut self, x: U, y: U, update_cf: bool) -> U {
+        let (result, carry) = x.overflowing_add(&y);
+        self.result_flags(result);
+        if update_cf {
+            self.cf = carry;
+        }
         // bit 4:
         // no carry into 4:
         // 0 + 0 = 0
@@ -412,88 +369,27 @@ impl Flags {
         // 0 + 1 = 0 (carry out of 4, into 5)
         // 1 + 0 = 0 (carry out of 4, into 5)
         // 1 + 1 = 1 (carry out of 4, into 5)
-        let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.af = carry_out_of_bit_3 == 1;
-        let bm1 = u8::BITS - 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+        let carry_out_of_bit_3 = x.bit(4) ^ y.bit(4) ^ result.bit(4);
+        self.af = carry_out_of_bit_3.into();
+        self.of = match (x.sign(), y.sign(), result.sign()) {
             // pos + pos = neg
-            (0, 0, 1) => true,
+            (Pos, Pos, Neg) => true,
             // neg + neg = pos
-            (1, 1, 0) => true,
-            _ => false,
-        };
-        result
-    }
-
-    /// Add two numbers, update flags, and return the sum.
-    pub(crate) fn add_16(&mut self, x: u16, y: u16, update_cf: bool) -> u16 {
-        let (result, carry) = x.overflowing_add(y);
-        self.result_flags_16(result);
-        let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.af = carry_out_of_bit_3 == 1;
-        let bm1 = u16::BITS - 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
-            // pos + pos = neg
-            (0, 0, 1) => true,
-            // neg + neg = pos
-            (1, 1, 0) => true,
-            _ => false,
-        };
-        result
-    }
-
-    /// Add two numbers, update flags, and return the sum.
-    pub(crate) fn add_32(&mut self, x: u32, y: u32, update_cf: bool) -> u32 {
-        let (result, carry) = x.overflowing_add(y);
-        self.result_flags_32(result);
-        let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.af = carry_out_of_bit_3 == 1;
-        let bm1 = u32::BITS - 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
-            // pos + pos = neg
-            (0, 0, 1) => true,
-            // neg + neg = pos
-            (1, 1, 0) => true,
-            _ => false,
-        };
-        result
-    }
-
-    /// Add two numbers, update flags, and return the sum.
-    pub(crate) fn add_64(&mut self, x: u64, y: u64, update_cf: bool) -> u64 {
-        let (result, carry) = x.overflowing_add(y);
-        self.result_flags_64(result);
-        let carry_out_of_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.af = carry_out_of_bit_3 == 1;
-        let bm1 = u64::BITS - 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
-            // pos + pos = neg
-            (0, 0, 1) => true,
-            // neg + neg = pos
-            (1, 1, 0) => true,
+            (Neg, Neg, Pos) => true,
             _ => false,
         };
         result
     }
 
     /// Subtract two numbers, update flags, and return the difference.
-    /// Note this isn't just `self.add_8(x, -y)` because CF/OF/AF depend
-    /// on the path, and negating u8::MIN overflows.
-    pub(crate) fn sub_8(&mut self, x: u8, y: u8, update_cf: bool) -> u8 {
-        let (result, carry) = x.overflowing_sub(y);
-        self.result_flags_8(result);
+    /// Note this isn't just `self.add(x, -y)` because CF/OF/AF need
+    /// to be different, and negating U::MIN overflows.
+    pub(crate) fn sub<U: UNum>(&mut self, x: U, y: U, update_cf: bool) -> U {
+        let (result, carry) = x.overflowing_sub(&y);
+        self.result_flags(result);
+        if update_cf {
+            self.cf = carry;
+        }
         // bit 4:
         // no borrow into 3:
         // 0 - 0 = 0 (no borrow into 4)
@@ -505,155 +401,33 @@ impl Flags {
         // 1 - 1 = 1 (borrow into 4)
         // 0 - 1 = 0 (borrow into 4)
         // 1 - 0 = 0 (no borrow into 4)
-        let borrow_into_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.af = borrow_into_bit_3 == 1;
-        let bm1 = u8::BITS - 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
+        let borrow_into_bit_3 = x.bit(4) ^ y.bit(4) ^ result.bit(4);
+        self.af = borrow_into_bit_3.into();
+        self.of = match (x.sign(), y.sign(), result.sign()) {
             // pos - neg = neg
-            (0, 1, 1) => true,
+            (Pos, Neg, Neg) => true,
             // neg - pos = pos
-            (1, 0, 0) => true,
+            (Neg, Pos, Pos) => true,
             _ => false,
         };
         result
     }
 
-    /// Subtract two numbers, update flags, and return the difference.
-    /// Note this isn't just `self.add_16(x, -y)` because CF/OF/AF depend
-    /// on the path, and negating u16::MIN overflows.
-    pub(crate) fn sub_16(&mut self, x: u16, y: u16, update_cf: bool) -> u16 {
-        let (result, carry) = x.overflowing_sub(y);
-        self.result_flags_16(result);
-        let borrow_into_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.af = borrow_into_bit_3 == 1;
-        let bm1 = u16::BITS - 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
-            // pos - neg = neg
-            (0, 1, 1) => true,
-            // neg - pos = pos
-            (1, 0, 0) => true,
-            _ => false,
-        };
-        result
-    }
-
-    /// Subtract two numbers, update flags, and return the difference.
-    /// Note this isn't just `self.add_32(x, -y)` because CF/OF/AF depend
-    /// on the path, and negating u32::MIN overflows.
-    pub(crate) fn sub_32(&mut self, x: u32, y: u32, update_cf: bool) -> u32 {
-        let (result, carry) = x.overflowing_sub(y);
-        self.result_flags_32(result);
-        let borrow_into_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.af = borrow_into_bit_3 == 1;
-        let bm1 = u32::BITS - 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
-            // pos - neg = neg
-            (0, 1, 1) => true,
-            // neg - pos = pos
-            (1, 0, 0) => true,
-            _ => false,
-        };
-        result
-    }
-
-    /// Subtract two numbers, update flags, and return the difference.
-    /// Note this isn't just `self.add_64(x, -y)` because CF/OF/AF depend
-    /// on the path, and negating u64::MIN overflows.
-    pub(crate) fn sub_64(&mut self, x: u64, y: u64, update_cf: bool) -> u64 {
-        let (result, carry) = x.overflowing_sub(y);
-        self.result_flags_64(result);
-        let borrow_into_bit_3 = (result >> 4 & 1) ^ (x >> 4 & 1) ^ (y >> 4 & 1);
-        if update_cf {
-            self.cf = carry;
-        }
-        self.af = borrow_into_bit_3 == 1;
-        let bm1 = u64::BITS - 1;
-        self.of = match (x >> bm1 & 1, y >> bm1 & 1, result >> bm1 & 1) {
-            // pos - neg = neg
-            (0, 1, 1) => true,
-            // neg - pos = pos
-            (1, 0, 0) => true,
-            _ => false,
-        };
-        result
-    }
-
-    fn xor_flags(&mut self) {
+    /// XOR two numbers, update flags, and return the XOR.
+    pub(crate) fn xor<U: UNum>(&mut self, x: U, y: U) -> U {
+        let result = x.bitxor(y);
+        self.result_flags(result);
         // Documented: CF and OF cleared, with AF flag undefined.
         // AF flag seems to be cleared on code.golf CPU.
         self.cf = false;
         self.of = false;
         self.af = false;
-    }
-
-    /// XOR two numbers, update flags, and return the XOR.
-    pub(crate) fn xor_8(&mut self, x: u8, y: u8) -> u8 {
-        let result = x.bitxor(y);
-        self.result_flags_8(result);
-        self.xor_flags();
         result
     }
 
-    /// XOR two numbers, update flags, and return the XOR.
-    pub(crate) fn xor_16(&mut self, x: u16, y: u16) -> u16 {
-        let result = x.bitxor(y);
-        self.result_flags_16(result);
-        self.xor_flags();
-        result
-    }
-
-    /// XOR two numbers, update flags, and return the XOR.
-    pub(crate) fn xor_32(&mut self, x: u32, y: u32) -> u32 {
-        let result = x.bitxor(y);
-        self.result_flags_32(result);
-        self.xor_flags();
-        result
-    }
-
-    /// XOR two numbers, update flags, and return the XOR.
-    pub(crate) fn xor_64(&mut self, x: u64, y: u64) -> u64 {
-        let result = x.bitxor(y);
-        self.result_flags_64(result);
-        self.xor_flags();
-        result
-    }
-
-    pub(crate) fn imul_8(&mut self, x: u8, y: u8) -> u16 {
-        let prod = ((x as i8 as i16) * (y as i8 as i16)) as u16;
-        let cf_of = (prod as i8 as u16) != prod;
-        self.cf = cf_of;
-        self.of = cf_of;
-        prod
-    }
-
-    pub(crate) fn imul_16(&mut self, x: u16, y: u16) -> u32 {
-        let prod = ((x as i16 as i32) * (y as i16 as i32)) as u32;
-        let cf_of = (prod as i16 as u32) != prod;
-        self.cf = cf_of;
-        self.of = cf_of;
-        prod
-    }
-
-    pub(crate) fn imul_32(&mut self, x: u32, y: u32) -> u64 {
-        let prod = ((x as i32 as i64) * (y as i32 as i64)) as u64;
-        let cf_of = (prod as i32 as u64) != prod;
-        self.cf = cf_of;
-        self.of = cf_of;
-        prod
-    }
-
-    pub(crate) fn imul_64(&mut self, x: u64, y: u64) -> u128 {
-        let prod = ((x as i64 as i128) * (y as i64 as i128)) as u128;
-        let cf_of = (prod as i64 as u128) != prod;
+    pub(crate) fn imul<U: UNum8To64>(&mut self, x: U, y: U) -> U::DoubleWidth {
+        let prod = x.widening_signed_mul(&y);
+        let cf_of = prod.sign() != prod.truncate_to_half_width().sign();
         self.cf = cf_of;
         self.of = cf_of;
         prod

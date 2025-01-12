@@ -7,9 +7,12 @@ pub(crate) mod inst;
 pub(crate) mod inst_prefixes;
 pub mod interpret;
 pub(crate) mod memory;
+pub(crate) mod num_traits;
+pub(crate) mod num_u1;
 pub(crate) mod parse_elf;
 pub mod read_write;
 pub(crate) mod registers;
+
 use crate::decode_inst::decode_inst;
 
 use errors::{RResult, Rerr};
