@@ -148,6 +148,79 @@ impl AnyOneRMOp {
     pub(crate) const IMUL: Self = Self::Widen(WidenOp::Imul);
 }
 
+/// An operation that takes a U and a U and returns a U, putting the result in Dest.
+#[derive(PartialEq, Eq)]
+pub enum DestMROp {
+    /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
+    /// 89 /r; MOV r/m16, r16; Move r16 to r/m16.
+    /// 89 /r; MOV r/m32, r32; Move r32 to r/m32.
+    /// REX.W + 89 /r; MOV r/m64, r64; Move r64 to r/m64.
+    /// 8A /r; MOV r8, r/m8; Move r/m8 to r8.
+    /// 8B /r; MOV r16, r/m16; Move r/m16 to r16.
+    /// 8B /r; MOV r32, r/m32; Move r/m32 to r32.
+    /// REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
+    Mov,
+    /// 00 /r; ADD r/m8, r8; Add r8 to r/m8.
+    /// 01 /r; ADD r/m16, r16; Add r16 to r/m16.
+    /// 01 /r; ADD r/m32, r32; Add r32 to r/m32.
+    /// REX.W + 01 /r; ADD r/m64, r64; Add r64 to r/m64.
+    /// 02 /r; ADD r8, r/m8; Add r/m8 to r8.
+    /// 03 /r; ADD r16, r/m16; Add r/m16 to r16.
+    /// 03 /r; ADD r32, r/m32; Add r/m32 to r32.
+    /// REX.W + 03 /r; ADD r64, r/m64; Add r/m64 to r64.
+    Add,
+    /// 28 /r; SUB r/m8, r8; Subtract r8 from r/m8.
+    /// 29 /r; SUB r/m16, r16; Subtract r16 from r/m16.
+    /// 29 /r; SUB r/m32, r32; Subtract r32 from r/m32.
+    /// REX.W + 29 /r; SUB r/m64, r64; Subtract r64 from r/m64.
+    /// 2A /r; SUB r8, r/m8; Subtract r/m8 from r8.
+    /// 2B /r; SUB r16, r/m16; Subtract r/m16 from r16.
+    /// 2B /r; SUB r32, r/m32; Subtract r/m32 from r32.
+    /// REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
+    Sub,
+    /// 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
+    /// 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
+    /// 39 /r; CMP r/m32, r32; Compare r32 with r/m32.
+    /// REX.W + 39 /r; CMP r/m64, r64; Compare r64 with r/m64.
+    /// 3A /r; CMP r8, r/m8; Compare r/m8 with r8.
+    /// 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
+    /// 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
+    /// REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
+    Cmp,
+    /// 20 /r; AND r/m8, r8; r/m8 AND r8.
+    /// 21 /r; AND r/m16, r16; r/m16 AND r16.
+    /// 21 /r; AND r/m32, r32; r/m32 AND r32.
+    /// REX.W + 21 /r; AND r/m64, r64; r/m64 AND r32.
+    /// 22 /r; AND r8, r/m8; r8 AND r/m8.
+    /// 23 /r; AND r16, r/m16; r16 AND r/m16.
+    /// 23 /r; AND r32, r/m32; r32 AND r/m32.
+    /// REX.W + 23 /r; AND r64, r/m64; r64 AND r/m64.
+    /// 2C ib; SUB AL, imm8; Subtract imm8 from AL.
+    And,
+    /// 30 /r; XOR r/m8, r8; r/m8 XOR r8.
+    /// 31 /r; XOR r/m16, r16; r/m16 XOR r16.
+    /// 31 /r; XOR r/m32, r32; r/m32 XOR r32.
+    /// REX.W + 31 /r; XOR r/m64, r64; r/m64 XOR r64.
+    /// 32 /r; XOR r8, r/m8; r8 XOR r/m8.
+    /// 33 /r; XOR r16, r/m16; r16 XOR r/m16.
+    /// 33 /r; XOR r32, r/m32; r32 XOR r/m32.
+    /// REX.W + 33 /r; XOR r64, r/m64; r64 XOR r/m64.
+    Xor,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum AnyTwoMROp {
+    Dest(DestMROp),
+}
+impl AnyTwoMROp {
+    pub(crate) const MOV: Self = Self::Dest(DestMROp::Mov);
+    pub(crate) const ADD: Self = Self::Dest(DestMROp::Add);
+    pub(crate) const SUB: Self = Self::Dest(DestMROp::Sub);
+    pub(crate) const CMP: Self = Self::Dest(DestMROp::Cmp);
+    pub(crate) const AND: Self = Self::Dest(DestMROp::And);
+    pub(crate) const XOR: Self = Self::Dest(DestMROp::Xor);
+}
+
 use Inst::*;
 /// Instructions. Tuple args are in Intel order.
 /// For valid opcodes, the name of each variant is the mnemonic,
@@ -172,28 +245,20 @@ pub enum Inst {
     OneRMInst16(AnyOneRMOp, RM16),
     OneRMInst32(AnyOneRMOp, RM32),
     OneRMInst64(AnyOneRMOp, RM64),
+    TwoMRInst8(AnyTwoMROp, RM8, GPR8),
+    TwoRMInst8(AnyTwoMROp, GPR8, RM8),
+    TwoMRInst16(AnyTwoMROp, RM16, GPR16),
+    TwoRMInst16(AnyTwoMROp, GPR16, RM16),
+    TwoMRInst32(AnyTwoMROp, RM32, GPR32),
+    TwoRMInst32(AnyTwoMROp, GPR32, RM32),
+    TwoMRInst64(AnyTwoMROp, RM64, GPR64),
+    TwoRMInst64(AnyTwoMROp, GPR64, RM64),
     /// 8D /r; LEA r16,m; Store effective address for m in register r16.
     LeaRM16(GPR16, EffAddr),
     /// 8D /r; LEA r32,m; Store effective address for m in register r32.
     LeaRM32(GPR32, EffAddr),
     /// REX.W + 8D /r; LEA r64,m; Store effective address for m in register r64.
     LeaRM64(GPR64, EffAddr),
-    /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
-    MovMR8(RM8, GPR8),
-    /// 89 /r; MOV r/m16, r16; Move r16 to r/m16.
-    MovMR16(RM16, GPR16),
-    /// 89 /r; MOV r/m32, r32; Move r32 to r/m32.
-    MovMR32(RM32, GPR32),
-    /// REX.W + 89 /r; MOV r/m64, r64; Move r64 to r/m64.
-    MovMR64(RM64, GPR64),
-    /// 8A /r; MOV r8, r/m8; Move r/m8 to r8.
-    MovRM8(GPR8, RM8),
-    /// 8B /r; MOV r16, r/m16; Move r/m16 to r16.
-    MovRM16(GPR16, RM16),
-    /// 8B /r; MOV r32, r/m32; Move r/m32 to r32.
-    MovRM32(GPR32, RM32),
-    /// REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
-    MovRM64(GPR64, RM64),
     /// B0+ rb ib; MOV r8, imm8; Move imm8 to r8.
     MovOI8(GPR8, u8),
     /// B8+ rw iw; MOV r16, imm16; Move imm16 to r16.
@@ -227,22 +292,6 @@ pub enum Inst {
     /// REX.W + 81 /0 id; ADD r/m64, imm32; Add imm32 sign-extended to 64-bits to r/m64.
     /// REX.W + 83 /0 ib; ADD r/m64, imm8; Add sign-extended imm8 to r/m64.
     AddMI64(RM64, u64),
-    /// 00 /r; ADD r/m8, r8; Add r8 to r/m8.
-    AddMR8(RM8, GPR8),
-    /// 01 /r; ADD r/m16, r16; Add r16 to r/m16.
-    AddMR16(RM16, GPR16),
-    /// 01 /r; ADD r/m32, r32; Add r32 to r/m32.
-    AddMR32(RM32, GPR32),
-    /// REX.W + 01 /r; ADD r/m64, r64; Add r64 to r/m64.
-    AddMR64(RM64, GPR64),
-    /// 02 /r; ADD r8, r/m8; Add r/m8 to r8.
-    AddRM8(GPR8, RM8),
-    /// 03 /r; ADD r16, r/m16; Add r/m16 to r16.
-    AddRM16(GPR16, RM16),
-    /// 03 /r; ADD r32, r/m32; Add r/m32 to r32.
-    AddRM32(GPR32, RM32),
-    /// REX.W + 03 /r; ADD r64, r/m64; Add r/m64 to r64.
-    AddRM64(GPR64, RM64),
     /// 24 ib; AND AL, imm8; AL AND imm8.
     /// 80 /4 ib; AND r/m8, imm8; r/m8 AND imm8.
     AndMI8(RM8, u8),
@@ -258,23 +307,6 @@ pub enum Inst {
     /// REX.W + 81 /4 id; AND r/m64, imm32; r/m64 AND imm32 sign extended to 64-bits.
     /// REX.W + 83 /4 ib; AND r/m64, imm8; r/m64 AND imm8 (sign-extended).
     AndMI64(RM64, u64),
-    /// 20 /r; AND r/m8, r8; r/m8 AND r8.
-    AndMR8(RM8, GPR8),
-    /// 21 /r; AND r/m16, r16; r/m16 AND r16.
-    AndMR16(RM16, GPR16),
-    /// 21 /r; AND r/m32, r32; r/m32 AND r32.
-    AndMR32(RM32, GPR32),
-    /// REX.W + 21 /r; AND r/m64, r64; r/m64 AND r32.
-    AndMR64(RM64, GPR64),
-    /// 22 /r; AND r8, r/m8; r8 AND r/m8.
-    AndRM8(GPR8, RM8),
-    /// 23 /r; AND r16, r/m16; r16 AND r/m16.
-    AndRM16(GPR16, RM16),
-    /// 23 /r; AND r32, r/m32; r32 AND r/m32.
-    AndRM32(GPR32, RM32),
-    /// REX.W + 23 /r; AND r64, r/m64; r64 AND r/m64.
-    AndRM64(GPR64, RM64),
-    /// 2C ib; SUB AL, imm8; Subtract imm8 from AL.
     /// 80 /5 ib; SUB r/m8, imm8; Subtract imm8 from r/m8.
     SubMI8(RM8, u8),
     /// 2D iw; SUB AX, imm16; Subtract imm16 from AX.
@@ -289,22 +321,6 @@ pub enum Inst {
     /// REX.W + 81 /5 id; SUB r/m64, imm32; Subtract imm32 sign-extended to 64-bits from r/m64.
     /// REX.W + 83 /5 ib; SUB r/m64, imm8; Subtract sign-extended imm8 from r/m64.
     SubMI64(RM64, u64),
-    /// 28 /r; SUB r/m8, r8; Subtract r8 from r/m8.
-    SubMR8(RM8, GPR8),
-    /// 29 /r; SUB r/m16, r16; Subtract r16 from r/m16.
-    SubMR16(RM16, GPR16),
-    /// 29 /r; SUB r/m32, r32; Subtract r32 from r/m32.
-    SubMR32(RM32, GPR32),
-    /// REX.W + 29 /r; SUB r/m64, r64; Subtract r64 from r/m64.
-    SubMR64(RM64, GPR64),
-    /// 2A /r; SUB r8, r/m8; Subtract r/m8 from r8.
-    SubRM8(GPR8, RM8),
-    /// 2B /r; SUB r16, r/m16; Subtract r/m16 from r16.
-    SubRM16(GPR16, RM16),
-    /// 2B /r; SUB r32, r/m32; Subtract r/m32 from r32.
-    SubRM32(GPR32, RM32),
-    /// REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
-    SubRM64(GPR64, RM64),
     /// 3C ib; CMP AL, imm8; Compare imm8 with AL.
     /// 80 /7 ib; CMP r/m8, imm8; Compare imm8 with r/m8.
     CmpMI8(RM8, u8),
@@ -320,22 +336,6 @@ pub enum Inst {
     /// REX.W + 81 /7 id; CMP r/m64, imm32; Compare imm32 sign-extended to 64-bits with r/m64.
     /// REX.W + 83 /7 ib; CMP r/m64, imm8; Compare sign-extended imm8 with r/m64.
     CmpMI64(RM64, u64),
-    /// 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
-    CmpMR8(RM8, GPR8),
-    /// 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
-    CmpMR16(RM16, GPR16),
-    /// 39 /r; CMP r/m32, r32; Compare r32 with r/m32.
-    CmpMR32(RM32, GPR32),
-    /// REX.W + 39 /r; CMP r/m64, r64; Compare r64 with r/m64.
-    CmpMR64(RM64, GPR64),
-    /// 3A /r; CMP r8, r/m8; Compare r/m8 with r8.
-    CmpRM8(GPR8, RM8),
-    /// 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
-    CmpRM16(GPR16, RM16),
-    /// 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
-    CmpRM32(GPR32, RM32),
-    /// REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
-    CmpRM64(GPR64, RM64),
     /// 34 ib; XOR AL, imm8; AL XOR imm8.
     /// 80 /6 ib; XOR r/m8, imm8; r/m8 XOR imm8.
     XorMI8(RM8, u8),
@@ -351,22 +351,6 @@ pub enum Inst {
     /// REX.W + 81 /6 id; XOR r/m64, imm32; r/m64 XOR imm32 (sign-extended).
     /// REX.W + 83 /6 ib; XOR r/m64, imm8; r/m64 XOR imm8 (sign-extended).
     XorMI64(RM64, u64),
-    /// 30 /r; XOR r/m8, r8; r/m8 XOR r8.
-    XorMR8(RM8, GPR8),
-    /// 31 /r; XOR r/m16, r16; r/m16 XOR r16.
-    XorMR16(RM16, GPR16),
-    /// 31 /r; XOR r/m32, r32; r/m32 XOR r32.
-    XorMR32(RM32, GPR32),
-    /// REX.W + 31 /r; XOR r/m64, r64; r/m64 XOR r64.
-    XorMR64(RM64, GPR64),
-    /// 32 /r; XOR r8, r/m8; r8 XOR r/m8.
-    XorRM8(GPR8, RM8),
-    /// 33 /r; XOR r16, r/m16; r16 XOR r/m16.
-    XorRM16(GPR16, RM16),
-    /// 33 /r; XOR r32, r/m32; r32 XOR r/m32.
-    XorRM32(GPR32, RM32),
-    /// REX.W + 33 /r; XOR r64, r/m64; r64 XOR r/m64.
-    XorRM64(GPR64, RM64),
     /// 0F A3 /r; BT r/m16, r16; Store selected bit in CF flag.
     BtMR16(RM16, GPR16),
     /// 0F A3 /r; BT r/m32, r32; Store selected bit in CF flag.
@@ -610,80 +594,35 @@ impl Inst {
             LeaRM16(gpr16, eff_addr) => format!("{}, {}", eff_addr, gpr16),
             LeaRM32(gpr32, eff_addr) => format!("{}, {}", eff_addr, gpr32),
             LeaRM64(gpr64, eff_addr) => format!("{}, {}", eff_addr, gpr64),
-            MovMR8(rm8, gpr8)
-            | AddMR8(rm8, gpr8)
-            | AndMR8(rm8, gpr8)
-            | SubMR8(rm8, gpr8)
-            | CmpMR8(rm8, gpr8)
-            | XorMR8(rm8, gpr8)
-            | XchgMR8(rm8, gpr8) => {
+            XchgMR8(rm8, gpr8) => {
                 format!("{}, {}", gpr8, rm8)
             }
-            MovMR16(rm16, gpr16)
-            | AddMR16(rm16, gpr16)
-            | AndMR16(rm16, gpr16)
-            | SubMR16(rm16, gpr16)
-            | CmpMR16(rm16, gpr16)
-            | XorMR16(rm16, gpr16)
-            | XchgMR16(rm16, gpr16)
-            | BtMR16(rm16, gpr16) => {
+            XchgMR16(rm16, gpr16) | BtMR16(rm16, gpr16) => {
                 format!("{}, {}", gpr16, rm16)
             }
-            MovMR32(rm32, gpr32)
-            | AddMR32(rm32, gpr32)
-            | AndMR32(rm32, gpr32)
-            | SubMR32(rm32, gpr32)
-            | CmpMR32(rm32, gpr32)
-            | XorMR32(rm32, gpr32)
-            | XchgMR32(rm32, gpr32)
-            | BtMR32(rm32, gpr32) => {
+            XchgMR32(rm32, gpr32) | BtMR32(rm32, gpr32) => {
                 format!("{}, {}", gpr32, rm32)
             }
-            MovMR64(rm64, gpr64)
-            | AddMR64(rm64, gpr64)
-            | AndMR64(rm64, gpr64)
-            | SubMR64(rm64, gpr64)
-            | CmpMR64(rm64, gpr64)
-            | XorMR64(rm64, gpr64)
-            | XchgMR64(rm64, gpr64)
-            | BtMR64(rm64, gpr64) => {
+            XchgMR64(rm64, gpr64) | BtMR64(rm64, gpr64) => {
                 format!("{}, {}", gpr64, rm64)
             }
-            MovRM8(gpr8, rm8)
-            | AddRM8(gpr8, rm8)
-            | AndRM8(gpr8, rm8)
-            | SubRM8(gpr8, rm8)
-            | CmpRM8(gpr8, rm8)
-            | XorRM8(gpr8, rm8) => {
-                format!("{}, {}", rm8, gpr8)
-            }
-            MovRM16(gpr16, rm16)
-            | AddRM16(gpr16, rm16)
-            | AndRM16(gpr16, rm16)
-            | SubRM16(gpr16, rm16)
-            | CmpRM16(gpr16, rm16)
-            | XorRM16(gpr16, rm16)
-            | ImulRM16(gpr16, rm16) => {
+            ImulRM16(gpr16, rm16) => {
                 format!("{}, {}", rm16, gpr16)
             }
-            MovRM32(gpr32, rm32)
-            | AddRM32(gpr32, rm32)
-            | AndRM32(gpr32, rm32)
-            | SubRM32(gpr32, rm32)
-            | CmpRM32(gpr32, rm32)
-            | XorRM32(gpr32, rm32)
-            | ImulRM32(gpr32, rm32) => {
+            ImulRM32(gpr32, rm32) => {
                 format!("{}, {}", rm32, gpr32)
             }
-            MovRM64(gpr64, rm64)
-            | AddRM64(gpr64, rm64)
-            | AndRM64(gpr64, rm64)
-            | SubRM64(gpr64, rm64)
-            | CmpRM64(gpr64, rm64)
-            | XorRM64(gpr64, rm64)
-            | ImulRM64(gpr64, rm64) => {
+            ImulRM64(gpr64, rm64) => {
                 format!("{}, {}", rm64, gpr64)
             }
+            TwoMRInst8(_, rm8, gpr8) => format!("{}, {}", gpr8, rm8),
+            TwoMRInst16(_, rm16, gpr16) => format!("{}, {}", gpr16, rm16),
+            TwoMRInst32(_, rm32, gpr32) => format!("{}, {}", gpr32, rm32),
+            TwoMRInst64(_, rm64, gpr64) => format!("{}, {}", gpr64, rm64),
+            TwoRMInst8(_, gpr8, rm8) => format!("{}, {}", rm8, gpr8),
+            TwoRMInst16(_, gpr16, rm16) => format!("{}, {}", rm16, gpr16),
+            TwoRMInst32(_, gpr32, rm32) => format!("{}, {}", rm32, gpr32),
+            TwoRMInst64(_, gpr64, rm64) => format!("{}, {}", rm64, gpr64),
             MovOI8(gpr8, imm8) => format!("${:#x}, {}", imm8, gpr8),
             MovOI16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
             MovOI32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
@@ -804,14 +743,14 @@ impl Inst {
             Nop => "nop",
             Syscall => "syscall",
             LeaRM16(_, _) | LeaRM32(_, _) | LeaRM64(_, _) => "lea",
-            MovMR8(_, _)
-            | MovMR16(_, _)
-            | MovMR32(_, _)
-            | MovMR64(_, _)
-            | MovRM8(_, _)
-            | MovRM16(_, _)
-            | MovRM32(_, _)
-            | MovRM64(_, _)
+            TwoRMInst8(AnyTwoMROp::MOV, _, _)
+            | TwoRMInst16(AnyTwoMROp::MOV, _, _)
+            | TwoRMInst32(AnyTwoMROp::MOV, _, _)
+            | TwoRMInst64(AnyTwoMROp::MOV, _, _)
+            | TwoMRInst8(AnyTwoMROp::MOV, _, _)
+            | TwoMRInst16(AnyTwoMROp::MOV, _, _)
+            | TwoMRInst32(AnyTwoMROp::MOV, _, _)
+            | TwoMRInst64(AnyTwoMROp::MOV, _, _)
             | MovOI8(_, _)
             | MovOI16(_, _)
             | MovOI32(_, _) => "mov",
@@ -846,50 +785,50 @@ impl Inst {
             AddMI16(rm16, _) => rm16.either("add", "addw"),
             AddMI32(rm32, _) => rm32.either("add", "addl"),
             AddMI64(rm64, _) => rm64.either("add", "addq"),
-            AddMR8(_, _)
-            | AddMR16(_, _)
-            | AddMR32(_, _)
-            | AddMR64(_, _)
-            | AddRM8(_, _)
-            | AddRM16(_, _)
-            | AddRM32(_, _)
-            | AddRM64(_, _) => "add",
+            TwoRMInst8(AnyTwoMROp::ADD, _, _)
+            | TwoRMInst16(AnyTwoMROp::ADD, _, _)
+            | TwoRMInst32(AnyTwoMROp::ADD, _, _)
+            | TwoRMInst64(AnyTwoMROp::ADD, _, _)
+            | TwoMRInst8(AnyTwoMROp::ADD, _, _)
+            | TwoMRInst16(AnyTwoMROp::ADD, _, _)
+            | TwoMRInst32(AnyTwoMROp::ADD, _, _)
+            | TwoMRInst64(AnyTwoMROp::ADD, _, _) => "add",
             AndMI8(rm8, _) => rm8.either("and", "andb"),
             AndMI16(rm16, _) => rm16.either("and", "andw"),
             AndMI32(rm32, _) => rm32.either("and", "andl"),
             AndMI64(rm64, _) => rm64.either("and", "andq"),
-            AndMR8(_, _)
-            | AndMR16(_, _)
-            | AndMR32(_, _)
-            | AndMR64(_, _)
-            | AndRM8(_, _)
-            | AndRM16(_, _)
-            | AndRM32(_, _)
-            | AndRM64(_, _) => "and",
+            TwoMRInst8(AnyTwoMROp::AND, _, _)
+            | TwoMRInst16(AnyTwoMROp::AND, _, _)
+            | TwoMRInst32(AnyTwoMROp::AND, _, _)
+            | TwoMRInst64(AnyTwoMROp::AND, _, _)
+            | TwoRMInst8(AnyTwoMROp::AND, _, _)
+            | TwoRMInst16(AnyTwoMROp::AND, _, _)
+            | TwoRMInst32(AnyTwoMROp::AND, _, _)
+            | TwoRMInst64(AnyTwoMROp::AND, _, _) => "and",
             SubMI8(rm8, _) => rm8.either("sub", "subb"),
             SubMI16(rm16, _) => rm16.either("sub", "subw"),
             SubMI32(rm32, _) => rm32.either("sub", "subl"),
             SubMI64(rm64, _) => rm64.either("sub", "subq"),
-            SubMR8(_, _)
-            | SubMR16(_, _)
-            | SubMR32(_, _)
-            | SubMR64(_, _)
-            | SubRM8(_, _)
-            | SubRM16(_, _)
-            | SubRM32(_, _)
-            | SubRM64(_, _) => "sub",
+            TwoMRInst8(AnyTwoMROp::SUB, _, _)
+            | TwoMRInst16(AnyTwoMROp::SUB, _, _)
+            | TwoMRInst32(AnyTwoMROp::SUB, _, _)
+            | TwoMRInst64(AnyTwoMROp::SUB, _, _)
+            | TwoRMInst8(AnyTwoMROp::SUB, _, _)
+            | TwoRMInst16(AnyTwoMROp::SUB, _, _)
+            | TwoRMInst32(AnyTwoMROp::SUB, _, _)
+            | TwoRMInst64(AnyTwoMROp::SUB, _, _) => "sub",
             CmpMI8(rm8, _) => rm8.either("cmp", "cmpb"),
             CmpMI16(rm16, _) => rm16.either("cmp", "cmpw"),
             CmpMI32(rm32, _) => rm32.either("cmp", "cmpl"),
             CmpMI64(rm64, _) => rm64.either("cmp", "cmpq"),
-            CmpMR8(_, _)
-            | CmpMR16(_, _)
-            | CmpMR32(_, _)
-            | CmpMR64(_, _)
-            | CmpRM8(_, _)
-            | CmpRM16(_, _)
-            | CmpRM32(_, _)
-            | CmpRM64(_, _) => "cmp",
+            TwoMRInst8(AnyTwoMROp::CMP, _, _)
+            | TwoMRInst16(AnyTwoMROp::CMP, _, _)
+            | TwoMRInst32(AnyTwoMROp::CMP, _, _)
+            | TwoMRInst64(AnyTwoMROp::CMP, _, _)
+            | TwoRMInst8(AnyTwoMROp::CMP, _, _)
+            | TwoRMInst16(AnyTwoMROp::CMP, _, _)
+            | TwoRMInst32(AnyTwoMROp::CMP, _, _)
+            | TwoRMInst64(AnyTwoMROp::CMP, _, _) => "cmp",
             ImulRM16(_, _)
             | ImulRM32(_, _)
             | ImulRM64(_, _)
@@ -962,14 +901,14 @@ impl Inst {
             XorMI16(rm16, _) => rm16.either("xor", "xorw"),
             XorMI32(rm32, _) => rm32.either("xor", "xorl"),
             XorMI64(rm64, _) => rm64.either("xor", "xorq"),
-            XorMR8(_, _)
-            | XorMR16(_, _)
-            | XorMR32(_, _)
-            | XorMR64(_, _)
-            | XorRM8(_, _)
-            | XorRM16(_, _)
-            | XorRM32(_, _)
-            | XorRM64(_, _) => "xor",
+            TwoMRInst8(AnyTwoMROp::XOR, _, _)
+            | TwoMRInst16(AnyTwoMROp::XOR, _, _)
+            | TwoMRInst32(AnyTwoMROp::XOR, _, _)
+            | TwoMRInst64(AnyTwoMROp::XOR, _, _)
+            | TwoRMInst8(AnyTwoMROp::XOR, _, _)
+            | TwoRMInst16(AnyTwoMROp::XOR, _, _)
+            | TwoRMInst32(AnyTwoMROp::XOR, _, _)
+            | TwoRMInst64(AnyTwoMROp::XOR, _, _) => "xor",
             Scas(_, _) => "scas",
             BtMR16(_, _) => "bt",
             BtMR32(_, _) => "bt",
