@@ -135,12 +135,12 @@ pub enum WidenOp {
 }
 
 #[derive(PartialEq, Eq)]
-pub enum AnyOneRMOp {
+pub enum OneOp {
     Plain(PlainOneOp),
     Shrink(ShrinkOp),
     Widen(WidenOp),
 }
-impl AnyOneRMOp {
+impl OneOp {
     pub(crate) const INC: Self = Self::Plain(PlainOneOp::Inc);
     pub(crate) const DEC: Self = Self::Plain(PlainOneOp::Dec);
     pub(crate) const NOT: Self = Self::Plain(PlainOneOp::Not);
@@ -149,6 +149,7 @@ impl AnyOneRMOp {
 }
 
 /// An operation that takes a U and a U and returns a U, putting the result in Dest.
+/// Each of these have three forms: MR, RM, MI
 #[derive(PartialEq, Eq)]
 pub enum DestMROp {
     /// 00 /r; ADD r/m8, r8; Add r8 to r/m8.
@@ -159,6 +160,17 @@ pub enum DestMROp {
     /// 03 /r; ADD r16, r/m16; Add r/m16 to r16.
     /// 03 /r; ADD r32, r/m32; Add r/m32 to r32.
     /// REX.W + 03 /r; ADD r64, r/m64; Add r/m64 to r64.
+    /// 04 ib; ADD AL, imm8; Add imm8 to AL.
+    /// 80 /0 ib; ADD r/m8, imm8; Add imm8 to r/m8.
+    /// 05 iw; ADD AX, imm16; Add imm16 to AX.
+    /// 81 /0 iw; ADD r/m16, imm16; Add imm16 to r/m16.
+    /// 83 /0 ib; ADD r/m16, imm8; Add sign-extended imm8 to r/m16.
+    /// 05 id; ADD EAX, imm32; Add imm32 to EAX.
+    /// 81 /0 id; ADD r/m32, imm32; Add imm32 to r/m32.
+    /// 83 /0 ib; ADD r/m32, imm8; Add sign-extended imm8 to r/m32.
+    /// REX.W + 05 id; ADD RAX, imm32; Add imm32 sign-extended to 64-bits to RAX.
+    /// REX.W + 81 /0 id; ADD r/m64, imm32; Add imm32 sign-extended to 64-bits to r/m64.
+    /// REX.W + 83 /0 ib; ADD r/m64, imm8; Add sign-extended imm8 to r/m64.
     Add,
     /// 20 /r; AND r/m8, r8; r/m8 AND r8.
     /// 21 /r; AND r/m16, r16; r/m16 AND r16.
@@ -169,6 +181,17 @@ pub enum DestMROp {
     /// 23 /r; AND r32, r/m32; r32 AND r/m32.
     /// REX.W + 23 /r; AND r64, r/m64; r64 AND r/m64.
     /// 2C ib; SUB AL, imm8; Subtract imm8 from AL.
+    /// 24 ib; AND AL, imm8; AL AND imm8.
+    /// 80 /4 ib; AND r/m8, imm8; r/m8 AND imm8.
+    /// 25 iw; AND AX, imm16; AX AND imm16.
+    /// 81 /4 iw; AND r/m16, imm16; r/m16 AND imm16.
+    /// 83 /4 ib; AND r/m16, imm8; r/m16 AND imm8 (sign-extended).
+    /// 25 id; AND EAX, imm32; EAX AND imm32.
+    /// 81 /4 id; AND r/m32, imm32; r/m32 AND imm32.
+    /// 83 /4 ib; AND r/m32, imm8; r/m32 AND imm8 (sign-extended).
+    /// REX.W + 25 id; AND RAX, imm32; RAX AND imm32 sign-extended to 64-bits.
+    /// REX.W + 81 /4 id; AND r/m64, imm32; r/m64 AND imm32 sign extended to 64-bits.
+    /// REX.W + 83 /4 ib; AND r/m64, imm8; r/m64 AND imm8 (sign-extended).
     And,
     /// 28 /r; SUB r/m8, r8; Subtract r8 from r/m8.
     /// 29 /r; SUB r/m16, r16; Subtract r16 from r/m16.
@@ -178,6 +201,16 @@ pub enum DestMROp {
     /// 2B /r; SUB r16, r/m16; Subtract r/m16 from r16.
     /// 2B /r; SUB r32, r/m32; Subtract r/m32 from r32.
     /// REX.W + 2B /r; SUB r64, r/m64; Subtract r/m64 from r64.
+    /// 80 /5 ib; SUB r/m8, imm8; Subtract imm8 from r/m8.
+    /// 2D iw; SUB AX, imm16; Subtract imm16 from AX.
+    /// 81 /5 iw; SUB r/m16, imm16; Subtract imm16 from r/m16.
+    /// 83 /5 ib; SUB r/m16, imm8; Subtract sign-extended imm8 from r/m16.
+    /// 2D id; SUB EAX, imm32; Subtract imm32 from EAX.
+    /// 81 /5 id; SUB r/m32, imm32; Subtract imm32 from r/m32.
+    /// 83 /5 ib; SUB r/m32, imm8; Subtract sign-extended imm8 from r/m32.
+    /// REX.W + 2D id; SUB RAX, imm32; Subtract imm32 sign-extended to 64-bits from RAX.
+    /// REX.W + 81 /5 id; SUB r/m64, imm32; Subtract imm32 sign-extended to 64-bits from r/m64.
+    /// REX.W + 83 /5 ib; SUB r/m64, imm8; Subtract sign-extended imm8 from r/m64.
     Sub,
     /// 30 /r; XOR r/m8, r8; r/m8 XOR r8.
     /// 31 /r; XOR r/m16, r16; r/m16 XOR r16.
@@ -187,6 +220,17 @@ pub enum DestMROp {
     /// 33 /r; XOR r16, r/m16; r16 XOR r/m16.
     /// 33 /r; XOR r32, r/m32; r32 XOR r/m32.
     /// REX.W + 33 /r; XOR r64, r/m64; r64 XOR r/m64.
+    /// 34 ib; XOR AL, imm8; AL XOR imm8.
+    /// 80 /6 ib; XOR r/m8, imm8; r/m8 XOR imm8.
+    /// 35 iw; XOR AX, imm16; AX XOR imm16.
+    /// 81 /6 iw; XOR r/m16, imm16; r/m16 XOR imm16.
+    /// 83 /6 ib; XOR r/m16, imm8; r/m16 XOR imm8 (sign-extended).
+    /// 35 id; XOR EAX, imm32; EAX XOR imm32.
+    /// 81 /6 id; XOR r/m32, imm32; r/m32 XOR imm32.
+    /// 83 /6 ib; XOR r/m32, imm8; r/m32 XOR imm8 (sign-extended).
+    /// REX.W + 35 id; XOR RAX, imm32; RAX XOR imm32 (sign-extended).
+    /// REX.W + 81 /6 id; XOR r/m64, imm32; r/m64 XOR imm32 (sign-extended).
+    /// REX.W + 83 /6 ib; XOR r/m64, imm8; r/m64 XOR imm8 (sign-extended).
     Xor,
     /// 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
     /// 39 /r; CMP r/m16, r16; Compare r16 with r/m16.
@@ -196,6 +240,17 @@ pub enum DestMROp {
     /// 3B /r; CMP r16, r/m16; Compare r/m16 with r16.
     /// 3B /r; CMP r32, r/m32; Compare r/m32 with r32.
     /// REX.W + 3B /r; CMP r64, r/m64; Compare r/m64 with r64.
+    /// 3C ib; CMP AL, imm8; Compare imm8 with AL.
+    /// 80 /7 ib; CMP r/m8, imm8; Compare imm8 with r/m8.
+    /// 3D iw; CMP AX, imm16; Compare imm16 with AX.
+    /// 81 /7 iw; CMP r/m16, imm16; Compare imm16 with r/m16.
+    /// 83 /7 ib; CMP r/m16, imm8; Compare sign-extended imm8 with r/m16.
+    /// 3D id; CMP EAX, imm32; Compare imm32 with EAX.
+    /// 81 /7 id; CMP r/m32, imm32; Compare imm32 with r/m32.
+    /// 83 /7 ib; CMP r/m32, imm8; Compare sign-extended imm8 with r/m32.
+    /// REX.W + 3D id; CMP RAX, imm32; Compare imm32 sign-extended to 64-bits with RAX.
+    /// REX.W + 81 /7 id; CMP r/m64, imm32; Compare imm32 sign-extended to 64-bits with r/m64.
+    /// REX.W + 83 /7 ib; CMP r/m64, imm8; Compare sign-extended imm8 with r/m64.
     Cmp,
     /// 88 /r; MOV r/m8, r8; Move r8 to r/m8.
     /// 89 /r; MOV r/m16, r16; Move r16 to r/m16.
@@ -205,14 +260,18 @@ pub enum DestMROp {
     /// 8B /r; MOV r16, r/m16; Move r/m16 to r16.
     /// 8B /r; MOV r32, r/m32; Move r/m32 to r32.
     /// REX.W + 8B /r; MOV r64, r/m64; Move r/m64 to r64.
+    /// C6 /0 ib; MOV r/m8, imm8; Move imm8 to r/m8.
+    /// C7 /0 iw; MOV r/m16, imm16; Move imm16 to r/m16.
+    /// C7 /0 id; MOV r/m32, imm32; Move imm32 to r/m32.
+    /// REX.W + C7 /0 id; MOV r/m64, imm32; Move imm32 sign extended to 64-bits to r/m64.
     Mov,
 }
 
 #[derive(PartialEq, Eq)]
-pub enum AnyTwoMROp {
+pub enum TwoOp {
     Dest(DestMROp),
 }
-impl AnyTwoMROp {
+impl TwoOp {
     pub(crate) const ADD: Self = Self::Dest(DestMROp::Add);
     pub(crate) const AND: Self = Self::Dest(DestMROp::And);
     pub(crate) const SUB: Self = Self::Dest(DestMROp::Sub);
@@ -241,18 +300,22 @@ pub enum Inst {
     Nop,
     /// 0F 05; SYSCALL; Fast call to privilege level 0 system procedures.
     Syscall,
-    OneRMInst8(AnyOneRMOp, RM8),
-    OneRMInst16(AnyOneRMOp, RM16),
-    OneRMInst32(AnyOneRMOp, RM32),
-    OneRMInst64(AnyOneRMOp, RM64),
-    TwoMRInst8(AnyTwoMROp, RM8, GPR8),
-    TwoRMInst8(AnyTwoMROp, GPR8, RM8),
-    TwoMRInst16(AnyTwoMROp, RM16, GPR16),
-    TwoRMInst16(AnyTwoMROp, GPR16, RM16),
-    TwoMRInst32(AnyTwoMROp, RM32, GPR32),
-    TwoRMInst32(AnyTwoMROp, GPR32, RM32),
-    TwoMRInst64(AnyTwoMROp, RM64, GPR64),
-    TwoRMInst64(AnyTwoMROp, GPR64, RM64),
+    OneRMInst8(OneOp, RM8),
+    OneRMInst16(OneOp, RM16),
+    OneRMInst32(OneOp, RM32),
+    OneRMInst64(OneOp, RM64),
+    TwoRMInst8(TwoOp, GPR8, RM8),
+    TwoRMInst16(TwoOp, GPR16, RM16),
+    TwoRMInst32(TwoOp, GPR32, RM32),
+    TwoRMInst64(TwoOp, GPR64, RM64),
+    TwoMRInst8(TwoOp, RM8, GPR8),
+    TwoMRInst16(TwoOp, RM16, GPR16),
+    TwoMRInst32(TwoOp, RM32, GPR32),
+    TwoMRInst64(TwoOp, RM64, GPR64),
+    TwoMIInst8(TwoOp, RM8, u8),
+    TwoMIInst16(TwoOp, RM16, u16),
+    TwoMIInst32(TwoOp, RM32, u32),
+    TwoMIInst64(TwoOp, RM64, u64),
     /// 8D /r; LEA r16,m; Store effective address for m in register r16.
     LeaRM16(GPR16, EffAddr),
     /// 8D /r; LEA r32,m; Store effective address for m in register r32.
@@ -267,90 +330,8 @@ pub enum Inst {
     MovOI32(GPR32, u32),
     /// REX.W + B8+ rd io; MOV r64, imm64; Move imm64 to r64.
     MovOI64(GPR64, u64),
-    /// C6 /0 ib; MOV r/m8, imm8; Move imm8 to r/m8.
-    MovMI8(RM8, u8),
-    /// C7 /0 iw; MOV r/m16, imm16; Move imm16 to r/m16.
-    MovMI16(RM16, u16),
-    /// C7 /0 id; MOV r/m32, imm32; Move imm32 to r/m32.
-    MovMI32(RM32, u32),
-    /// REX.W + C7 /0 id; MOV r/m64, imm32; Move imm32 sign extended to 64-bits to r/m64.
-    MovMI64(RM64, u64),
     /// F4; HLT
     Hlt,
-    /// 04 ib; ADD AL, imm8; Add imm8 to AL.
-    /// 80 /0 ib; ADD r/m8, imm8; Add imm8 to r/m8.
-    AddMI8(RM8, u8),
-    /// 05 iw; ADD AX, imm16; Add imm16 to AX.
-    /// 81 /0 iw; ADD r/m16, imm16; Add imm16 to r/m16.
-    /// 83 /0 ib; ADD r/m16, imm8; Add sign-extended imm8 to r/m16.
-    AddMI16(RM16, u16),
-    /// 05 id; ADD EAX, imm32; Add imm32 to EAX.
-    /// 81 /0 id; ADD r/m32, imm32; Add imm32 to r/m32.
-    /// 83 /0 ib; ADD r/m32, imm8; Add sign-extended imm8 to r/m32.
-    AddMI32(RM32, u32),
-    /// REX.W + 05 id; ADD RAX, imm32; Add imm32 sign-extended to 64-bits to RAX.
-    /// REX.W + 81 /0 id; ADD r/m64, imm32; Add imm32 sign-extended to 64-bits to r/m64.
-    /// REX.W + 83 /0 ib; ADD r/m64, imm8; Add sign-extended imm8 to r/m64.
-    AddMI64(RM64, u64),
-    /// 24 ib; AND AL, imm8; AL AND imm8.
-    /// 80 /4 ib; AND r/m8, imm8; r/m8 AND imm8.
-    AndMI8(RM8, u8),
-    /// 25 iw; AND AX, imm16; AX AND imm16.
-    /// 81 /4 iw; AND r/m16, imm16; r/m16 AND imm16.
-    /// 83 /4 ib; AND r/m16, imm8; r/m16 AND imm8 (sign-extended).
-    AndMI16(RM16, u16),
-    /// 25 id; AND EAX, imm32; EAX AND imm32.
-    /// 81 /4 id; AND r/m32, imm32; r/m32 AND imm32.
-    /// 83 /4 ib; AND r/m32, imm8; r/m32 AND imm8 (sign-extended).
-    AndMI32(RM32, u32),
-    /// REX.W + 25 id; AND RAX, imm32; RAX AND imm32 sign-extended to 64-bits.
-    /// REX.W + 81 /4 id; AND r/m64, imm32; r/m64 AND imm32 sign extended to 64-bits.
-    /// REX.W + 83 /4 ib; AND r/m64, imm8; r/m64 AND imm8 (sign-extended).
-    AndMI64(RM64, u64),
-    /// 80 /5 ib; SUB r/m8, imm8; Subtract imm8 from r/m8.
-    SubMI8(RM8, u8),
-    /// 2D iw; SUB AX, imm16; Subtract imm16 from AX.
-    /// 81 /5 iw; SUB r/m16, imm16; Subtract imm16 from r/m16.
-    /// 83 /5 ib; SUB r/m16, imm8; Subtract sign-extended imm8 from r/m16.
-    SubMI16(RM16, u16),
-    /// 2D id; SUB EAX, imm32; Subtract imm32 from EAX.
-    /// 81 /5 id; SUB r/m32, imm32; Subtract imm32 from r/m32.
-    /// 83 /5 ib; SUB r/m32, imm8; Subtract sign-extended imm8 from r/m32.
-    SubMI32(RM32, u32),
-    /// REX.W + 2D id; SUB RAX, imm32; Subtract imm32 sign-extended to 64-bits from RAX.
-    /// REX.W + 81 /5 id; SUB r/m64, imm32; Subtract imm32 sign-extended to 64-bits from r/m64.
-    /// REX.W + 83 /5 ib; SUB r/m64, imm8; Subtract sign-extended imm8 from r/m64.
-    SubMI64(RM64, u64),
-    /// 3C ib; CMP AL, imm8; Compare imm8 with AL.
-    /// 80 /7 ib; CMP r/m8, imm8; Compare imm8 with r/m8.
-    CmpMI8(RM8, u8),
-    /// 3D iw; CMP AX, imm16; Compare imm16 with AX.
-    /// 81 /7 iw; CMP r/m16, imm16; Compare imm16 with r/m16.
-    /// 83 /7 ib; CMP r/m16, imm8; Compare sign-extended imm8 with r/m16.
-    CmpMI16(RM16, u16),
-    /// 3D id; CMP EAX, imm32; Compare imm32 with EAX.
-    /// 81 /7 id; CMP r/m32, imm32; Compare imm32 with r/m32.
-    /// 83 /7 ib; CMP r/m32, imm8; Compare sign-extended imm8 with r/m32.
-    CmpMI32(RM32, u32),
-    /// REX.W + 3D id; CMP RAX, imm32; Compare imm32 sign-extended to 64-bits with RAX.
-    /// REX.W + 81 /7 id; CMP r/m64, imm32; Compare imm32 sign-extended to 64-bits with r/m64.
-    /// REX.W + 83 /7 ib; CMP r/m64, imm8; Compare sign-extended imm8 with r/m64.
-    CmpMI64(RM64, u64),
-    /// 34 ib; XOR AL, imm8; AL XOR imm8.
-    /// 80 /6 ib; XOR r/m8, imm8; r/m8 XOR imm8.
-    XorMI8(RM8, u8),
-    /// 35 iw; XOR AX, imm16; AX XOR imm16.
-    /// 81 /6 iw; XOR r/m16, imm16; r/m16 XOR imm16.
-    /// 83 /6 ib; XOR r/m16, imm8; r/m16 XOR imm8 (sign-extended).
-    XorMI16(RM16, u16),
-    /// 35 id; XOR EAX, imm32; EAX XOR imm32.
-    /// 81 /6 id; XOR r/m32, imm32; r/m32 XOR imm32.
-    /// 83 /6 ib; XOR r/m32, imm8; r/m32 XOR imm8 (sign-extended).
-    XorMI32(RM32, u32),
-    /// REX.W + 35 id; XOR RAX, imm32; RAX XOR imm32 (sign-extended).
-    /// REX.W + 81 /6 id; XOR r/m64, imm32; r/m64 XOR imm32 (sign-extended).
-    /// REX.W + 83 /6 ib; XOR r/m64, imm8; r/m64 XOR imm8 (sign-extended).
-    XorMI64(RM64, u64),
     /// 0F A3 /r; BT r/m16, r16; Store selected bit in CF flag.
     BtMR16(RM16, GPR16),
     /// 0F A3 /r; BT r/m32, r32; Store selected bit in CF flag.
@@ -627,36 +608,16 @@ impl Inst {
             MovOI16(gpr16, imm16) => format!("${:#x}, {}", imm16, gpr16),
             MovOI32(gpr32, imm32) => format!("${:#x}, {}", imm32, gpr32),
             MovOI64(gpr64, imm64) => format!("${:#x}, {}", imm64, gpr64),
-            MovMI8(rm8, imm8)
-            | AddMI8(rm8, imm8)
-            | AndMI8(rm8, imm8)
-            | SubMI8(rm8, imm8)
-            | CmpMI8(rm8, imm8)
-            | XorMI8(rm8, imm8) => {
+            TwoMIInst8(_, rm8, imm8) => {
                 format!("${:#x}, {}", imm8, rm8)
             }
-            MovMI16(rm16, imm16)
-            | AddMI16(rm16, imm16)
-            | AndMI16(rm16, imm16)
-            | SubMI16(rm16, imm16)
-            | CmpMI16(rm16, imm16)
-            | XorMI16(rm16, imm16) => {
+            TwoMIInst16(_, rm16, imm16) => {
                 format!("${:#x}, {}", imm16, rm16)
             }
-            MovMI32(rm32, imm32)
-            | AddMI32(rm32, imm32)
-            | AndMI32(rm32, imm32)
-            | SubMI32(rm32, imm32)
-            | CmpMI32(rm32, imm32)
-            | XorMI32(rm32, imm32) => {
+            TwoMIInst32(_, rm32, imm32) => {
                 format!("${:#x}, {}", imm32, rm32)
             }
-            MovMI64(rm64, imm64)
-            | AddMI64(rm64, imm64)
-            | AndMI64(rm64, imm64)
-            | SubMI64(rm64, imm64)
-            | CmpMI64(rm64, imm64)
-            | XorMI64(rm64, imm64) => {
+            TwoMIInst64(_, rm64, imm64) => {
                 format!("${:#x}, {}", imm64, rm64)
             }
             Hlt => String::new(),
@@ -743,92 +704,104 @@ impl Inst {
             Nop => "nop",
             Syscall => "syscall",
             LeaRM16(_, _) | LeaRM32(_, _) | LeaRM64(_, _) => "lea",
-            TwoRMInst8(AnyTwoMROp::MOV, _, _)
-            | TwoRMInst16(AnyTwoMROp::MOV, _, _)
-            | TwoRMInst32(AnyTwoMROp::MOV, _, _)
-            | TwoRMInst64(AnyTwoMROp::MOV, _, _)
-            | TwoMRInst8(AnyTwoMROp::MOV, _, _)
-            | TwoMRInst16(AnyTwoMROp::MOV, _, _)
-            | TwoMRInst32(AnyTwoMROp::MOV, _, _)
-            | TwoMRInst64(AnyTwoMROp::MOV, _, _)
+            TwoRMInst8(TwoOp::MOV, _, _)
+            | TwoRMInst16(TwoOp::MOV, _, _)
+            | TwoRMInst32(TwoOp::MOV, _, _)
+            | TwoRMInst64(TwoOp::MOV, _, _)
+            | TwoMRInst8(TwoOp::MOV, _, _)
+            | TwoMRInst16(TwoOp::MOV, _, _)
+            | TwoMRInst32(TwoOp::MOV, _, _)
+            | TwoMRInst64(TwoOp::MOV, _, _)
             | MovOI8(_, _)
             | MovOI16(_, _)
             | MovOI32(_, _) => "mov",
-            MovMI8(rm8, _) => rm8.either("mov", "movb"),
-            MovMI16(rm16, _) => rm16.either("mov", "movw"),
-            MovMI32(rm32, _) => rm32.either("mov", "movl"),
-            MovMI64(rm64, _) => rm64.either("mov", "movq"),
+            TwoMIInst8(TwoOp::MOV, rm8, _) => rm8.either("mov", "movb"),
+            TwoMIInst16(TwoOp::MOV, rm16, _) => rm16.either("mov", "movw"),
+            TwoMIInst32(TwoOp::MOV, rm32, _) => rm32.either("mov", "movl"),
+            TwoMIInst64(TwoOp::MOV, rm64, _) => rm64.either("mov", "movq"),
             // movabs just does the same, idk why gdb dumps as movabs.
             MovOI64(_, _) => "movabs",
             Hlt => "hlt",
-            OneRMInst8(AnyOneRMOp::INC, rm8) => rm8.either("inc", "incb"),
-            OneRMInst16(AnyOneRMOp::INC, rm16) => rm16.either("inc", "incw"),
-            OneRMInst32(AnyOneRMOp::INC, rm32) => rm32.either("inc", "incl"),
-            OneRMInst64(AnyOneRMOp::INC, rm64) => rm64.either("inc", "incq"),
-            OneRMInst8(AnyOneRMOp::DEC, rm8) => rm8.either("dec", "decb"),
-            OneRMInst16(AnyOneRMOp::DEC, rm16) => rm16.either("dec", "decw"),
-            OneRMInst32(AnyOneRMOp::DEC, rm32) => rm32.either("dec", "decl"),
-            OneRMInst64(AnyOneRMOp::DEC, rm64) => rm64.either("dec", "decq"),
-            OneRMInst8(AnyOneRMOp::NOT, rm8) => rm8.either("not", "notb"),
-            OneRMInst16(AnyOneRMOp::NOT, rm16) => rm16.either("not", "notw"),
-            OneRMInst32(AnyOneRMOp::NOT, rm32) => rm32.either("not", "notl"),
-            OneRMInst64(AnyOneRMOp::NOT, rm64) => rm64.either("not", "notq"),
-            OneRMInst8(AnyOneRMOp::DIV, rm8) => rm8.either("div", "divb"),
-            OneRMInst16(AnyOneRMOp::DIV, rm16) => rm16.either("div", "divw"),
-            OneRMInst32(AnyOneRMOp::DIV, rm32) => rm32.either("div", "divl"),
-            OneRMInst64(AnyOneRMOp::DIV, rm64) => rm64.either("div", "divq"),
-            OneRMInst8(AnyOneRMOp::IMUL, rm8) => rm8.either("imul", "imulb"),
-            OneRMInst16(AnyOneRMOp::IMUL, rm16) => rm16.either("imul", "imulw"),
-            OneRMInst32(AnyOneRMOp::IMUL, rm32) => rm32.either("imul", "imull"),
-            OneRMInst64(AnyOneRMOp::IMUL, rm64) => rm64.either("imul", "imulq"),
-            AddMI8(rm8, _) => rm8.either("add", "addb"),
-            AddMI16(rm16, _) => rm16.either("add", "addw"),
-            AddMI32(rm32, _) => rm32.either("add", "addl"),
-            AddMI64(rm64, _) => rm64.either("add", "addq"),
-            TwoRMInst8(AnyTwoMROp::ADD, _, _)
-            | TwoRMInst16(AnyTwoMROp::ADD, _, _)
-            | TwoRMInst32(AnyTwoMROp::ADD, _, _)
-            | TwoRMInst64(AnyTwoMROp::ADD, _, _)
-            | TwoMRInst8(AnyTwoMROp::ADD, _, _)
-            | TwoMRInst16(AnyTwoMROp::ADD, _, _)
-            | TwoMRInst32(AnyTwoMROp::ADD, _, _)
-            | TwoMRInst64(AnyTwoMROp::ADD, _, _) => "add",
-            AndMI8(rm8, _) => rm8.either("and", "andb"),
-            AndMI16(rm16, _) => rm16.either("and", "andw"),
-            AndMI32(rm32, _) => rm32.either("and", "andl"),
-            AndMI64(rm64, _) => rm64.either("and", "andq"),
-            TwoMRInst8(AnyTwoMROp::AND, _, _)
-            | TwoMRInst16(AnyTwoMROp::AND, _, _)
-            | TwoMRInst32(AnyTwoMROp::AND, _, _)
-            | TwoMRInst64(AnyTwoMROp::AND, _, _)
-            | TwoRMInst8(AnyTwoMROp::AND, _, _)
-            | TwoRMInst16(AnyTwoMROp::AND, _, _)
-            | TwoRMInst32(AnyTwoMROp::AND, _, _)
-            | TwoRMInst64(AnyTwoMROp::AND, _, _) => "and",
-            SubMI8(rm8, _) => rm8.either("sub", "subb"),
-            SubMI16(rm16, _) => rm16.either("sub", "subw"),
-            SubMI32(rm32, _) => rm32.either("sub", "subl"),
-            SubMI64(rm64, _) => rm64.either("sub", "subq"),
-            TwoMRInst8(AnyTwoMROp::SUB, _, _)
-            | TwoMRInst16(AnyTwoMROp::SUB, _, _)
-            | TwoMRInst32(AnyTwoMROp::SUB, _, _)
-            | TwoMRInst64(AnyTwoMROp::SUB, _, _)
-            | TwoRMInst8(AnyTwoMROp::SUB, _, _)
-            | TwoRMInst16(AnyTwoMROp::SUB, _, _)
-            | TwoRMInst32(AnyTwoMROp::SUB, _, _)
-            | TwoRMInst64(AnyTwoMROp::SUB, _, _) => "sub",
-            CmpMI8(rm8, _) => rm8.either("cmp", "cmpb"),
-            CmpMI16(rm16, _) => rm16.either("cmp", "cmpw"),
-            CmpMI32(rm32, _) => rm32.either("cmp", "cmpl"),
-            CmpMI64(rm64, _) => rm64.either("cmp", "cmpq"),
-            TwoMRInst8(AnyTwoMROp::CMP, _, _)
-            | TwoMRInst16(AnyTwoMROp::CMP, _, _)
-            | TwoMRInst32(AnyTwoMROp::CMP, _, _)
-            | TwoMRInst64(AnyTwoMROp::CMP, _, _)
-            | TwoRMInst8(AnyTwoMROp::CMP, _, _)
-            | TwoRMInst16(AnyTwoMROp::CMP, _, _)
-            | TwoRMInst32(AnyTwoMROp::CMP, _, _)
-            | TwoRMInst64(AnyTwoMROp::CMP, _, _) => "cmp",
+            OneRMInst8(OneOp::INC, rm8) => rm8.either("inc", "incb"),
+            OneRMInst16(OneOp::INC, rm16) => rm16.either("inc", "incw"),
+            OneRMInst32(OneOp::INC, rm32) => rm32.either("inc", "incl"),
+            OneRMInst64(OneOp::INC, rm64) => rm64.either("inc", "incq"),
+            OneRMInst8(OneOp::DEC, rm8) => rm8.either("dec", "decb"),
+            OneRMInst16(OneOp::DEC, rm16) => rm16.either("dec", "decw"),
+            OneRMInst32(OneOp::DEC, rm32) => rm32.either("dec", "decl"),
+            OneRMInst64(OneOp::DEC, rm64) => rm64.either("dec", "decq"),
+            OneRMInst8(OneOp::NOT, rm8) => rm8.either("not", "notb"),
+            OneRMInst16(OneOp::NOT, rm16) => rm16.either("not", "notw"),
+            OneRMInst32(OneOp::NOT, rm32) => rm32.either("not", "notl"),
+            OneRMInst64(OneOp::NOT, rm64) => rm64.either("not", "notq"),
+            OneRMInst8(OneOp::DIV, rm8) => rm8.either("div", "divb"),
+            OneRMInst16(OneOp::DIV, rm16) => rm16.either("div", "divw"),
+            OneRMInst32(OneOp::DIV, rm32) => rm32.either("div", "divl"),
+            OneRMInst64(OneOp::DIV, rm64) => rm64.either("div", "divq"),
+            OneRMInst8(OneOp::IMUL, rm8) => rm8.either("imul", "imulb"),
+            OneRMInst16(OneOp::IMUL, rm16) => rm16.either("imul", "imulw"),
+            OneRMInst32(OneOp::IMUL, rm32) => rm32.either("imul", "imull"),
+            OneRMInst64(OneOp::IMUL, rm64) => rm64.either("imul", "imulq"),
+            TwoMIInst8(TwoOp::ADD, rm8, _) => rm8.either("add", "addb"),
+            TwoMIInst16(TwoOp::ADD, rm16, _) => rm16.either("add", "addw"),
+            TwoMIInst32(TwoOp::ADD, rm32, _) => rm32.either("add", "addl"),
+            TwoMIInst64(TwoOp::ADD, rm64, _) => rm64.either("add", "addq"),
+            TwoRMInst8(TwoOp::ADD, _, _)
+            | TwoRMInst16(TwoOp::ADD, _, _)
+            | TwoRMInst32(TwoOp::ADD, _, _)
+            | TwoRMInst64(TwoOp::ADD, _, _)
+            | TwoMRInst8(TwoOp::ADD, _, _)
+            | TwoMRInst16(TwoOp::ADD, _, _)
+            | TwoMRInst32(TwoOp::ADD, _, _)
+            | TwoMRInst64(TwoOp::ADD, _, _) => "add",
+            TwoMIInst8(TwoOp::AND, rm8, _) => rm8.either("and", "andb"),
+            TwoMIInst16(TwoOp::AND, rm16, _) => rm16.either("and", "andw"),
+            TwoMIInst32(TwoOp::AND, rm32, _) => rm32.either("and", "andl"),
+            TwoMIInst64(TwoOp::AND, rm64, _) => rm64.either("and", "andq"),
+            TwoMRInst8(TwoOp::AND, _, _)
+            | TwoMRInst16(TwoOp::AND, _, _)
+            | TwoMRInst32(TwoOp::AND, _, _)
+            | TwoMRInst64(TwoOp::AND, _, _)
+            | TwoRMInst8(TwoOp::AND, _, _)
+            | TwoRMInst16(TwoOp::AND, _, _)
+            | TwoRMInst32(TwoOp::AND, _, _)
+            | TwoRMInst64(TwoOp::AND, _, _) => "and",
+            TwoMIInst8(TwoOp::SUB, rm8, _) => rm8.either("sub", "subb"),
+            TwoMIInst16(TwoOp::SUB, rm16, _) => rm16.either("sub", "subw"),
+            TwoMIInst32(TwoOp::SUB, rm32, _) => rm32.either("sub", "subl"),
+            TwoMIInst64(TwoOp::SUB, rm64, _) => rm64.either("sub", "subq"),
+            TwoMRInst8(TwoOp::SUB, _, _)
+            | TwoMRInst16(TwoOp::SUB, _, _)
+            | TwoMRInst32(TwoOp::SUB, _, _)
+            | TwoMRInst64(TwoOp::SUB, _, _)
+            | TwoRMInst8(TwoOp::SUB, _, _)
+            | TwoRMInst16(TwoOp::SUB, _, _)
+            | TwoRMInst32(TwoOp::SUB, _, _)
+            | TwoRMInst64(TwoOp::SUB, _, _) => "sub",
+            TwoMIInst8(TwoOp::CMP, rm8, _) => rm8.either("cmp", "cmpb"),
+            TwoMIInst16(TwoOp::CMP, rm16, _) => rm16.either("cmp", "cmpw"),
+            TwoMIInst32(TwoOp::CMP, rm32, _) => rm32.either("cmp", "cmpl"),
+            TwoMIInst64(TwoOp::CMP, rm64, _) => rm64.either("cmp", "cmpq"),
+            TwoMRInst8(TwoOp::CMP, _, _)
+            | TwoMRInst16(TwoOp::CMP, _, _)
+            | TwoMRInst32(TwoOp::CMP, _, _)
+            | TwoMRInst64(TwoOp::CMP, _, _)
+            | TwoRMInst8(TwoOp::CMP, _, _)
+            | TwoRMInst16(TwoOp::CMP, _, _)
+            | TwoRMInst32(TwoOp::CMP, _, _)
+            | TwoRMInst64(TwoOp::CMP, _, _) => "cmp",
+            TwoMRInst8(TwoOp::XOR, _, _)
+            | TwoMRInst16(TwoOp::XOR, _, _)
+            | TwoMRInst32(TwoOp::XOR, _, _)
+            | TwoMRInst64(TwoOp::XOR, _, _)
+            | TwoRMInst8(TwoOp::XOR, _, _)
+            | TwoRMInst16(TwoOp::XOR, _, _)
+            | TwoRMInst32(TwoOp::XOR, _, _)
+            | TwoRMInst64(TwoOp::XOR, _, _) => "xor",
+            TwoMIInst8(TwoOp::XOR, rm8, _) => rm8.either("xor", "xorb"),
+            TwoMIInst16(TwoOp::XOR, rm16, _) => rm16.either("xor", "xorw"),
+            TwoMIInst32(TwoOp::XOR, rm32, _) => rm32.either("xor", "xorl"),
+            TwoMIInst64(TwoOp::XOR, rm64, _) => rm64.either("xor", "xorq"),
             ImulRM16(_, _)
             | ImulRM32(_, _)
             | ImulRM64(_, _)
@@ -897,18 +870,6 @@ impl Inst {
             PushI64(_) => "push",
             Pushf16 => "pushfw",
             Pushf64 => "pushf",
-            XorMI8(rm8, _) => rm8.either("xor", "xorb"),
-            XorMI16(rm16, _) => rm16.either("xor", "xorw"),
-            XorMI32(rm32, _) => rm32.either("xor", "xorl"),
-            XorMI64(rm64, _) => rm64.either("xor", "xorq"),
-            TwoMRInst8(AnyTwoMROp::XOR, _, _)
-            | TwoMRInst16(AnyTwoMROp::XOR, _, _)
-            | TwoMRInst32(AnyTwoMROp::XOR, _, _)
-            | TwoMRInst64(AnyTwoMROp::XOR, _, _)
-            | TwoRMInst8(AnyTwoMROp::XOR, _, _)
-            | TwoRMInst16(AnyTwoMROp::XOR, _, _)
-            | TwoRMInst32(AnyTwoMROp::XOR, _, _)
-            | TwoRMInst64(AnyTwoMROp::XOR, _, _) => "xor",
             Scas(_, _) => "scas",
             BtMR16(_, _) => "bt",
             BtMR32(_, _) => "bt",

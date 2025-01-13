@@ -1,4 +1,4 @@
-use crate::inst::{AnyOneRMOp, AnyTwoMROp, DestMROp, PlainOneOp, ShrinkOp, WidenOp};
+use crate::inst::{DestMROp, OneOp, PlainOneOp, ShrinkOp, TwoOp, WidenOp};
 use crate::num_traits::{HasHalfWidth, UNum, UNum8To64};
 use crate::{
     decode_inst::decode_inst,
@@ -157,183 +157,95 @@ impl Machine {
             Inst::MovOI64(gpr64, imm64) => {
                 self.regs.set_reg64(gpr64, *imm64);
             }
-            Inst::MovMI8(rm8, imm8) => {
-                self.set_rm8(rm8, *imm8)?;
-            }
-            Inst::MovMI16(rm16, imm16) => {
-                self.set_rm16(rm16, *imm16)?;
-            }
-            Inst::MovMI32(rm32, imm32) => {
-                self.set_rm32(rm32, *imm32)?;
-            }
-            Inst::MovMI64(rm64, imm64) => {
-                self.set_rm64(rm64, *imm64)?;
-            }
             Inst::Hlt => {
                 Err(Rerr::Hlt)?;
             }
-            Inst::OneRMInst8(AnyOneRMOp::Plain(op), rm8) => {
+            Inst::OneRMInst8(OneOp::Plain(op), rm8) => {
                 let old = self.get_rm8(rm8)?;
                 let new = self.compute_result_onerm(op, old)?;
                 self.set_rm8(rm8, new)?;
             }
-            Inst::OneRMInst16(AnyOneRMOp::Plain(op), rm16) => {
+            Inst::OneRMInst16(OneOp::Plain(op), rm16) => {
                 let old = self.get_rm16(rm16)?;
                 let new = self.compute_result_onerm(op, old)?;
                 self.set_rm16(rm16, new)?;
             }
-            Inst::OneRMInst32(AnyOneRMOp::Plain(op), rm32) => {
+            Inst::OneRMInst32(OneOp::Plain(op), rm32) => {
                 let old = self.get_rm32(rm32)?;
                 let new = self.compute_result_onerm(op, old)?;
                 self.set_rm32(rm32, new)?;
             }
-            Inst::OneRMInst64(AnyOneRMOp::Plain(op), rm64) => {
+            Inst::OneRMInst64(OneOp::Plain(op), rm64) => {
                 let old = self.get_rm64(rm64)?;
                 let new = self.compute_result_onerm(op, old)?;
                 self.set_rm64(rm64, new)?;
             }
-            Inst::TwoMRInst8(AnyTwoMROp::Dest(op), rm8, gpr8) => {
+            Inst::TwoMRInst8(TwoOp::Dest(op), rm8, gpr8) => {
                 let source = self.regs.get_reg8(gpr8);
                 let old_dest = self.get_rm8(rm8)?;
                 let new = self.compute_result_tworm(op, old_dest, source)?;
                 self.set_rm8(rm8, new)?;
             }
-            Inst::TwoRMInst8(AnyTwoMROp::Dest(op), gpr8, rm8) => {
+            Inst::TwoRMInst8(TwoOp::Dest(op), gpr8, rm8) => {
                 let source = self.get_rm8(rm8)?;
                 let old_dest = self.regs.get_reg8(gpr8);
                 let new = self.compute_result_tworm(op, old_dest, source)?;
                 self.regs.set_reg8(gpr8, new);
             }
-            Inst::TwoMRInst16(AnyTwoMROp::Dest(op), rm16, gpr16) => {
+            Inst::TwoMRInst16(TwoOp::Dest(op), rm16, gpr16) => {
                 let source = self.regs.get_reg16(gpr16);
                 let old_dest = self.get_rm16(rm16)?;
                 let new = self.compute_result_tworm(op, old_dest, source)?;
                 self.set_rm16(rm16, new)?;
             }
-            Inst::TwoRMInst16(AnyTwoMROp::Dest(op), gpr16, rm16) => {
+            Inst::TwoRMInst16(TwoOp::Dest(op), gpr16, rm16) => {
                 let source = self.get_rm16(rm16)?;
                 let old_dest = self.regs.get_reg16(gpr16);
                 let new = self.compute_result_tworm(op, old_dest, source)?;
                 self.regs.set_reg16(gpr16, new);
             }
-            Inst::TwoMRInst32(AnyTwoMROp::Dest(op), rm32, gpr32) => {
+            Inst::TwoMRInst32(TwoOp::Dest(op), rm32, gpr32) => {
                 let source = self.regs.get_reg32(gpr32);
                 let old_dest = self.get_rm32(rm32)?;
                 let new = self.compute_result_tworm(op, old_dest, source)?;
                 self.set_rm32(rm32, new)?;
             }
-            Inst::TwoRMInst32(AnyTwoMROp::Dest(op), gpr32, rm32) => {
+            Inst::TwoRMInst32(TwoOp::Dest(op), gpr32, rm32) => {
                 let source = self.get_rm32(rm32)?;
                 let old_dest = self.regs.get_reg32(gpr32);
                 let new = self.compute_result_tworm(op, old_dest, source)?;
                 self.regs.set_reg32(gpr32, new);
             }
-            Inst::TwoMRInst64(AnyTwoMROp::Dest(op), rm64, gpr64) => {
+            Inst::TwoMRInst64(TwoOp::Dest(op), rm64, gpr64) => {
                 let source = self.regs.get_reg64(gpr64);
                 let old_dest = self.get_rm64(rm64)?;
                 let new = self.compute_result_tworm(op, old_dest, source)?;
                 self.set_rm64(rm64, new)?;
             }
-            Inst::TwoRMInst64(AnyTwoMROp::Dest(op), gpr64, rm64) => {
+            Inst::TwoRMInst64(TwoOp::Dest(op), gpr64, rm64) => {
                 let source = self.get_rm64(rm64)?;
                 let old_dest = self.regs.get_reg64(gpr64);
                 let new = self.compute_result_tworm(op, old_dest, source)?;
                 self.regs.set_reg64(gpr64, new);
             }
-            Inst::AddMI8(rm8, imm8) => {
-                let old = self.get_rm8(rm8)?;
-                let new = self.regs.flags.add(old, *imm8, true);
+            Inst::TwoMIInst8(TwoOp::Dest(op), rm8, source) => {
+                let old_dest = self.get_rm8(rm8)?;
+                let new = self.compute_result_tworm(op, old_dest, *source)?;
                 self.set_rm8(rm8, new)?;
             }
-            Inst::AddMI16(rm16, imm16) => {
-                let old = self.get_rm16(rm16)?;
-                let new = self.regs.flags.add(old, *imm16, true);
+            Inst::TwoMIInst16(TwoOp::Dest(op), rm16, source) => {
+                let old_dest = self.get_rm16(rm16)?;
+                let new = self.compute_result_tworm(op, old_dest, *source)?;
                 self.set_rm16(rm16, new)?;
             }
-            Inst::AddMI32(rm32, imm32) => {
-                let old = self.get_rm32(rm32)?;
-                let new = self.regs.flags.add(old, *imm32, true);
+            Inst::TwoMIInst32(TwoOp::Dest(op), rm32, source) => {
+                let old_dest = self.get_rm32(rm32)?;
+                let new = self.compute_result_tworm(op, old_dest, *source)?;
                 self.set_rm32(rm32, new)?;
             }
-            Inst::AddMI64(rm64, imm64) => {
-                let old = self.get_rm64(rm64)?;
-                let new = self.regs.flags.add(old, *imm64, true);
-                self.set_rm64(rm64, new)?;
-            }
-            Inst::AndMI8(rm8, imm8) => {
-                let old = self.get_rm8(rm8)?;
-                let new = self.regs.flags.and(old, *imm8);
-                self.set_rm8(rm8, new)?;
-            }
-            Inst::AndMI16(rm16, imm16) => {
-                let old = self.get_rm16(rm16)?;
-                let new = self.regs.flags.and(old, *imm16);
-                self.set_rm16(rm16, new)?;
-            }
-            Inst::AndMI32(rm32, imm32) => {
-                let old = self.get_rm32(rm32)?;
-                let new = self.regs.flags.and(old, *imm32);
-                self.set_rm32(rm32, new)?;
-            }
-            Inst::AndMI64(rm64, imm64) => {
-                let old = self.get_rm64(rm64)?;
-                let new = self.regs.flags.and(old, *imm64);
-                self.set_rm64(rm64, new)?;
-            }
-            Inst::SubMI8(rm8, imm8) => {
-                let old = self.get_rm8(rm8)?;
-                let new = self.regs.flags.sub(old, *imm8, true);
-                self.set_rm8(rm8, new)?;
-            }
-            Inst::SubMI16(rm16, imm16) => {
-                let old = self.get_rm16(rm16)?;
-                let new = self.regs.flags.sub(old, *imm16, true);
-                self.set_rm16(rm16, new)?;
-            }
-            Inst::SubMI32(rm32, imm32) => {
-                let old = self.get_rm32(rm32)?;
-                let new = self.regs.flags.sub(old, *imm32, true);
-                self.set_rm32(rm32, new)?;
-            }
-            Inst::SubMI64(rm64, imm64) => {
-                let old = self.get_rm64(rm64)?;
-                let new = self.regs.flags.sub(old, *imm64, true);
-                self.set_rm64(rm64, new)?;
-            }
-            Inst::CmpMI8(rm8, imm8) => {
-                let old = self.get_rm8(rm8)?;
-                self.regs.flags.sub(old, *imm8, true);
-            }
-            Inst::CmpMI16(rm16, imm16) => {
-                let old = self.get_rm16(rm16)?;
-                self.regs.flags.sub(old, *imm16, true);
-            }
-            Inst::CmpMI32(rm32, imm32) => {
-                let old = self.get_rm32(rm32)?;
-                self.regs.flags.sub(old, *imm32, true);
-            }
-            Inst::CmpMI64(rm64, imm64) => {
-                let old = self.get_rm64(rm64)?;
-                self.regs.flags.sub(old, *imm64, true);
-            }
-            Inst::XorMI8(rm8, imm8) => {
-                let old = self.get_rm8(rm8)?;
-                let new = self.regs.flags.xor(old, *imm8);
-                self.set_rm8(rm8, new)?;
-            }
-            Inst::XorMI16(rm16, imm16) => {
-                let old = self.get_rm16(rm16)?;
-                let new = self.regs.flags.xor(old, *imm16);
-                self.set_rm16(rm16, new)?;
-            }
-            Inst::XorMI32(rm32, imm32) => {
-                let old = self.get_rm32(rm32)?;
-                let new = self.regs.flags.xor(old, *imm32);
-                self.set_rm32(rm32, new)?;
-            }
-            Inst::XorMI64(rm64, imm64) => {
-                let old = self.get_rm64(rm64)?;
-                let new = self.regs.flags.xor(old, *imm64);
+            Inst::TwoMIInst64(TwoOp::Dest(op), rm64, source) => {
+                let old_dest = self.get_rm64(rm64)?;
+                let new = self.compute_result_tworm(op, old_dest, *source)?;
                 self.set_rm64(rm64, new)?;
             }
             Inst::BtMR16(rm16, gpr16) => {
@@ -372,7 +284,7 @@ impl Machine {
                 let val = self.get_rm64(rm64)?;
                 self.regs.flags.cf = 1 == (val >> bit_ind) & 1
             }
-            Inst::OneRMInst8(AnyOneRMOp::Shrink(op), rm8) => {
+            Inst::OneRMInst8(OneOp::Shrink(op), rm8) => {
                 let dividend = self.regs.get_ax();
                 let divisor = self.get_rm8(rm8)?;
                 let (quotient, remainder) =
@@ -380,7 +292,7 @@ impl Machine {
                 self.regs.set_reg8(&GPR8::al, quotient);
                 self.regs.set_reg8(&GPR8::ah, remainder);
             }
-            Inst::OneRMInst16(AnyOneRMOp::Shrink(op), rm16) => {
+            Inst::OneRMInst16(OneOp::Shrink(op), rm16) => {
                 let dividend = self.regs.get_dx_ax();
                 let divisor = self.get_rm16(rm16)?;
                 let (quotient, remainder) =
@@ -388,7 +300,7 @@ impl Machine {
                 self.regs.set_reg16(&GPR16::ax, quotient);
                 self.regs.set_reg16(&GPR16::dx, remainder);
             }
-            Inst::OneRMInst32(AnyOneRMOp::Shrink(op), rm32) => {
+            Inst::OneRMInst32(OneOp::Shrink(op), rm32) => {
                 let dividend = self.regs.get_edx_eax();
                 let divisor = self.get_rm32(rm32)?;
                 let (quotient, remainder) =
@@ -396,7 +308,7 @@ impl Machine {
                 self.regs.set_reg32(&GPR32::eax, quotient);
                 self.regs.set_reg32(&GPR32::edx, remainder);
             }
-            Inst::OneRMInst64(AnyOneRMOp::Shrink(op), rm64) => {
+            Inst::OneRMInst64(OneOp::Shrink(op), rm64) => {
                 let dividend = self.regs.get_rdx_rax();
                 let divisor = self.get_rm64(rm64)?;
                 let (quotient, remainder) =
@@ -405,25 +317,25 @@ impl Machine {
                 self.regs.set_reg64(&GPR64::rdx, remainder);
             }
             // ==============================================================
-            Inst::OneRMInst8(AnyOneRMOp::Widen(op), rm8) => {
+            Inst::OneRMInst8(OneOp::Widen(op), rm8) => {
                 let x = self.regs.get_al();
                 let y = self.get_rm8(rm8)?;
                 let prod = self.compute_result_widen_onerm(op, x, y)?;
                 self.regs.set_ax(prod);
             }
-            Inst::OneRMInst16(AnyOneRMOp::Widen(op), rm16) => {
+            Inst::OneRMInst16(OneOp::Widen(op), rm16) => {
                 let x = self.regs.get_ax();
                 let y = self.get_rm16(rm16)?;
                 let prod = self.compute_result_widen_onerm(op, x, y)?;
                 self.regs.set_dx_ax(prod);
             }
-            Inst::OneRMInst32(AnyOneRMOp::Widen(op), rm32) => {
+            Inst::OneRMInst32(OneOp::Widen(op), rm32) => {
                 let x = self.regs.get_eax();
                 let y = self.get_rm32(rm32)?;
                 let prod = self.compute_result_widen_onerm(op, x, y)?;
                 self.regs.set_edx_eax(prod);
             }
-            Inst::OneRMInst64(AnyOneRMOp::Widen(op), rm64) => {
+            Inst::OneRMInst64(OneOp::Widen(op), rm64) => {
                 let x = self.regs.get_rax();
                 let y = self.get_rm64(rm64)?;
                 let prod = self.compute_result_widen_onerm(op, x, y)?;
