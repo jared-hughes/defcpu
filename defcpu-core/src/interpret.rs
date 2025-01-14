@@ -1,5 +1,5 @@
 use crate::inst::{DestMROp, OneOp, PlainOneOp, ShrinkOp, TwoOp, WidenOp};
-use crate::num_traits::{HasHalfWidth, UNum, UNum8To64};
+use crate::num_traits::{HasDoubleWidth, HasHalfWidth, UNum, UNum8To64};
 use crate::{
     decode_inst::decode_inst,
     errors::{RResult, Rerr},
@@ -551,6 +551,30 @@ impl Machine {
                 // needs to calculate the effective address, depending on registers.
                 self.set_rm64(rm64, y)?;
                 self.regs.set_reg64(gpr64, x);
+            }
+            Inst::Cwd16 => {
+                let s = self.regs.get_ax().sign();
+                self.regs.set_reg16(&GPR16::dx, s.fill());
+            }
+            Inst::Cdq32 => {
+                let s = self.regs.get_eax().sign();
+                self.regs.set_reg32(&GPR32::edx, s.fill());
+            }
+            Inst::Cqo64 => {
+                let s = self.regs.get_rax().sign();
+                self.regs.set_reg64(&GPR64::rdx, s.fill());
+            }
+            Inst::Cbw16 => {
+                let x = self.regs.get_al();
+                self.regs.set_ax(x.sign_extend_double_width())
+            }
+            Inst::Cwde32 => {
+                let x = self.regs.get_ax();
+                self.regs.set_eax(x.sign_extend_double_width())
+            }
+            Inst::Cdqe64 => {
+                let x = self.regs.get_eax();
+                self.regs.set_rax(x.sign_extend_double_width())
             }
         }
         Ok(())

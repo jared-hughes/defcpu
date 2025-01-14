@@ -1,4 +1,4 @@
-use std::ops::BitXor;
+use std::ops::{BitXor, Not};
 
 #[derive(PartialEq, Eq)]
 pub enum U1 {
@@ -56,6 +56,15 @@ impl From<Sign> for U1 {
         match value {
             Sign::Pos => U1::Zero,
             Sign::Neg => U1::One,
+        }
+    }
+}
+impl Sign {
+    pub fn fill<U: Not<Output = U> + From<u8>>(&self) -> U {
+        let zero: U = 0.into();
+        match self {
+            Sign::Pos => zero,
+            Sign::Neg => !zero,
         }
     }
 }

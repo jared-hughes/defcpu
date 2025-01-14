@@ -577,6 +577,14 @@ impl Registers {
         self.set_reg16(&GPR16::ax, val);
     }
 
+    pub fn set_eax(&mut self, val: u32) {
+        self.set_reg32(&GPR32::eax, val);
+    }
+
+    pub fn set_rax(&mut self, val: u64) {
+        self.set_reg64(&GPR64::rax, val);
+    }
+
     pub fn set_dx_ax(&mut self, val: u32) {
         self.set_reg16(&GPR16::dx, (val >> 16) as u16);
         self.set_reg16(&GPR16::ax, val as u16);

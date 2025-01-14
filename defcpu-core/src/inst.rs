@@ -538,24 +538,36 @@ pub enum Inst {
     /// Note the e.g. m32 form is "explicit-operand form". You put in a register,
     /// but it only represents the %al/%ax/%eax/%rax of the same size.
     Scas(DataSize, AddressSizeAttribute),
-    // 86 /r; XCHG r/m8, r8; Exchange r8 (byte register) with byte from r/m8.
-    // 86 /r; XCHG r8, r/m8; Exchange byte from r/m8 with r8 (byte register).
+    /// 86 /r; XCHG r/m8, r8; Exchange r8 (byte register) with byte from r/m8.
+    /// 86 /r; XCHG r8, r/m8; Exchange byte from r/m8 with r8 (byte register).
     XchgMR8(RM8, GPR8),
-    // 90+rw; XCHG AX, r16; Exchange r16 with AX.
-    // 90+rw; XCHG r16, AX; Exchange AX with r16.
-    // 87 /r; XCHG r/m16, r16; Exchange r16 with word from r/m16.
-    // 87 /r; XCHG r16, r/m16; Exchange word from r/m16 with r16.
+    /// 90+rw; XCHG AX, r16; Exchange r16 with AX.
+    /// 90+rw; XCHG r16, AX; Exchange AX with r16.
+    /// 87 /r; XCHG r/m16, r16; Exchange r16 with word from r/m16.
+    /// 87 /r; XCHG r16, r/m16; Exchange word from r/m16 with r16.
     XchgMR16(RM16, GPR16),
-    // 90+rd; XCHG EAX, r32; Exchange r32 with EAX.
-    // 90+rd; XCHG r32, EAX; Exchange EAX with r32.
-    // 87 /r; XCHG r/m32, r32; Exchange r32 with doubleword from r/m32.
-    // 87 /r; XCHG r32, r/m32; Exchange doubleword from r/m32 with r32.
+    /// 90+rd; XCHG EAX, r32; Exchange r32 with EAX.
+    /// 90+rd; XCHG r32, EAX; Exchange EAX with r32.
+    /// 87 /r; XCHG r/m32, r32; Exchange r32 with doubleword from r/m32.
+    /// 87 /r; XCHG r32, r/m32; Exchange doubleword from r/m32 with r32.
     XchgMR32(RM32, GPR32),
-    // REX.W + 90+rd; XCHG RAX, r64; Exchange r64 with RAX.
-    // REX.W + 90+rd; XCHG r64, RAX; Exchange RAX with r64.
-    // REX.W + 87 /r; XCHG r/m64, r64; Exchange r64 with quadword from r/m64.
-    // REX.W + 87 /r; XCHG r64, r/m64; Exchange quadword from r/m64 with r64.
+    /// REX.W + 90+rd; XCHG RAX, r64; Exchange r64 with RAX.
+    /// REX.W + 90+rd; XCHG r64, RAX; Exchange RAX with r64.
+    /// REX.W + 87 /r; XCHG r/m64, r64; Exchange r64 with quadword from r/m64.
+    /// REX.W + 87 /r; XCHG r64, r/m64; Exchange quadword from r/m64 with r64.
     XchgMR64(RM64, GPR64),
+    /// 99; CWD; DX:AX := sign-extend of AX. aka 'cwtd'
+    Cwd16,
+    /// 99; CDQ; EDX:EAX := sign-extend of EAX. aka 'cltd'
+    Cdq32,
+    /// REX.W + 99; CQO; RDX:RAX:= sign-extend of RAX. aka 'cqto'
+    Cqo64,
+    /// 98; CBW; ZO; AX := sign-extend of AL. aka 'cbtw'
+    Cbw16,
+    /// 98; CWDE; ZO; EAX := sign-extend of AX. aka 'cwtl'
+    Cwde32,
+    /// REX.W + 98; CDQE; ZO; RAX := sign-extend of EAX. aka 'cltq'
+    Cdqe64,
 }
 
 impl Inst {
@@ -570,7 +582,13 @@ impl Inst {
             | Popf16
             | Popf64
             | Pushf16
-            | Pushf64 => String::new(),
+            | Pushf64
+            | Cwd16
+            | Cdq32
+            | Cqo64
+            | Cbw16
+            | Cwde32
+            | Cdqe64 => String::new(),
             Nop => String::new(),
             LeaRM16(gpr16, eff_addr) => format!("{}, {}", eff_addr, gpr16),
             LeaRM32(gpr32, eff_addr) => format!("{}, {}", eff_addr, gpr32),
@@ -703,6 +721,13 @@ impl Inst {
             RexNoop => "",
             Nop => "nop",
             Syscall => "syscall",
+            // Ref https://sourceware.org/binutils/docs/as/i386_002dMnemonics.html.
+            Cwd16 => "cwtd",
+            Cdq32 => "cltd",
+            Cqo64 => "cqto",
+            Cbw16 => "cbtw",
+            Cwde32 => "cwtl",
+            Cdqe64 => "cltq",
             LeaRM16(_, _) | LeaRM32(_, _) | LeaRM64(_, _) => "lea",
             TwoRMInst8(TwoOp::MOV, _, _)
             | TwoRMInst16(TwoOp::MOV, _, _)

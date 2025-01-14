@@ -913,6 +913,16 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
             }
         }
+        0x98 => match lex.get_operand_size() {
+            Data16 => Cbw16,
+            Data32 => Cwde32,
+            Data64 => Cdqe64,
+        },
+        0x99 => match lex.get_operand_size() {
+            Data16 => Cwd16,
+            Data32 => Cdq32,
+            Data64 => Cqo64,
+        },
         0x9C => {
             // No args, but depends on operand size.
             match lex.get_operand_size_64_default() {
