@@ -230,7 +230,7 @@ pub fn decode_inst(mem: &Memory, i: u64) -> RResult<(DisInst, u64)> {
         group1_prefix: lex.prefix.group1_prefix.map(|prefix| {
             let addr_size = lex.get_address_size();
             match prefix {
-                // TODO: How do we know when it's REP instead of REPZ?
+                // TODO-correctness: How do we know when it's REP instead of REPZ?
                 Group1Prefix::Repz => Group1PrefixExec::Repz(addr_size),
                 Group1Prefix::Repnz => Group1PrefixExec::Repnz(addr_size),
             }
@@ -297,19 +297,42 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         }
         //
         // ============ regular opcodes ============
-        0x00 | 0x02 => {
-            // 00 /r; ADD r/m8, r8; Add r8 to r/m8.
-            // 02 /r; ADD r8, r/m8; Add r/m8 to r8.
+        //
+        0x00 | 0x02 | 0x20 | 0x22 | 0x28 | 0x2A | 0x30 | 0x32 | 0x38 | 0x3A | 0x88 | 0x8A => {
+            // Encoding /r, with 8-bit operand size. Proto:
+            // 00 /r; ADD r/m8, r8; MR; Valid; Valid; Add r8 to r/m8.
+            // 02 /r; ADD r8, r/m8; RM; Valid; Valid; Add r/m8 to r8.
             let modrm = lex.next_modrm()?;
             let reg = lex.reg8_field_select_r(modrm.reg3);
             let rm8 = decode_rm8(lex, &modrm)?;
-            match opcode {
-                0x00 => TwoMRInst8(TwoOp::ADD, rm8, reg),
-                0x02 => TwoRMInst8(TwoOp::ADD, reg, rm8),
-                _ => panic!("Missing match arm in decode_inst_inner."),
+            let (op, reverse) = match opcode {
+                0x00 => (TwoOp::ADD, false),
+                0x02 => (TwoOp::ADD, true),
+                0x20 => (TwoOp::AND, false),
+                0x22 => (TwoOp::AND, true),
+                0x28 => (TwoOp::SUB, false),
+                0x2A => (TwoOp::SUB, true),
+                0x30 => (TwoOp::XOR, false),
+                0x32 => (TwoOp::XOR, true),
+                0x38 => (TwoOp::CMP, false),
+                0x3A => (TwoOp::CMP, true),
+                0x88 => (TwoOp::MOV, false),
+                0x8A => (TwoOp::MOV, true),
+                _ => unreachable!(),
+            };
+            match reverse {
+                false => TwoMRInst8(op, rm8, reg),
+                true => TwoRMInst8(op, reg, rm8),
             }
         }
         0x01 | 0x03 | 0x21 | 0x23 | 0x29 | 0x2B | 0x31 | 0x33 | 0x39 | 0x3B | 0x89 | 0x8B => {
+            // Encoding /r, with 16/32/64-bit operand size. Proto:
+            // 01 /r; ADD r/m16, r16; MR; Valid; Valid; Add r16 to r/m16.
+            // 01 /r; ADD r/m32, r32; MR; Valid; Valid; Add r32 to r/m32.
+            // REX.W + 01 /r; ADD r/m64, r64; MR; Valid; N.E.; Add r64 to r/m64.
+            // 03 /r; ADD r16, r/m16; RM; Valid; Valid; Add r/m16 to r16.
+            // 03 /r; ADD r32, r/m32; RM; Valid; Valid; Add r/m32 to r32.
+            // REX.W + 03 /r; ADD r64, r/m64; RM; Valid; N.E.; Add r/m64 to r64.
             let modrm = lex.next_modrm()?;
             let rex_r = lex.get_rex_r_matters();
             let (op, reverse) = match opcode {
@@ -354,62 +377,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
             }
         }
-        0x04 => {
-            // 04 ib; ADD AL, imm8; Add imm8 to AL.
-            let imm8 = lex.next_imm8()?;
-            TwoMIInst8(TwoOp::ADD, RM8::Reg(GPR8::al), imm8)
-        }
-        0x05 => match lex.get_operand_size() {
-            Data16 => {
-                // 05 iw; ADD AX, imm16; Add imm16 to AX.
-                let imm16 = lex.next_imm16()?;
-                TwoMIInst16(TwoOp::ADD, RM16::Reg(GPR16::ax), imm16)
-            }
-            Data32 => {
-                // 05 id; ADD EAX, imm32; Add imm32 to EAX.
-                let imm32 = lex.next_imm32()?;
-                TwoMIInst32(TwoOp::ADD, RM32::Reg(GPR32::eax), imm32)
-            }
-            Data64 => {
-                // REX.W + 05 id; ADD RAX, imm32; Add imm32 sign-extended to 64-bits to RAX.
-                let imm32 = lex.next_imm32()?;
-                TwoMIInst64(TwoOp::ADD, RM64::Reg(GPR64::rax), imm32 as i32 as u64)
-            }
-        },
-        0x20 | 0x22 => {
-            // 20 /r; AND r/m8, r8; r/m8 AND r8.
-            // 22 /r; AND r8, r/m8; r8 AND r/m8.
-            let modrm = lex.next_modrm()?;
-            let reg = lex.reg8_field_select_r(modrm.reg3);
-            let rm8 = decode_rm8(lex, &modrm)?;
-            match opcode {
-                0x20 => TwoMRInst8(TwoOp::AND, rm8, reg),
-                0x22 => TwoRMInst8(TwoOp::AND, reg, rm8),
-                _ => panic!("Missing match arm in decode_inst_inner."),
-            }
-        }
-        0x24 => {
-            // 24 ib; AND AL, imm8; AL AND imm8.
-            let imm8 = lex.next_imm8()?;
-            TwoMIInst8(TwoOp::AND, RM8::Reg(GPR8::al), imm8)
-        }
-        0x25 => match lex.get_operand_size() {
-            Data16 => {
-                // 25 iw; AND AX, imm16; AX AND imm16.
-                let imm16 = lex.next_imm16()?;
-                TwoMIInst16(TwoOp::AND, RM16::Reg(GPR16::ax), imm16)
-            }
-            Data32 => {
-                // 25 id; AND EAX, imm32; EAX AND imm32.
-                let imm32 = lex.next_imm32()?;
-                TwoMIInst32(TwoOp::AND, RM32::Reg(GPR32::eax), imm32)
-            }
-            Data64 => {
-                // REX.W + 25 id; AND RAX, imm32; RAX AND imm32 sign-extended to 64-bits.
-                let imm32 = lex.next_imm32()?;
-                TwoMIInst64(TwoOp::AND, RM64::Reg(GPR64::rax), imm32 as i32 as u64)
-            }
-        },
         0x0F => {
             let opcode2 = lex.next_u8()?;
             match opcode2 {
@@ -537,21 +504,13 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 _ => NotImplemented2(opcode, opcode2),
             }
         }
-        0x28 | 0x2A => {
-            // 28 /r; SUB r/m8, r8; Subtract r8 from r/m8.
-            // 2A /r; SUB r8, r/m8; Subtract r/m8 from r8.
-            let modrm = lex.next_modrm()?;
-            let reg = lex.reg8_field_select_r(modrm.reg3);
-            let rm8 = decode_rm8(lex, &modrm)?;
-            match opcode {
-                0x28 => TwoMRInst8(TwoOp::SUB, rm8, reg),
-                0x2A => TwoRMInst8(TwoOp::SUB, reg, rm8),
-                _ => panic!("Missing match arm in decode_inst_inner."),
-            }
-        }
-        0x2C | 0x34 | 0x3C => {
+        0x04 | 0x24 | 0x2C | 0x34 | 0x3C => {
+            // 8-bit immediate, with al as dest operand. Proto:
+            // 04 ib; ADD AL, imm8; I; Valid; Valid; Add imm8 to AL.
             let imm8 = lex.next_imm8()?;
             let op = match opcode {
+                0x04 => TwoOp::ADD,
+                0x24 => TwoOp::AND,
                 0x2c => TwoOp::SUB,
                 0x34 => TwoOp::XOR,
                 0x3C => TwoOp::CMP,
@@ -559,8 +518,15 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             };
             TwoMIInst8(op, RM8::Reg(GPR8::al), imm8)
         }
-        0x2D | 0x35 | 0x3D => {
+        0x05 | 0x25 | 0x2D | 0x35 | 0x3D => {
+            // 16/32/64-bit immediate, with ax/eax/rax as dest operand.
+            // Note the 64-bit immediate is sign-extended from 32-bit. Proto:
+            // 05 iw; ADD AX, imm16; I; Valid; Valid; Add imm16 to AX.
+            // 05 id; ADD EAX, imm32; I; Valid; Valid; Add imm32 to EAX.
+            // REX.W + 05 id; ADD RAX, imm32; I; Valid; N.E.; Add imm32 sign-extended to 64-bits to RAX.
             let op = match opcode {
+                0x05 => TwoOp::ADD,
+                0x25 => TwoOp::AND,
                 0x2D => TwoOp::SUB,
                 0x35 => TwoOp::XOR,
                 0x3D => TwoOp::CMP,
@@ -581,23 +547,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
             }
         }
-        0x30 | 0x32 | 0x38 | 0x3A => {
-            // 30 /r; XOR r/m8, r8; r/m8 XOR r8.
-            // 32 /r; XOR r8, r/m8; r8 XOR r/m8.
-            // 38 /r; CMP r/m8, r8; Compare r8 with r/m8.
-            // 3A /r; CMP r8, r/m8; Compare r/m8 with r8.
-            let modrm = lex.next_modrm()?;
-            let reg = lex.reg8_field_select_r(modrm.reg3);
-            let rm8 = decode_rm8(lex, &modrm)?;
-            match opcode {
-                0x30 => TwoMRInst8(TwoOp::XOR, rm8, reg),
-                0x32 => TwoRMInst8(TwoOp::XOR, reg, rm8),
-                0x38 => TwoMRInst8(TwoOp::CMP, rm8, reg),
-                0x3A => TwoRMInst8(TwoOp::CMP, reg, rm8),
-                _ => panic!("Missing match arm in decode_inst_inner."),
-            }
-        }
         0x50..=0x57 => {
+            // PUSH a 16/64-bit register. TODO-golf: same operand as POP.
             let rex_b = lex.get_rex_b_matters();
             match lex.get_operand_size_64_default() {
                 Data16 => {
@@ -614,6 +565,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x58..=0x5F => {
+            // POP to a 16/64-bit register. TODO-golf: same operand as PUSH.
             let rex_b = lex.get_rex_b_matters();
             match lex.get_operand_size_64_default() {
                 Data16 => {
@@ -630,6 +582,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x90..=0x97 => {
+            // Exchange a 16/32/64-bit operand with ax/eax/rax.
             let rex_b = lex.get_rex_b_matters();
             if opcode == 0x90 && lex.get_operand_size_no_rexw() != Data16 && !rex_b {
                 // XCHG (E)AX, (E)AX (encoded instruction byte is 90H) is an alias
@@ -659,7 +612,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x68 => {
-            // 0x68
+            // PUSH as 16/32
             match lex.get_operand_size_64_default() {
                 Data16 => {
                     // 68 iw; PUSH imm16; Push imm16.
@@ -668,6 +621,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
                 Data32 => panic!("Impossible Data32 with 64-bit default."),
                 Data64 => {
+                    // TODO-correctness: is this implemented right?
                     // 68 id; PUSH imm32; Push imm32.
                     let imm32 = lex.next_imm32()?;
                     PushI64(imm32 as i32 as u64)
@@ -675,33 +629,38 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x69 => {
+            // 16/32/64-bit immediate, with a register as dest operand.
+            // Note the 64-bit immediate is sign-extended from 32-bit. Proto:
+            // 69 /r iw; IMUL r16, r/m16, imm16; word register := r/m16 ∗ immediate word.
+            // 69 /r id; IMUL r32, r/m32, imm32; doubleword register := r/m32 ∗ immediate doubleword.
+            // REX.W + 69 /r id; IMUL r64, r/m64, imm32; Quadword register := r/m64 ∗ immediate doubleword.
             let modrm = lex.next_modrm()?;
             let rex_r = lex.get_rex_r_matters();
             match lex.get_operand_size() {
                 Data16 => {
-                    // 69 /r iw; IMUL r16, r/m16, imm16; word register := r/m16 ∗ immediate word.
                     let reg = reg16_field_select(modrm.reg3, rex_r);
                     let rm16 = decode_rm16(lex, &modrm)?;
-                    let imm16 = lex.next_i16()?;
-                    ImulRMI16(reg, rm16, imm16 as u16)
+                    let imm16 = lex.next_imm16()?;
+                    ImulRMI16(reg, rm16, imm16)
                 }
                 Data32 => {
-                    // 69 /r id; IMUL r32, r/m32, imm32; doubleword register := r/m32 ∗ immediate doubleword.
                     let reg = reg32_field_select(modrm.reg3, rex_r);
                     let rm32 = decode_rm32(lex, &modrm)?;
-                    let imm32 = lex.next_i32()?;
-                    ImulRMI32(reg, rm32, imm32 as u32)
+                    let imm32 = lex.next_imm32()?;
+                    ImulRMI32(reg, rm32, imm32)
                 }
                 Data64 => {
-                    // REX.W + 69 /r id; IMUL r64, r/m64, imm32; Quadword register := r/m64 ∗ immediate doubleword.
                     let reg = reg64_field_select(modrm.reg3, rex_r);
                     let rm64 = decode_rm64(lex, &modrm)?;
-                    let imm32 = lex.next_i32()?;
-                    ImulRMI64(reg, rm64, imm32 as u64)
+                    let imm32 = lex.next_imm32()?;
+                    // TODO-correctness: verify this is sign-extended from 32.
+                    // Disagrees with the REX.W + 69 /r description.
+                    ImulRMI64(reg, rm64, imm32 as i32 as u64)
                 }
             }
         }
         0x6A => {
+            // 16/64-bit immediate, sign-extended from 8-bit. Proto:
             // 6A ib; PUSH imm8; Push imm8.
             match lex.get_operand_size_64_default() {
                 Data16 => {
@@ -716,29 +675,30 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x6B => {
+            // Register and immediate operands, sign-extended from 8-bit. Proto:
+            // 6B /r ib; IMUL r16, r/m16, imm8; word register := r/m16 ∗ sign-extended immediate byte.
+            // 6B /r ib; IMUL r32, r/m32, imm8; doubleword register := r/m32 ∗ sign-extended immediate byte.
+            // REX.W + 6B /r ib; IMUL r64, r/m64, imm8; Quadword register := r/m64 ∗ sign-extended immediate byte.
             let modrm = lex.next_modrm()?;
             let rex_r = lex.get_rex_r_matters();
             match lex.get_operand_size() {
                 Data16 => {
-                    // 6B /r ib; IMUL r16, r/m16, imm8; word register := r/m16 ∗ sign-extended immediate byte.
                     let reg = reg16_field_select(modrm.reg3, rex_r);
                     let rm16 = decode_rm16(lex, &modrm)?;
-                    let imm8 = lex.next_i8()?;
-                    ImulRMI16(reg, rm16, imm8 as u16)
+                    let imm8 = lex.next_imm8()?;
+                    ImulRMI16(reg, rm16, imm8 as i8 as u16)
                 }
                 Data32 => {
-                    // 6B /r ib; IMUL r32, r/m32, imm8; doubleword register := r/m32 ∗ sign-extended immediate byte.
                     let reg = reg32_field_select(modrm.reg3, rex_r);
                     let rm32 = decode_rm32(lex, &modrm)?;
-                    let imm8 = lex.next_i8()?;
-                    ImulRMI32(reg, rm32, imm8 as u32)
+                    let imm8 = lex.next_imm8()?;
+                    ImulRMI32(reg, rm32, imm8 as i8 as u32)
                 }
                 Data64 => {
-                    // REX.W + 6B /r ib; IMUL r64, r/m64, imm8; Quadword register := r/m64 ∗ sign-extended immediate byte.
                     let reg = reg64_field_select(modrm.reg3, rex_r);
                     let rm64 = decode_rm64(lex, &modrm)?;
-                    let imm8 = lex.next_i8()?;
-                    ImulRMI64(reg, rm64, imm8 as u64)
+                    let imm8 = lex.next_imm8()?;
+                    ImulRMI64(reg, rm64, imm8 as i8 as u64)
                 }
             }
         }
@@ -766,6 +726,9 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x80 => {
+            // 8-bit immediate, with r/m8 as dest operand.
+            // modrm.reg3 is used to determine the instruction. Proto:
+            // 80 /0 ib; ADD r/m8, imm8; MI; Add imm8 to r/m8.
             let modrm = lex.next_modrm()?;
             let op = match modrm.reg3 {
                 0 => TwoOp::ADD,
@@ -782,14 +745,21 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             let imm8 = lex.next_imm8()?;
             TwoMIInst8(op, rm8, imm8)
         }
-        0x81 => {
+        0x81 | 0xC7 => {
+            // 16/32/64-bit immediate, with r/m as dest operand.
+            // modrm.reg3 is used to determine the instruction.
+            // Note the 64-bit immediate is sign-extended from 32-bit. Proto:
+            // 81 /0 iw; ADD r/m16, imm16; MI; Add imm16 to r/m16.
+            // 81 /0 id; ADD r/m32, imm32; MI; Add imm32 to r/m32.
+            // REX.W + 81 /0 id; ADD r/m64, imm32; MI; Add imm32 sign-extended to 64-bits to r/m64.
             let modrm = lex.next_modrm()?;
-            let op = match modrm.reg3 {
-                0 => TwoOp::ADD,
-                4 => TwoOp::AND,
-                5 => TwoOp::SUB,
-                6 => TwoOp::XOR,
-                7 => TwoOp::CMP,
+            let op = match (opcode, modrm.reg3) {
+                (0x81, 0) => TwoOp::ADD,
+                (0x81, 4) => TwoOp::AND,
+                (0x81, 5) => TwoOp::SUB,
+                (0x81, 6) => TwoOp::XOR,
+                (0x81, 7) => TwoOp::CMP,
+                (0xC7, 0) => TwoOp::MOV,
                 _ => {
                     lex.rollback();
                     return Ok(NotImplementedOpext(opcode, modrm.reg3));
@@ -815,6 +785,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x83 => {
+            // 16/32/64-bit immediate, with r/m as dest operand.
+            // modrm.reg3 is used to determine the instruction.
+            // Note each immediate is sign-extended from 8-bit. Proto:
+            // 83 /0 ib; ADD r/m16, imm8; MI; Add sign-extended imm8 to r/m16.
+            // 83 /0 ib; ADD r/m32, imm8; MI; Add sign-extended imm8 to r/m32.
+            // REX.W + 83 /0 ib; ADD r/m64, imm8; MI; Add sign-extended imm8 to r/m64.
             let modrm = lex.next_modrm()?;
             let op = match modrm.reg3 {
                 0 => TwoOp::ADD,
@@ -829,19 +805,16 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             };
             match lex.get_operand_size() {
                 Data16 => {
-                    // 83 /0 ib; ADD r/m16, imm8; Add sign-extended imm8 to r/m16.
                     let rm16 = decode_rm16(lex, &modrm)?;
                     let imm8 = lex.next_imm8()?;
                     TwoMIInst16(op, rm16, imm8 as i8 as u16)
                 }
                 Data32 => {
-                    // 83 /0 ib; ADD r/m32, imm8; Add sign-extended imm8 to r/m32.
                     let rm32 = decode_rm32(lex, &modrm)?;
                     let imm8 = lex.next_imm8()?;
                     TwoMIInst32(op, rm32, imm8 as i8 as u32)
                 }
                 Data64 => {
-                    // REX.W + 83 /0 ib; ADD r/m64, imm8; Add sign-extended imm8 to r/m64.
                     let rm64 = decode_rm64(lex, &modrm)?;
                     let imm8 = lex.next_imm8()?;
                     TwoMIInst64(op, rm64, imm8 as i8 as u64)
@@ -849,6 +822,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x86 => {
+            // TODO-golf: group this with 0x00 | .. | 0x3A.
             // 86 /r; XCHG r/m8, r8; Exchange r8 (byte register) with byte from r/m8.
             // 86 /r; XCHG r8, r/m8; Exchange byte from r/m8 with r8 (byte register).
             let modrm = lex.next_modrm()?;
@@ -857,6 +831,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             XchgMR8(rm8, reg)
         }
         0x87 => {
+            // TODO-golf: group this with 0x01 | .. | 0x8B.
             let modrm = lex.next_modrm()?;
             let rex_r = lex.get_rex_r_matters();
             match lex.get_operand_size() {
@@ -883,19 +858,11 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
             }
         }
-        0x88 | 0x8A => {
-            // 88 /r; MOV r/m8, r8; Move r8 to r/m8.
-            // 8A /r; MOV r8, r/m8; Move r/m8 to r8.
-            let modrm = lex.next_modrm()?;
-            let reg = lex.reg8_field_select_r(modrm.reg3);
-            let rm8 = decode_rm8(lex, &modrm)?;
-            match opcode {
-                0x88 => TwoMRInst8(TwoOp::MOV, rm8, reg),
-                0x8A => TwoRMInst8(TwoOp::MOV, reg, rm8),
-                _ => panic!("Missing match arm in decode_inst_inner."),
-            }
-        }
-        0x8d => {
+        0x8D => {
+            // LEA. It's special. Proto:
+            // 8D /r; LEA r16,m; RM; Store effective address for m in register r16.
+            // 8D /r; LEA r32,m; RM; Store effective address for m in register r32.
+            // REX.W + 8D /r; LEA r64,m; RM; Store effective address for m in register r64.
             let modrm = lex.next_modrm()?;
             if modrm.mod2 == 0b11 {
                 lex.rollback();
@@ -921,19 +888,20 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x8F => {
+            // One r/m arg, modrm.reg3 selects the op. Proto:
+            // 8F /0; POP r/m16; Pop top of stack into m16; increment stack pointer.
+            // 8F /0; POP r/m64; Pop top of stack into m64; increment stack pointer. Cannot encode 32-bit operand size.
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
                 0 => {
                     // 8F /0
                     match lex.get_operand_size_64_default() {
                         Data16 => {
-                            // 8F /0; POP r/m16; Pop top of stack into m16; increment stack pointer.
                             let rm16 = decode_rm16(lex, &modrm)?;
                             PopM16(rm16)
                         }
                         Data32 => panic!("Impossible Data32 with 64-bit default."),
                         Data64 => {
-                            // 8F /0; POP r/m64; Pop top of stack into m64; increment stack pointer. Cannot encode 32-bit operand size.
                             let rm64 = decode_rm64(lex, &modrm)?;
                             PopM64(rm64)
                         }
@@ -946,6 +914,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x9C => {
+            // No args, but depends on operand size.
             match lex.get_operand_size_64_default() {
                 Data16 => {
                     // 9C; PUSHF; Push lower 16 bits of EFLAGS.
@@ -959,6 +928,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0x9D => {
+            // No args, but depends on operand size.
             match lex.get_operand_size_64_default() {
                 Data16 => {
                     // 9D; POPF; Pop top of stack into lower 16 bits of EFLAGS.
@@ -1082,37 +1052,6 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 _ => {
                     lex.rollback();
                     NotImplementedOpext(opcode, modrm.reg3)
-                }
-            }
-        }
-        0xC7 => {
-            let modrm = lex.next_modrm()?;
-            let op = match modrm.reg3 {
-                0 => TwoOp::MOV,
-                _ => {
-                    lex.rollback();
-                    return Ok(NotImplementedOpext(opcode, modrm.reg3));
-                }
-            };
-            match lex.get_operand_size() {
-                Data16 => {
-                    // C7 /0 iw; MOV r/m16, imm16
-                    let rm16 = decode_rm16(lex, &modrm)?;
-                    let imm16 = lex.next_imm16()?;
-                    TwoMIInst16(op, rm16, imm16)
-                }
-                Data32 => {
-                    // C7 /0 id; MOV r/m32, imm32
-                    let rm32 = decode_rm32(lex, &modrm)?;
-                    let imm32 = lex.next_imm32()?;
-                    TwoMIInst32(op, rm32, imm32)
-                }
-                Data64 => {
-                    // REX.W + C7 /0 id; MOV r/m64, imm32
-                    let rm64 = decode_rm64(lex, &modrm)?;
-                    let imm32 = lex.next_imm32()?;
-                    // Sign extend imm32 to u64.
-                    TwoMIInst64(op, rm64, imm32 as i32 as u64)
                 }
             }
         }
@@ -1242,6 +1181,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             //   Note we mention the E9 cw encoding despite "Not supported in 64-bit mode." because it still seems to be parsed.
             //   http://ref.x86asm.net/coder64.html#gen_note_short_near_jmp notes it is implementation-dependent.
             //   It's obtainable with the operand-size prefix 0x66.
+            // TODO-correctnesss:
             // gdb dis (new cases for 015_jmp.s):
             //   e9 12 34 56 78              jmp    0x78963420
             //   66 e9 12 34                 jmpw   0x342a
@@ -1270,38 +1210,35 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
             Hlt
         }
-        0xF6 => {
+        0xF6 | 0xFE => {
+            // One 8-bit r/m8 is the only operand encoded. Proto:
+            // F6 /2; NOT r/m8; Reverse each bit of r/m8.
+            // F6 /5; IMUL r/m8; AX:= AL ∗ r/m byte.
+            // F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
             let modrm = lex.next_modrm()?;
-            match modrm.reg3 {
-                2 => {
-                    // F6 /2; NOT r/m8; Reverse each bit of r/m8.
-                    let rm8 = decode_rm8(lex, &modrm)?;
-                    OneRMInst8(OneOp::NOT, rm8)
-                }
-                5 => {
-                    // F6 /5; IMUL r/m8; AX:= AL ∗ r/m byte.
-                    let rm8 = decode_rm8(lex, &modrm)?;
-                    OneRMInst8(OneOp::IMUL, rm8)
-                }
-                6 => {
-                    // F6 /6; DIV r/m8; Unsigned divide AX by r/m8, with result stored in AL := Quotient, AH := Remainder.
-                    let rm8 = decode_rm8(lex, &modrm)?;
-                    OneRMInst8(OneOp::DIV, rm8)
-                }
+            let op = match (opcode, modrm.reg3) {
+                (0xF6, 2) => OneOp::NOT,
+                (0xF6, 5) => OneOp::IMUL,
+                (0xF6, 6) => OneOp::DIV,
+                (0xFE, 0) => OneOp::INC,
+                (0xFE, 1) => OneOp::DEC,
                 _ => {
                     lex.rollback();
-                    NotImplementedOpext(opcode, modrm.reg3)
+                    return Ok(NotImplementedOpext(opcode, modrm.reg3));
                 }
-            }
+            };
+            let rm8 = decode_rm8(lex, &modrm)?;
+            OneRMInst8(op, rm8)
         }
         0xF7 => {
+            // One 16/32/64-bit r/m is the only operand encoded. Proto:
+            // F7 /2; NOT r/m16; M; Reverse each bit of r/m16.
+            // F7 /2; NOT r/m32; M; Reverse each bit of r/m32.
+            // REX.W + F7 /2; NOT r/m64; M; Reverse each bit of r/m64.
             let modrm = lex.next_modrm()?;
             let op = match modrm.reg3 {
-                // F7 /2
                 2 => OneOp::NOT,
-                // F7 /5
                 5 => OneOp::IMUL,
-                // F7 /6
                 6 => OneOp::DIV,
                 _ => {
                     lex.rollback();
@@ -1323,22 +1260,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 }
             }
         }
-        0xFE => {
-            let modrm = lex.next_modrm()?;
-            let op = match modrm.reg3 {
-                // FE /0
-                0 => OneOp::INC,
-                // FE /1
-                1 => OneOp::DEC,
-                _ => {
-                    lex.rollback();
-                    return Ok(NotImplementedOpext(opcode, modrm.reg3));
-                }
-            };
-            let rm8 = decode_rm8(lex, &modrm)?;
-            OneRMInst8(op, rm8)
-        }
         0xFF => {
+            // TODO-golf: untangle this monster case.
             let modrm = lex.next_modrm()?;
             match modrm.reg3 {
                 0 | 1 => {
@@ -1522,7 +1445,6 @@ fn decode_rm_00_01_10(lex: &mut Lexer, modrm: &ModRM) -> RResult<EffAddr> {
         (Addr64, false, 0b110) => EffAddr::from_base_reg64(GPR64::rsi),
         (Addr32, false, 0b111) => EffAddr::from_base_reg32(GPR32::edi),
         (Addr64, false, 0b111) => EffAddr::from_base_reg64(GPR64::rdi),
-        // TODO: All of these (true, ) fields are guesses.
         (Addr32, true, 0b000) => EffAddr::from_base_reg32(GPR32::r8d),
         (Addr64, true, 0b000) => EffAddr::from_base_reg64(GPR64::r8),
         (Addr32, true, 0b001) => EffAddr::from_base_reg32(GPR32::r9d),
