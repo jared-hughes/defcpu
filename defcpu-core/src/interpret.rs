@@ -72,6 +72,7 @@ impl Machine {
         let (inst, len) = decode_inst(&self.mem, self.regs.rip)?;
         self.regs.rip_prev = self.regs.rip;
         self.regs.rip += len;
+        // rip now points to the instruction to be executed after this one.
         self.run_full_inst(inst.inner, writers)?;
         Ok(())
     }
@@ -423,6 +424,13 @@ impl Machine {
                 if self.regs.get_reg64(&GPR64::rcx) == 0 {
                     self.regs.rip = *addr;
                 }
+            }
+            Inst::Ret => {
+                self.regs.rip = self.pop_64()?;
+            }
+            Inst::CallD(addr) => {
+                self.push_64(self.regs.rip)?;
+                self.regs.rip = *addr;
             }
             Inst::JmpD(addr) => {
                 self.regs.rip = *addr;

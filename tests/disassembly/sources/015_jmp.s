@@ -1,19 +1,24 @@
 eb 82                       jmp    0x3fff84
 eb 12                       jmp    0x400016
-e9 12 34 56 88              jmp    0xffffffff8896341b
-e9 12 34 56 78              jmp    0x78963420
-66 eb 82                    data16 jmp 0x3fff93
-66 eb 12                    data16 jmp 0x400026
-67 eb 82                    addr32 jmp 0x3fff99
-67 eb 12                    addr32 jmp 0x40002c
-66 67 eb 82                 data16 addr32 jmp 0x3fffa0
-66 67 eb 12                 data16 addr32 jmp 0x400034
-41 eb 82                    rex.B jmp 0x3fffa7
-48 eb 82                    rex.W jmp 0x3fffaa
-49 eb 82                    rex.WB jmp 0x3fffad
-41 e9 12 34 56 78           rex.B jmp 0x78963443
-48 e9 12 34 56 78           rex.W jmp 0x78963449
-49 e9 12 34 56 78           rex.WB jmp 0x7896344f
+e8 12 34 56 88              call   0xffffffff8896341b
+e9 12 34 56 88              jmp    0xffffffff88963420
+e8 12 34 56 78              call   0x78963425
+e9 12 34 56 78              jmp    0x7896342a
+66 eb 82                    data16 jmp 0x3fff9d
+66 eb 12                    data16 jmp 0x400030
+67 eb 82                    addr32 jmp 0x3fffa3
+67 eb 12                    addr32 jmp 0x400036
+66 67 eb 82                 data16 addr32 jmp 0x3fffaa
+66 67 eb 12                 data16 addr32 jmp 0x40003e
+41 eb 82                    rex.B jmp 0x3fffb1
+48 eb 82                    rex.W jmp 0x3fffb4
+49 eb 82                    rex.WB jmp 0x3fffb7
+41 e8 12 34 56 78           rex.B call 0x7896344d
+41 e9 12 34 56 78           rex.B jmp 0x78963453
+48 e8 12 34 56 78           rex.W call 0x78963459
+48 e9 12 34 56 78           rex.W jmp 0x7896345f
+49 e8 12 34 56 78           rex.WB call 0x78963465
+49 e9 12 34 56 78           rex.WB jmp 0x7896346b
 ff 20                       jmp    *(%rax)
 ff 24 18                    jmp    *(%rax, %rbx, 1)
 ff 24 58                    jmp    *(%rax, %rbx, 2)
@@ -63,3 +68,4 @@ ff 64 25 3a                 jmp    *0x3a(%rbp, %riz, 1)
 ff 64 65 3a                 jmp    *0x3a(%rbp, %riz, 2)
 ff 64 a5 3a                 jmp    *0x3a(%rbp, %riz, 4)
 ff 64 e5 3a                 jmp    *0x3a(%rbp, %riz, 8)
+c3                          ret

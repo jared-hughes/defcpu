@@ -1185,7 +1185,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 Addr64 => Jrcxz(dest),
             }
         }
-        0xE9 => {
+        0xC3 => Ret,
+        0xE8 | 0xE9 => {
             // E9 cd; JMP rel32; Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits.
             // E9 cw; JMP rel16; Jump near, relative, displacement relative to next instruction. Not supported in 64-bit mode.
             //   Note we mention the E9 cw encoding despite "Not supported in 64-bit mode." because it still seems to be parsed.
@@ -1202,7 +1203,11 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 Data32 => {
                     let rel_off = lex.next_i32()? as u64;
                     let dest = lex.i.wrapping_add(rel_off);
-                    JmpD(dest)
+                    match opcode {
+                        0xE8 => CallD(dest),
+                        0xE9 => JmpD(dest),
+                        _ => unreachable!()
+                    }
                 }
                 Data64 => panic!("Impossible Data64 without REX.W bit."),
             }

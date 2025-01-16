@@ -488,6 +488,10 @@ pub enum Inst {
     Jecxz(u64),
     /// E3 cb; JRCXZ rel8; Jump short if RCX register is 0.
     Jrcxz(u64),
+    Ret,
+    // TODO-golf: merge CallD and JmpD. These are relative.
+    /// E8 cd; CALL rel32; Call near, relative, displacement relative to next instruction. 32-bit displacement sign extended to 64-bits in 64-bit mode.
+    CallD(u64),
     /// EB cb; JMP rel8; Jump short, RIP = RIP + 8-bit displacement sign extended to 64-bits.
     /// E9 cd; JMP rel32; Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits.
     JmpD(u64),
@@ -579,6 +583,7 @@ impl Inst {
             | LeaRegInsteadOfAddr
             | RexNoop
             | Syscall
+            | Ret
             | Popf16
             | Popf64
             | Pushf16
@@ -662,7 +667,8 @@ impl Inst {
             | JccJle(imm64, _)
             | Jecxz(imm64)
             | Jrcxz(imm64)
-            | JmpD(imm64) => format!("{:#x}", imm64),
+            | JmpD(imm64)
+            | CallD(imm64) => format!("{:#x}", imm64),
             JmpM64(rm64) => format!("*{}", rm64),
             PushI16(imm16) => format!("${:#x}", imm16),
             PushI64(imm64) => format!("${:#x}", imm64),
@@ -721,6 +727,7 @@ impl Inst {
             RexNoop => "",
             Nop => "nop",
             Syscall => "syscall",
+            Ret => "ret",
             // Ref https://sourceware.org/binutils/docs/as/i386_002dMnemonics.html.
             Cwd16 => "cwtd",
             Cdq32 => "cltd",
@@ -885,6 +892,7 @@ impl Inst {
             Jecxz(_) => "jecxz",
             Jrcxz(_) => "jrcxz",
             JmpD(_) | JmpM64(_) => "jmp",
+            CallD(_) => "call",
             PopM16(rm16) => rm16.either("pop", "popw"),
             PopM64(_rm64) => "pop",
             Popf16 => "popfw",
