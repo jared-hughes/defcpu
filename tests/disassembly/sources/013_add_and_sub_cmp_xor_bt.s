@@ -86,6 +86,270 @@
 66 67 41 03 23              add    (%r11d), %sp
 48 03 23                    add    (%rbx), %rsp
 67 48 03 23                 add    (%ebx), %rsp
+0c 12                       or     $0x12, %al
+66 0d 12 34                 or     $0x3412, %ax
+0d 12 34 56 78              or     $0x78563412, %eax
+41 0d 12 34 56 78           rex.B or $0x78563412, %eax
+41 0d 12 34 56 88           rex.B or $0x88563412, %eax
+48 0d 12 34 56 78           or     $0x78563412, %rax
+48 0d 12 34 56 88           or     $0xffffffff88563412, %rax
+49 0d 12 34 56 78           rex.WB or $0x78563412, %rax
+49 0d 12 34 56 88           rex.WB or $0xffffffff88563412, %rax
+80 c8 12                    or     $0x12, %al
+80 ce 12                    or     $0x12, %dh
+40 80 ce 12                 or     $0x12, %sil
+66 81 ce 12 34              or     $0x3412, %si
+81 ce 12 34 56 78           or     $0x78563412, %esi
+48 81 ce 12 34 56 78        or     $0x78563412, %rsi
+48 81 ce 12 34 56 88        or     $0xffffffff88563412, %rsi
+66 83 ce 12                 or     $0x12, %si
+66 83 ce 82                 or     $0xff82, %si
+83 ce 12                    or     $0x12, %esi
+83 ce 82                    or     $0xffffff82, %esi
+41 83 ce 12                 or     $0x12, %r14d
+41 83 ce 82                 or     $0xffffff82, %r14d
+48 83 ce 12                 or     $0x12, %rsi
+48 83 ce 82                 or     $0xffffffffffffff82, %rsi
+49 83 ce 12                 or     $0x12, %r14
+49 83 ce 82                 or     $0xffffffffffffff82, %r14
+08 23                       or     %ah, (%rbx)
+66 08 23                    data16 or %ah, (%rbx)
+67 08 23                    or     %ah, (%ebx)
+66 67 08 23                 data16 or %ah, (%ebx)
+40 08 23                    or     %spl, (%rbx)
+67 40 08 23                 or     %spl, (%ebx)
+66 40 08 23                 data16 or %spl, (%rbx)
+66 67 40 08 23              data16 or %spl, (%ebx)
+41 08 23                    or     %spl, (%r11)
+67 41 08 23                 or     %spl, (%r11d)
+66 41 08 23                 data16 or %spl, (%r11)
+66 67 41 08 23              data16 or %spl, (%r11d)
+48 08 23                    rex.W or %spl, (%rbx)
+67 48 08 23                 rex.W or %spl, (%ebx)
+66 48 08 23                 data16 rex.W or %spl, (%rbx)
+66 67 48 08 23              data16 rex.W or %spl, (%ebx)
+09 23                       or     %esp, (%rbx)
+66 09 23                    or     %sp, (%rbx)
+67 09 23                    or     %esp, (%ebx)
+66 67 09 23                 or     %sp, (%ebx)
+40 09 23                    rex or %esp, (%rbx)
+67 40 09 23                 rex or %esp, (%ebx)
+66 40 09 23                 rex or %sp, (%rbx)
+66 67 40 09 23              rex or %sp, (%ebx)
+41 09 23                    or     %esp, (%r11)
+67 41 09 23                 or     %esp, (%r11d)
+66 41 09 23                 or     %sp, (%r11)
+66 67 41 09 23              or     %sp, (%r11d)
+48 09 23                    or     %rsp, (%rbx)
+67 48 09 23                 or     %rsp, (%ebx)
+66 48 09 23                 data16 or %rsp, (%rbx)
+66 67 48 09 23              data16 or %rsp, (%ebx)
+0a 23                       or     (%rbx), %ah
+66 0a 23                    data16 or (%rbx), %ah
+67 0a 23                    or     (%ebx), %ah
+66 67 0a 23                 data16 or (%ebx), %ah
+40 0a 23                    or     (%rbx), %spl
+67 40 0a 23                 or     (%ebx), %spl
+66 40 0a 23                 data16 or (%rbx), %spl
+66 67 40 0a 23              data16 or (%ebx), %spl
+41 0a 23                    or     (%r11), %spl
+67 41 0a 23                 or     (%r11d), %spl
+66 41 0a 23                 data16 or (%r11), %spl
+66 67 41 0a 23              data16 or (%r11d), %spl
+48 0a 23                    rex.W or (%rbx), %spl
+67 48 0a 23                 rex.W or (%ebx), %spl
+66 48 0a 23                 data16 rex.W or (%rbx), %spl
+66 67 48 0a 23              data16 rex.W or (%ebx), %spl
+0b 23                       or     (%rbx), %esp
+66 0b 23                    or     (%rbx), %sp
+67 0b 23                    or     (%ebx), %esp
+66 67 0b 23                 or     (%ebx), %sp
+40 0b 23                    rex or (%rbx), %esp
+67 40 0b 23                 rex or (%ebx), %esp
+66 40 0b 23                 rex or (%rbx), %sp
+66 67 40 0b 23              rex or (%ebx), %sp
+41 0b 23                    or     (%r11), %esp
+67 41 0b 23                 or     (%r11d), %esp
+66 41 0b 23                 or     (%r11), %sp
+66 67 41 0b 23              or     (%r11d), %sp
+48 0b 23                    or     (%rbx), %rsp
+67 48 0b 23                 or     (%ebx), %rsp
+14 12                       adc    $0x12, %al
+66 15 12 34                 adc    $0x3412, %ax
+15 12 34 56 78              adc    $0x78563412, %eax
+41 15 12 34 56 78           rex.B adc $0x78563412, %eax
+41 15 12 34 56 88           rex.B adc $0x88563412, %eax
+48 15 12 34 56 78           adc    $0x78563412, %rax
+48 15 12 34 56 88           adc    $0xffffffff88563412, %rax
+49 15 12 34 56 78           rex.WB adc $0x78563412, %rax
+49 15 12 34 56 88           rex.WB adc $0xffffffff88563412, %rax
+80 d0 12                    adc    $0x12, %al
+80 d6 12                    adc    $0x12, %dh
+40 80 d6 12                 adc    $0x12, %sil
+66 81 d6 12 34              adc    $0x3412, %si
+81 d6 12 34 56 78           adc    $0x78563412, %esi
+48 81 d6 12 34 56 78        adc    $0x78563412, %rsi
+48 81 d6 12 34 56 88        adc    $0xffffffff88563412, %rsi
+66 83 d6 12                 adc    $0x12, %si
+66 83 d6 82                 adc    $0xff82, %si
+83 d6 12                    adc    $0x12, %esi
+83 d6 82                    adc    $0xffffff82, %esi
+41 83 d6 12                 adc    $0x12, %r14d
+41 83 d6 82                 adc    $0xffffff82, %r14d
+48 83 d6 12                 adc    $0x12, %rsi
+48 83 d6 82                 adc    $0xffffffffffffff82, %rsi
+49 83 d6 12                 adc    $0x12, %r14
+49 83 d6 82                 adc    $0xffffffffffffff82, %r14
+10 23                       adc    %ah, (%rbx)
+66 10 23                    data16 adc %ah, (%rbx)
+67 10 23                    adc    %ah, (%ebx)
+66 67 10 23                 data16 adc %ah, (%ebx)
+40 10 23                    adc    %spl, (%rbx)
+67 40 10 23                 adc    %spl, (%ebx)
+66 40 10 23                 data16 adc %spl, (%rbx)
+66 67 40 10 23              data16 adc %spl, (%ebx)
+41 10 23                    adc    %spl, (%r11)
+67 41 10 23                 adc    %spl, (%r11d)
+66 41 10 23                 data16 adc %spl, (%r11)
+66 67 41 10 23              data16 adc %spl, (%r11d)
+48 10 23                    rex.W adc %spl, (%rbx)
+67 48 10 23                 rex.W adc %spl, (%ebx)
+66 48 10 23                 data16 rex.W adc %spl, (%rbx)
+66 67 48 10 23              data16 rex.W adc %spl, (%ebx)
+11 23                       adc    %esp, (%rbx)
+66 11 23                    adc    %sp, (%rbx)
+67 11 23                    adc    %esp, (%ebx)
+66 67 11 23                 adc    %sp, (%ebx)
+40 11 23                    rex adc %esp, (%rbx)
+67 40 11 23                 rex adc %esp, (%ebx)
+66 40 11 23                 rex adc %sp, (%rbx)
+66 67 40 11 23              rex adc %sp, (%ebx)
+41 11 23                    adc    %esp, (%r11)
+67 41 11 23                 adc    %esp, (%r11d)
+66 41 11 23                 adc    %sp, (%r11)
+66 67 41 11 23              adc    %sp, (%r11d)
+48 11 23                    adc    %rsp, (%rbx)
+67 48 11 23                 adc    %rsp, (%ebx)
+66 48 11 23                 data16 adc %rsp, (%rbx)
+66 67 48 11 23              data16 adc %rsp, (%ebx)
+12 23                       adc    (%rbx), %ah
+66 12 23                    data16 adc (%rbx), %ah
+67 12 23                    adc    (%ebx), %ah
+66 67 12 23                 data16 adc (%ebx), %ah
+40 12 23                    adc    (%rbx), %spl
+67 40 12 23                 adc    (%ebx), %spl
+66 40 12 23                 data16 adc (%rbx), %spl
+66 67 40 12 23              data16 adc (%ebx), %spl
+41 12 23                    adc    (%r11), %spl
+67 41 12 23                 adc    (%r11d), %spl
+66 41 12 23                 data16 adc (%r11), %spl
+66 67 41 12 23              data16 adc (%r11d), %spl
+48 12 23                    rex.W adc (%rbx), %spl
+67 48 12 23                 rex.W adc (%ebx), %spl
+66 48 12 23                 data16 rex.W adc (%rbx), %spl
+66 67 48 12 23              data16 rex.W adc (%ebx), %spl
+13 23                       adc    (%rbx), %esp
+66 13 23                    adc    (%rbx), %sp
+67 13 23                    adc    (%ebx), %esp
+66 67 13 23                 adc    (%ebx), %sp
+40 13 23                    rex adc (%rbx), %esp
+67 40 13 23                 rex adc (%ebx), %esp
+66 40 13 23                 rex adc (%rbx), %sp
+66 67 40 13 23              rex adc (%ebx), %sp
+41 13 23                    adc    (%r11), %esp
+67 41 13 23                 adc    (%r11d), %esp
+66 41 13 23                 adc    (%r11), %sp
+66 67 41 13 23              adc    (%r11d), %sp
+48 13 23                    adc    (%rbx), %rsp
+67 48 13 23                 adc    (%ebx), %rsp
+1c 12                       sbb    $0x12, %al
+66 1d 12 34                 sbb    $0x3412, %ax
+1d 12 34 56 78              sbb    $0x78563412, %eax
+41 1d 12 34 56 78           rex.B sbb $0x78563412, %eax
+41 1d 12 34 56 88           rex.B sbb $0x88563412, %eax
+48 1d 12 34 56 78           sbb    $0x78563412, %rax
+48 1d 12 34 56 88           sbb    $0xffffffff88563412, %rax
+49 1d 12 34 56 78           rex.WB sbb $0x78563412, %rax
+49 1d 12 34 56 88           rex.WB sbb $0xffffffff88563412, %rax
+80 d8 12                    sbb    $0x12, %al
+80 de 12                    sbb    $0x12, %dh
+40 80 de 12                 sbb    $0x12, %sil
+66 81 de 12 34              sbb    $0x3412, %si
+81 de 12 34 56 78           sbb    $0x78563412, %esi
+48 81 de 12 34 56 78        sbb    $0x78563412, %rsi
+48 81 de 12 34 56 88        sbb    $0xffffffff88563412, %rsi
+66 83 de 12                 sbb    $0x12, %si
+66 83 de 82                 sbb    $0xff82, %si
+83 de 12                    sbb    $0x12, %esi
+83 de 82                    sbb    $0xffffff82, %esi
+41 83 de 12                 sbb    $0x12, %r14d
+41 83 de 82                 sbb    $0xffffff82, %r14d
+48 83 de 12                 sbb    $0x12, %rsi
+48 83 de 82                 sbb    $0xffffffffffffff82, %rsi
+49 83 de 12                 sbb    $0x12, %r14
+49 83 de 82                 sbb    $0xffffffffffffff82, %r14
+18 23                       sbb    %ah, (%rbx)
+66 18 23                    data16 sbb %ah, (%rbx)
+67 18 23                    sbb    %ah, (%ebx)
+66 67 18 23                 data16 sbb %ah, (%ebx)
+40 18 23                    sbb    %spl, (%rbx)
+67 40 18 23                 sbb    %spl, (%ebx)
+66 40 18 23                 data16 sbb %spl, (%rbx)
+66 67 40 18 23              data16 sbb %spl, (%ebx)
+41 18 23                    sbb    %spl, (%r11)
+67 41 18 23                 sbb    %spl, (%r11d)
+66 41 18 23                 data16 sbb %spl, (%r11)
+66 67 41 18 23              data16 sbb %spl, (%r11d)
+48 18 23                    rex.W sbb %spl, (%rbx)
+67 48 18 23                 rex.W sbb %spl, (%ebx)
+66 48 18 23                 data16 rex.W sbb %spl, (%rbx)
+66 67 48 18 23              data16 rex.W sbb %spl, (%ebx)
+19 23                       sbb    %esp, (%rbx)
+66 19 23                    sbb    %sp, (%rbx)
+67 19 23                    sbb    %esp, (%ebx)
+66 67 19 23                 sbb    %sp, (%ebx)
+40 19 23                    rex sbb %esp, (%rbx)
+67 40 19 23                 rex sbb %esp, (%ebx)
+66 40 19 23                 rex sbb %sp, (%rbx)
+66 67 40 19 23              rex sbb %sp, (%ebx)
+41 19 23                    sbb    %esp, (%r11)
+67 41 19 23                 sbb    %esp, (%r11d)
+66 41 19 23                 sbb    %sp, (%r11)
+66 67 41 19 23              sbb    %sp, (%r11d)
+48 19 23                    sbb    %rsp, (%rbx)
+67 48 19 23                 sbb    %rsp, (%ebx)
+66 48 19 23                 data16 sbb %rsp, (%rbx)
+66 67 48 19 23              data16 sbb %rsp, (%ebx)
+1a 23                       sbb    (%rbx), %ah
+66 1a 23                    data16 sbb (%rbx), %ah
+67 1a 23                    sbb    (%ebx), %ah
+66 67 1a 23                 data16 sbb (%ebx), %ah
+40 1a 23                    sbb    (%rbx), %spl
+67 40 1a 23                 sbb    (%ebx), %spl
+66 40 1a 23                 data16 sbb (%rbx), %spl
+66 67 40 1a 23              data16 sbb (%ebx), %spl
+41 1a 23                    sbb    (%r11), %spl
+67 41 1a 23                 sbb    (%r11d), %spl
+66 41 1a 23                 data16 sbb (%r11), %spl
+66 67 41 1a 23              data16 sbb (%r11d), %spl
+48 1a 23                    rex.W sbb (%rbx), %spl
+67 48 1a 23                 rex.W sbb (%ebx), %spl
+66 48 1a 23                 data16 rex.W sbb (%rbx), %spl
+66 67 48 1a 23              data16 rex.W sbb (%ebx), %spl
+1b 23                       sbb    (%rbx), %esp
+66 1b 23                    sbb    (%rbx), %sp
+67 1b 23                    sbb    (%ebx), %esp
+66 67 1b 23                 sbb    (%ebx), %sp
+40 1b 23                    rex sbb (%rbx), %esp
+67 40 1b 23                 rex sbb (%ebx), %esp
+66 40 1b 23                 rex sbb (%rbx), %sp
+66 67 40 1b 23              rex sbb (%ebx), %sp
+41 1b 23                    sbb    (%r11), %esp
+67 41 1b 23                 sbb    (%r11d), %esp
+66 41 1b 23                 sbb    (%r11), %sp
+66 67 41 1b 23              sbb    (%r11d), %sp
+48 1b 23                    sbb    (%rbx), %rsp
+67 48 1b 23                 sbb    (%ebx), %rsp
 24 12                       and    $0x12, %al
 66 25 12 34                 and    $0x3412, %ax
 25 12 34 56 78              and    $0x78563412, %eax

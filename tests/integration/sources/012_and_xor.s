@@ -106,6 +106,55 @@ print_regs
 xor $0x04, %ah
 print_regs
 
+# --- 64-bit or
+
+mov $0x1122334455667788, %rax
+mov $0xA1B2C3D4E5F67890, %rbx
+or %rax, %rbx
+print_regs
+
+# --- 32-bit or
+
+push $0x0000000000010ad7; popfq
+
+mov $0x11223344, %eax
+mov $0xA1B2C3D4, %ebx
+or %eax, %ebx
+print_regs
+
+or $0xA1F3FFE6, %ebx
+or $0xA1F3FFE6, %eax
+print_regs
+
+# --- 16-bit or
+
+push $0x0000000000010ad7; popfq
+
+mov $0xA555, %ax
+mov $0xA1B2, %bx
+or %ax, %bx
+print_regs
+
+or $0x81F3, %bx
+or $0xA1F3, %ax
+print_regs
+
+# --- 8-bit or
+
+push $0x0000000000010ad7; popfq
+
+mov $0x77, %al
+mov $0xA1, %ah
+or %al, %ah
+print_regs
+
+or $0x77, %al
+or $0xF3, %ah
+print_regs
+
+or $0x04, %ah
+print_regs
+
 
 # --- Clean exit
 mov $60, %eax

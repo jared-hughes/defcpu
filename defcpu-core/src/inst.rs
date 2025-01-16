@@ -172,6 +172,9 @@ pub enum DestMROp {
     /// REX.W + 81 /0 id; ADD r/m64, imm32; Add imm32 sign-extended to 64-bits to r/m64.
     /// REX.W + 83 /0 ib; ADD r/m64, imm8; Add sign-extended imm8 to r/m64.
     Add,
+    Or,
+    Adc,
+    Sbb,
     /// 20 /r; AND r/m8, r8; r/m8 AND r8.
     /// 21 /r; AND r/m16, r16; r/m16 AND r16.
     /// 21 /r; AND r/m32, r32; r/m32 AND r32.
@@ -273,6 +276,9 @@ pub enum TwoOp {
 }
 impl TwoOp {
     pub(crate) const ADD: Self = Self::Dest(DestMROp::Add);
+    pub(crate) const OR: Self = Self::Dest(DestMROp::Or);
+    pub(crate) const ADC: Self = Self::Dest(DestMROp::Adc);
+    pub(crate) const SBB: Self = Self::Dest(DestMROp::Sbb);
     pub(crate) const AND: Self = Self::Dest(DestMROp::And);
     pub(crate) const SUB: Self = Self::Dest(DestMROp::Sub);
     pub(crate) const XOR: Self = Self::Dest(DestMROp::Xor);
@@ -298,6 +304,10 @@ pub enum Inst {
     RexNoop,
     /// NP 90; NOP; One byte no-operation instruction.
     Nop,
+    /// F8; CLC; Clear CF flag.
+    Clc,
+    /// F9; STC; Set CF flag.
+    Stc,
     /// 0F 05; SYSCALL; Fast call to privilege level 0 system procedures.
     Syscall,
     OneRMInst8(OneOp, RM8),
@@ -584,6 +594,8 @@ impl Inst {
             | RexNoop
             | Syscall
             | Ret
+            | Stc
+            | Clc
             | Popf16
             | Popf64
             | Pushf16
@@ -727,6 +739,8 @@ impl Inst {
             RexNoop => "",
             Nop => "nop",
             Syscall => "syscall",
+            Stc => "stc",
+            Clc => "clc",
             Ret => "ret",
             // Ref https://sourceware.org/binutils/docs/as/i386_002dMnemonics.html.
             Cwd16 => "cwtd",
@@ -786,6 +800,42 @@ impl Inst {
             | TwoMRInst16(TwoOp::ADD, _, _)
             | TwoMRInst32(TwoOp::ADD, _, _)
             | TwoMRInst64(TwoOp::ADD, _, _) => "add",
+            TwoMIInst8(TwoOp::OR, rm8, _) => rm8.either("or", "orb"),
+            TwoMIInst16(TwoOp::OR, rm16, _) => rm16.either("or", "orw"),
+            TwoMIInst32(TwoOp::OR, rm32, _) => rm32.either("or", "orl"),
+            TwoMIInst64(TwoOp::OR, rm64, _) => rm64.either("or", "orq"),
+            TwoRMInst8(TwoOp::OR, _, _)
+            | TwoRMInst16(TwoOp::OR, _, _)
+            | TwoRMInst32(TwoOp::OR, _, _)
+            | TwoRMInst64(TwoOp::OR, _, _)
+            | TwoMRInst8(TwoOp::OR, _, _)
+            | TwoMRInst16(TwoOp::OR, _, _)
+            | TwoMRInst32(TwoOp::OR, _, _)
+            | TwoMRInst64(TwoOp::OR, _, _) => "or",
+            TwoMIInst8(TwoOp::ADC, rm8, _) => rm8.either("adc", "adcb"),
+            TwoMIInst16(TwoOp::ADC, rm16, _) => rm16.either("adc", "adcw"),
+            TwoMIInst32(TwoOp::ADC, rm32, _) => rm32.either("adc", "adcl"),
+            TwoMIInst64(TwoOp::ADC, rm64, _) => rm64.either("adc", "adcq"),
+            TwoRMInst8(TwoOp::ADC, _, _)
+            | TwoRMInst16(TwoOp::ADC, _, _)
+            | TwoRMInst32(TwoOp::ADC, _, _)
+            | TwoRMInst64(TwoOp::ADC, _, _)
+            | TwoMRInst8(TwoOp::ADC, _, _)
+            | TwoMRInst16(TwoOp::ADC, _, _)
+            | TwoMRInst32(TwoOp::ADC, _, _)
+            | TwoMRInst64(TwoOp::ADC, _, _) => "adc",
+            TwoMIInst8(TwoOp::SBB, rm8, _) => rm8.either("sbb", "sbbb"),
+            TwoMIInst16(TwoOp::SBB, rm16, _) => rm16.either("sbb", "sbbw"),
+            TwoMIInst32(TwoOp::SBB, rm32, _) => rm32.either("sbb", "sbbl"),
+            TwoMIInst64(TwoOp::SBB, rm64, _) => rm64.either("sbb", "sbbq"),
+            TwoRMInst8(TwoOp::SBB, _, _)
+            | TwoRMInst16(TwoOp::SBB, _, _)
+            | TwoRMInst32(TwoOp::SBB, _, _)
+            | TwoRMInst64(TwoOp::SBB, _, _)
+            | TwoMRInst8(TwoOp::SBB, _, _)
+            | TwoMRInst16(TwoOp::SBB, _, _)
+            | TwoMRInst32(TwoOp::SBB, _, _)
+            | TwoMRInst64(TwoOp::SBB, _, _) => "sbb",
             TwoMIInst8(TwoOp::AND, rm8, _) => rm8.either("and", "andb"),
             TwoMIInst16(TwoOp::AND, rm16, _) => rm16.either("and", "andw"),
             TwoMIInst32(TwoOp::AND, rm32, _) => rm32.either("and", "andl"),

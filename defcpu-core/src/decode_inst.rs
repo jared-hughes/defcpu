@@ -298,7 +298,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
         //
         // ============ regular opcodes ============
         //
-        0x00 | 0x02 | 0x20 | 0x22 | 0x28 | 0x2A | 0x30 | 0x32 | 0x38 | 0x3A | 0x88 | 0x8A => {
+        0x00 | 0x02 | 0x08 | 0x0a | 0x10 | 0x12 | 0x18 | 0x1a | 0x20 | 0x22 | 0x28 | 0x2A
+        | 0x30 | 0x32 | 0x38 | 0x3A | 0x88 | 0x8A => {
             // Encoding /r, with 8-bit operand size. Proto:
             // 00 /r; ADD r/m8, r8; MR; Valid; Valid; Add r8 to r/m8.
             // 02 /r; ADD r8, r/m8; RM; Valid; Valid; Add r/m8 to r8.
@@ -308,6 +309,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             let (op, reverse) = match opcode {
                 0x00 => (TwoOp::ADD, false),
                 0x02 => (TwoOp::ADD, true),
+                0x08 => (TwoOp::OR, false),
+                0x0a => (TwoOp::OR, true),
+                0x10 => (TwoOp::ADC, false),
+                0x12 => (TwoOp::ADC, true),
+                0x18 => (TwoOp::SBB, false),
+                0x1a => (TwoOp::SBB, true),
                 0x20 => (TwoOp::AND, false),
                 0x22 => (TwoOp::AND, true),
                 0x28 => (TwoOp::SUB, false),
@@ -325,7 +332,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 true => TwoRMInst8(op, reg, rm8),
             }
         }
-        0x01 | 0x03 | 0x21 | 0x23 | 0x29 | 0x2B | 0x31 | 0x33 | 0x39 | 0x3B | 0x89 | 0x8B => {
+        0x01 | 0x03 | 0x09 | 0x0b | 0x11 | 0x13 | 0x19 | 0x1b | 0x21 | 0x23 | 0x29 | 0x2B
+        | 0x31 | 0x33 | 0x39 | 0x3B | 0x89 | 0x8B => {
             // Encoding /r, with 16/32/64-bit operand size. Proto:
             // 01 /r; ADD r/m16, r16; MR; Valid; Valid; Add r16 to r/m16.
             // 01 /r; ADD r/m32, r32; MR; Valid; Valid; Add r32 to r/m32.
@@ -338,6 +346,12 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             let (op, reverse) = match opcode {
                 0x01 => (TwoOp::ADD, false),
                 0x03 => (TwoOp::ADD, true),
+                0x09 => (TwoOp::OR, false),
+                0x0b => (TwoOp::OR, true),
+                0x11 => (TwoOp::ADC, false),
+                0x13 => (TwoOp::ADC, true),
+                0x19 => (TwoOp::SBB, false),
+                0x1b => (TwoOp::SBB, true),
                 0x21 => (TwoOp::AND, false),
                 0x23 => (TwoOp::AND, true),
                 0x29 => (TwoOp::SUB, false),
@@ -504,12 +518,15 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                 _ => NotImplemented2(opcode, opcode2),
             }
         }
-        0x04 | 0x24 | 0x2C | 0x34 | 0x3C => {
+        0x04 | 0x0C | 0x14 | 0x1C | 0x24 | 0x2C | 0x34 | 0x3C => {
             // 8-bit immediate, with al as dest operand. Proto:
             // 04 ib; ADD AL, imm8; I; Valid; Valid; Add imm8 to AL.
             let imm8 = lex.next_imm8()?;
             let op = match opcode {
                 0x04 => TwoOp::ADD,
+                0x0C => TwoOp::OR,
+                0x14 => TwoOp::ADC,
+                0x1C => TwoOp::SBB,
                 0x24 => TwoOp::AND,
                 0x2c => TwoOp::SUB,
                 0x34 => TwoOp::XOR,
@@ -518,7 +535,7 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             };
             TwoMIInst8(op, RM8::Reg(GPR8::al), imm8)
         }
-        0x05 | 0x25 | 0x2D | 0x35 | 0x3D => {
+        0x05 | 0x0D | 0x15 | 0x1D | 0x25 | 0x2D | 0x35 | 0x3D => {
             // 16/32/64-bit immediate, with ax/eax/rax as dest operand.
             // Note the 64-bit immediate is sign-extended from 32-bit. Proto:
             // 05 iw; ADD AX, imm16; I; Valid; Valid; Add imm16 to AX.
@@ -526,6 +543,9 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             // REX.W + 05 id; ADD RAX, imm32; I; Valid; N.E.; Add imm32 sign-extended to 64-bits to RAX.
             let op = match opcode {
                 0x05 => TwoOp::ADD,
+                0x0D => TwoOp::OR,
+                0x15 => TwoOp::ADC,
+                0x1D => TwoOp::SBB,
                 0x25 => TwoOp::AND,
                 0x2D => TwoOp::SUB,
                 0x35 => TwoOp::XOR,
@@ -732,6 +752,9 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             let modrm = lex.next_modrm()?;
             let op = match modrm.reg3 {
                 0 => TwoOp::ADD,
+                1 => TwoOp::OR,
+                2 => TwoOp::ADC,
+                3 => TwoOp::SBB,
                 4 => TwoOp::AND,
                 5 => TwoOp::SUB,
                 6 => TwoOp::XOR,
@@ -755,6 +778,9 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             let modrm = lex.next_modrm()?;
             let op = match (opcode, modrm.reg3) {
                 (0x81, 0) => TwoOp::ADD,
+                (0x81, 1) => TwoOp::OR,
+                (0x81, 2) => TwoOp::ADC,
+                (0x81, 3) => TwoOp::SBB,
                 (0x81, 4) => TwoOp::AND,
                 (0x81, 5) => TwoOp::SUB,
                 (0x81, 6) => TwoOp::XOR,
@@ -794,6 +820,9 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             let modrm = lex.next_modrm()?;
             let op = match modrm.reg3 {
                 0 => TwoOp::ADD,
+                1 => TwoOp::OR,
+                2 => TwoOp::ADC,
+                3 => TwoOp::SBB,
                 4 => TwoOp::AND,
                 5 => TwoOp::SUB,
                 6 => TwoOp::XOR,
@@ -1186,6 +1215,8 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
             }
         }
         0xC3 => Ret,
+        0xF8 => Clc,
+        0xF9 => Stc,
         0xE8 | 0xE9 => {
             // E9 cd; JMP rel32; Jump near, relative, RIP = RIP + 32-bit displacement sign extended to 64-bits.
             // E9 cw; JMP rel16; Jump near, relative, displacement relative to next instruction. Not supported in 64-bit mode.

@@ -134,6 +134,8 @@ impl Machine {
             Inst::RexNoop => {}
             Inst::Nop => {}
             Inst::Syscall => self.syscall(writers)?,
+            Inst::Clc => self.regs.flags.cf = false,
+            Inst::Stc => self.regs.flags.cf = true,
             Inst::LeaRM16(gpr16, eff_addr) => {
                 let a = eff_addr.compute(&self.regs);
                 self.regs.set_reg16(gpr16, a as u16);
@@ -484,22 +486,22 @@ impl Machine {
                     DataSize::Data8 => {
                         let a = self.regs.get_reg8(&GPR8::al);
                         let b = self.mem.read_u8(addr)?;
-                        self.regs.flags.sub(a, b, true);
+                        self.regs.flags.sub(a, b);
                     }
                     DataSize::Data16 => {
                         let a = self.regs.get_reg16(&GPR16::ax);
                         let b = self.mem.read_u16(addr)?;
-                        self.regs.flags.sub(a, b, true);
+                        self.regs.flags.sub(a, b);
                     }
                     DataSize::Data32 => {
                         let a = self.regs.get_reg32(&GPR32::eax);
                         let b = self.mem.read_u32(addr)?;
-                        self.regs.flags.sub(a, b, true);
+                        self.regs.flags.sub(a, b);
                     }
                     DataSize::Data64 => {
                         let a = self.regs.get_reg64(&GPR64::rax);
                         let b = self.mem.read_u64(addr)?;
-                        self.regs.flags.sub(a, b, true);
+                        self.regs.flags.sub(a, b);
                     }
                 }
                 match addr_size {
@@ -617,8 +619,8 @@ impl Machine {
 
     fn compute_result_onerm<U: UNum>(&mut self, op: &PlainOneOp, x: U) -> RResult<U> {
         Ok(match op {
-            PlainOneOp::Inc => self.regs.flags.add(x, 1.into(), false),
-            PlainOneOp::Dec => self.regs.flags.sub(x, 1.into(), false),
+            PlainOneOp::Inc => self.regs.flags.inc(x),
+            PlainOneOp::Dec => self.regs.flags.dec(x),
             PlainOneOp::Not => !x,
         })
     }
@@ -665,14 +667,17 @@ impl Machine {
     ) -> RResult<U> {
         Ok(match op {
             DestMROp::Mov => source,
-            DestMROp::Add => self.regs.flags.add(old_dest, source, true),
-            DestMROp::Sub => self.regs.flags.sub(old_dest, source, true),
+            DestMROp::Add => self.regs.flags.add(old_dest, source),
+            DestMROp::Adc => self.regs.flags.adc(old_dest, source),
+            DestMROp::Sbb => self.regs.flags.sbb(old_dest, source),
+            DestMROp::Sub => self.regs.flags.sub(old_dest, source),
             DestMROp::Cmp => {
-                self.regs.flags.sub(old_dest, source, true);
+                self.regs.flags.sub(old_dest, source);
                 // Don't change the value.
                 old_dest
             }
             DestMROp::And => self.regs.flags.and(old_dest, source),
+            DestMROp::Or => self.regs.flags.or(old_dest, source),
             DestMROp::Xor => self.regs.flags.xor(old_dest, source),
         })
     }

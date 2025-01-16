@@ -3,7 +3,10 @@ use std::fmt;
 use crate::{
     inst::{RotDir, RotType},
     num_traits::{HasHalfWidth, UNum, UNum8To64},
-    num_u1::Sign::{Neg, Pos},
+    num_u1::{
+        Sign::{Neg, Pos},
+        U1,
+    },
 };
 
 #[derive(Clone, Copy)]
@@ -346,18 +349,42 @@ impl Flags {
         self.result_flags(result);
         self.cf = false;
         self.of = false;
-        // Behavior of AF is undefined, following code.golf CPU.
+        // Behavior of AF is undefined; false is following code.golf CPU.
         self.af = false;
         result
     }
 
-    /// Add two numbers, update flags, and return the sum.
-    pub(crate) fn add<U: UNum>(&mut self, x: U, y: U, update_cf: bool) -> U {
-        let (result, carry) = x.overflowing_add(&y);
+    /// Bitwise OR two numbers, update flags, and return the result.
+    pub(crate) fn or<U: UNum>(&mut self, x: U, y: U) -> U {
+        let result = x | y;
         self.result_flags(result);
-        if update_cf {
-            self.cf = carry;
-        }
+        self.cf = false;
+        self.of = false;
+        // Behavior of AF is undefined; false is following code.golf CPU.
+        self.af = false;
+        result
+    }
+
+    /// Increment x, update flags except CF, and return the incremented value.
+    pub(crate) fn inc<U: UNum>(&mut self, x: U) -> U {
+        let cf = self.cf;
+        let ret = self.add(x, 1.into());
+        self.cf = cf;
+        ret
+    }
+
+    /// Add two numbers, update flags, and return the sum.
+    pub(crate) fn add<U: UNum>(&mut self, x: U, y: U) -> U {
+        self.cf = false;
+        self.adc(x, y)
+    }
+
+    /// Add two numbers and CF, update flags, and return the sum.
+    pub(crate) fn adc<U: UNum>(&mut self, x: U, y: U) -> U {
+        let (x1, carry1) = x.overflowing_add(&U1::from(self.cf).as_u8().into());
+        let (result, carry2) = x1.overflowing_add(&y);
+        self.result_flags(result);
+        self.cf = carry1 | carry2;
         // bit 4:
         // no carry into 4:
         // 0 + 0 = 0
@@ -381,15 +408,28 @@ impl Flags {
         result
     }
 
-    /// Subtract two numbers, update flags, and return the difference.
+    /// Decrement x, update flags except CF, and return the decremented value.
+    pub(crate) fn dec<U: UNum>(&mut self, x: U) -> U {
+        let cf = self.cf;
+        let ret = self.sub(x, 1.into());
+        self.cf = cf;
+        ret
+    }
+
+    /// Subtract y from x, update flags, and return the difference.
+    pub(crate) fn sub<U: UNum>(&mut self, x: U, y: U) -> U {
+        self.cf = false;
+        self.sbb(x, y)
+    }
+
+    /// Subtract y plus a carry bit from x, update flags, and return the difference.
     /// Note this isn't just `self.add(x, -y)` because CF/OF/AF need
     /// to be different, and negating U::MIN overflows.
-    pub(crate) fn sub<U: UNum>(&mut self, x: U, y: U, update_cf: bool) -> U {
-        let (result, carry) = x.overflowing_sub(&y);
+    pub(crate) fn sbb<U: UNum>(&mut self, x: U, y: U) -> U {
+        let (x1, carry1) = x.overflowing_sub(&U1::from(self.cf).as_u8().into());
+        let (result, carry2) = x1.overflowing_sub(&y);
         self.result_flags(result);
-        if update_cf {
-            self.cf = carry;
-        }
+        self.cf = carry1 | carry2;
         // bit 4:
         // no borrow into 3:
         // 0 - 0 = 0 (no borrow into 4)
