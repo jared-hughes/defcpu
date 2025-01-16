@@ -442,7 +442,7 @@ impl Flags {
         self.af = true;
     }
 
-    pub(crate) fn rotate_64(&mut self, rot_pair: &(RotType, RotDir), val: u64, imm8: u8) -> u64 {
+    pub(crate) fn rotate<U: UNum>(&mut self, rot_pair: &(RotType, RotDir), val: U, imm8: u8) -> U {
         let count_mask = 0x3F;
         let masked_count = imm8 & count_mask;
         match rot_pair {
@@ -450,10 +450,10 @@ impl Flags {
                 let modded_count = masked_count % 64;
                 let new_val = val.rotate_left(modded_count as u32);
                 if masked_count != 0 {
-                    self.cf = 1 == new_val & 1;
+                    self.cf = new_val.bit(0).into();
                 }
                 if masked_count == 1 {
-                    self.of = (new_val >> 63 & 1) != (val >> 63 & 1);
+                    self.of = new_val.msb_bit() != val.msb_bit();
                 } else {
                     // spec says this is undefined. The code.golf CPU seems to clear it.
                     self.of = false;

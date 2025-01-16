@@ -81,6 +81,8 @@ pub trait UNum:
     + BitXor<Output = Self>
     + Shl<Output = Self>
     + Shr<u32, Output = Self>
+    + RotateLeft
+    + RotateRight
     + BitAndAssign
     + BitOrAssign
     + BitXorAssign
@@ -157,7 +159,7 @@ impl UNum for u128 {
     const MAX: Self = Self::MAX;
 }
 
-macro_rules! builtin_method_impl {
+macro_rules! overflowing_method_impl {
     ($trait_name:ident, $method:ident, $t:ty) => {
         impl $trait_name for $t {
             #[inline]
@@ -177,11 +179,11 @@ pub trait OverflowingAdd: Sized + Add<Self, Output = Self> {
     fn overflowing_add(&self, rhs: &Self) -> (Self, bool);
 }
 
-builtin_method_impl!(OverflowingAdd, overflowing_add, u8);
-builtin_method_impl!(OverflowingAdd, overflowing_add, u16);
-builtin_method_impl!(OverflowingAdd, overflowing_add, u32);
-builtin_method_impl!(OverflowingAdd, overflowing_add, u64);
-builtin_method_impl!(OverflowingAdd, overflowing_add, u128);
+overflowing_method_impl!(OverflowingAdd, overflowing_add, u8);
+overflowing_method_impl!(OverflowingAdd, overflowing_add, u16);
+overflowing_method_impl!(OverflowingAdd, overflowing_add, u32);
+overflowing_method_impl!(OverflowingAdd, overflowing_add, u64);
+overflowing_method_impl!(OverflowingAdd, overflowing_add, u128);
 
 pub trait OverflowingSub: Sized + Sub<Self, Output = Self> {
     /// Calculates `self` - `rhs`
@@ -192,11 +194,45 @@ pub trait OverflowingSub: Sized + Sub<Self, Output = Self> {
     fn overflowing_sub(&self, rhs: &Self) -> (Self, bool);
 }
 
-builtin_method_impl!(OverflowingSub, overflowing_sub, u8);
-builtin_method_impl!(OverflowingSub, overflowing_sub, u16);
-builtin_method_impl!(OverflowingSub, overflowing_sub, u32);
-builtin_method_impl!(OverflowingSub, overflowing_sub, u64);
-builtin_method_impl!(OverflowingSub, overflowing_sub, u128);
+overflowing_method_impl!(OverflowingSub, overflowing_sub, u8);
+overflowing_method_impl!(OverflowingSub, overflowing_sub, u16);
+overflowing_method_impl!(OverflowingSub, overflowing_sub, u32);
+overflowing_method_impl!(OverflowingSub, overflowing_sub, u64);
+overflowing_method_impl!(OverflowingSub, overflowing_sub, u128);
+
+macro_rules! rotate_method_impl {
+    ($trait_name:ident, $method:ident, $t:ty) => {
+        impl $trait_name for $t {
+            #[inline]
+            fn $method(&self, n: u32) -> Self {
+                <$t>::$method(*self, n)
+            }
+        }
+    };
+}
+
+pub trait RotateLeft: Sized {
+    /// Shifts the bits to the left by a specified amount, `n`, wrapping the
+    /// truncated bits to the end of the resulting integer.
+    fn rotate_left(&self, n: u32) -> Self;
+}
+rotate_method_impl!(RotateLeft, rotate_left, u8);
+rotate_method_impl!(RotateLeft, rotate_left, u16);
+rotate_method_impl!(RotateLeft, rotate_left, u32);
+rotate_method_impl!(RotateLeft, rotate_left, u64);
+rotate_method_impl!(RotateLeft, rotate_left, u128);
+
+pub trait RotateRight: Sized {
+    /// Shifts the bits to the left by a specified amount, `n`, wrapping the
+    /// truncated bits to the end of the resulting integer.
+    #[allow(unused)]
+    fn rotate_right(&self, n: u32) -> Self;
+}
+rotate_method_impl!(RotateRight, rotate_right, u8);
+rotate_method_impl!(RotateRight, rotate_right, u16);
+rotate_method_impl!(RotateRight, rotate_right, u32);
+rotate_method_impl!(RotateRight, rotate_right, u64);
+rotate_method_impl!(RotateRight, rotate_right, u128);
 
 pub trait WideningSignedMul: HasDoubleWidth + Sized {
     /// Calculates `self` * `rhs`, with `self` and `rhs` treated as signed,

@@ -511,21 +511,48 @@ impl Machine {
                         .offset_reg64_by_df(&GPR64::rdi, data_size.byte_len().into()),
                 }
             }
-            Inst::RotateMI8(_, _rm8, _) => todo!("rotate"),
-            Inst::RotateMI16(_, _rm16, _) => todo!("rotate"),
-            Inst::RotateMI32(_, _rm32, _) => todo!("rotate"),
+            Inst::RotateMI8(rot_pair, rm8, imm8) => {
+                let val = self.get_rm8(rm8)?;
+                let new = self.regs.flags.rotate(rot_pair, val, *imm8);
+                self.set_rm8(rm8, new)?
+            }
+            Inst::RotateMI16(rot_pair, rm16, imm8) => {
+                let val = self.get_rm16(rm16)?;
+                let new = self.regs.flags.rotate(rot_pair, val, *imm8);
+                self.set_rm16(rm16, new)?
+            }
+            Inst::RotateMI32(rot_pair, rm32, imm8) => {
+                let val = self.get_rm32(rm32)?;
+                let new = self.regs.flags.rotate(rot_pair, val, *imm8);
+                self.set_rm32(rm32, new)?
+            }
             Inst::RotateMI64(rot_pair, rm64, imm8) => {
                 let val = self.get_rm64(rm64)?;
-                let new = self.regs.flags.rotate_64(rot_pair, val, *imm8);
+                let new = self.regs.flags.rotate(rot_pair, val, *imm8);
                 self.set_rm64(rm64, new)?
             }
-            Inst::RotateMC8(_, _rm8) => todo!("rotate"),
-            Inst::RotateMC16(_, _rm16) => todo!("rotate"),
-            Inst::RotateMC32(_, _rm32) => todo!("rotate"),
+            Inst::RotateMC8(rot_pair, rm8) => {
+                let val = self.get_rm8(rm8)?;
+                let cl = self.regs.get_reg8(&GPR8::cl);
+                let new = self.regs.flags.rotate(rot_pair, val, cl);
+                self.set_rm8(rm8, new)?
+            }
+            Inst::RotateMC16(rot_pair, rm16) => {
+                let val = self.get_rm16(rm16)?;
+                let cl = self.regs.get_reg8(&GPR8::cl);
+                let new = self.regs.flags.rotate(rot_pair, val, cl);
+                self.set_rm16(rm16, new)?
+            }
+            Inst::RotateMC32(rot_pair, rm32) => {
+                let val = self.get_rm32(rm32)?;
+                let cl = self.regs.get_reg8(&GPR8::cl);
+                let new = self.regs.flags.rotate(rot_pair, val, cl);
+                self.set_rm32(rm32, new)?
+            }
             Inst::RotateMC64(rot_pair, rm64) => {
                 let val = self.get_rm64(rm64)?;
                 let cl = self.regs.get_reg8(&GPR8::cl);
-                let new = self.regs.flags.rotate_64(rot_pair, val, cl);
+                let new = self.regs.flags.rotate(rot_pair, val, cl);
                 self.set_rm64(rm64, new)?
             }
             Inst::XchgMR8(rm8, gpr8) => {
