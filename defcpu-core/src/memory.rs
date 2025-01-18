@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{cmp::min, collections::HashMap};
 
 use crate::{
     errors::{RResult, Rerr},
@@ -30,12 +30,34 @@ impl MemSegment {
         self.contains_addr(other.start) || other.contains_addr(self.start)
     }
 
+    /// Returns the number of bytes written
+    fn write_bytes(&mut self, addr: u64, bytes: &[u8]) -> RResult<u64> {
+        if !self.flags.writeable {
+            Err(Rerr::SegmentNotWriteable(addr))?
+        }
+        Ok(self.write_bytes_unchecked(addr, bytes))
+    }
+
     fn write_u8(&mut self, addr: u64, val: u8) -> RResult<()> {
         if !self.flags.writeable {
             Err(Rerr::SegmentNotWriteable(addr))?
         }
         self.write_u8_unchecked(addr, val);
         Ok(())
+    }
+
+    /// Returns the number of bytes written
+    fn write_bytes_unchecked(&mut self, addr: u64, bytes: &[u8]) -> u64 {
+        let page_data = self
+            .page_table
+            .entry(page_addr(addr))
+            .or_insert_with(|| Box::new([0_u8; PAGE_SIZE]));
+        let ind = page_index(addr);
+        let len = min(PAGE_SIZE - ind, bytes.len());
+        for i in 0..len {
+            page_data[ind + i] = bytes[i];
+        }
+        len as u64
     }
 
     fn write_u8_unchecked(&mut self, addr: u64, val: u8) {
@@ -65,22 +87,18 @@ impl MemSegment {
 }
 
 pub struct Memory {
+    // TODO-cleanup: rename segment to VMA (virtual memory area)
     segments: Vec<MemSegment>,
 }
 impl Memory {
-    pub fn from_segments(segments: &[LoadSegment]) -> Memory {
-        let mut mem = Memory::new();
-        mem.insert_segments(segments);
-        mem
-    }
-
-    fn new() -> Memory {
+    pub(crate) fn new() -> Memory {
         Memory {
             segments: Vec::new(),
         }
     }
 
-    fn insert_segments(&mut self, segments: &[LoadSegment]) {
+    /// Published for 'kernel codee' only, in init_mem.rs.
+    pub(crate) fn insert_segments(&mut self, segments: &[LoadSegment]) {
         for segment in segments {
             if page_addr(segment.p_vaddr) != segment.p_vaddr {
                 panic!("Virtual address is not page-aligned. Haven't thought that out yet.")
@@ -106,6 +124,28 @@ impl Memory {
             }
             self.segments.push(new_seg);
         }
+    }
+
+    /// Copy `bytes` into the area starting at `to`.
+    pub fn write_bytes(&mut self, mut addr: u64, mut bytes: &[u8]) -> RResult<()> {
+        let mut segment: Option<&mut MemSegment> = None;
+        while !bytes.is_empty() {
+            if let Some(ref seg) = segment {
+                if !seg.contains_addr(addr) {
+                    segment = None;
+                }
+            }
+            if segment.is_none() {
+                segment = self.segments.iter_mut().find(|seg| seg.contains_addr(addr));
+            }
+            let Some(ref mut seg) = segment else {
+                return Err(Rerr::WriteOutsideSegment(addr));
+            };
+            let bytes_written = seg.write_bytes(addr, bytes)?;
+            bytes = &bytes[bytes_written as usize..];
+            addr += bytes_written;
+        }
+        Ok(())
     }
 
     pub fn write_u8(&mut self, addr: u64, val: u8) -> Result<(), Rerr> {

@@ -1,3 +1,4 @@
+use crate::init_mem::{init_mem, InitOpts};
 use crate::inst::{DestMROp, OneOp, PlainOneOp, ShrinkOp, TwoOp, WidenOp};
 use crate::num_traits::{HasDoubleWidth, HasHalfWidth, UNum, UNum8To64};
 use crate::{
@@ -19,30 +20,35 @@ pub struct Machine {
 }
 
 impl Machine {
-    pub fn from_elf_bytes_with_writers(input: &[u8], writers: &mut Writers) -> Option<Machine> {
-        let elf = match SimpleElfFile::from_bytes(input) {
-            Ok(x) => x,
-            Err(parse_error) => {
-                write!(writers.stderr(), "{}", Rerr::ElfParseError(parse_error))
-                    .expect("Write to stderr should not fail.");
-                return None;
-            }
-        };
-        Some(Machine::from_elf(&elf))
-    }
-
-    pub fn from_elf(file: &SimpleElfFile) -> Machine {
-        let mem = Memory::from_segments(&file.segments);
-        let regs = Registers {
+    pub fn init(elf_bytes: &[u8], init_opts: InitOpts) -> RResult<Machine> {
+        let elf = SimpleElfFile::from_bytes(elf_bytes).map_err(Rerr::ElfParseError)?;
+        let mut mem = Memory::new();
+        let rsp = init_mem(&mut mem, &elf, init_opts)?;
+        let mut regs = Registers {
             regs: [0_u64; 16],
             flags: Flags::new(),
-            rip_prev: file.e_entry,
-            rip: file.e_entry,
+            rip_prev: elf.e_entry,
+            rip: elf.e_entry,
         };
-        Machine {
+        regs.set_reg64(&GPR64::rsp, rsp);
+        Ok(Machine {
             regs,
             mem,
             full_step_count: 0,
+        })
+    }
+
+    pub fn init_with_writers(
+        writers: &mut Writers,
+        elf_bytes: &[u8],
+        init_opts: InitOpts,
+    ) -> Option<Machine> {
+        match Self::init(elf_bytes, init_opts) {
+            Ok(x) => Some(x),
+            Err(err) => {
+                write!(writers.stderr(), "{}", err).expect("Write to stderr should not fail.");
+                None
+            }
         }
     }
 

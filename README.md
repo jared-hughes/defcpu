@@ -49,6 +49,12 @@ Eventual ideas:
 
 My primary reference is the October 2024 version of [Intel® 64 and IA-32 Architectures Software Developer's Manual.](https://software.intel.com/en-us/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4). Unqualified references in comments to "Vol 1", "Vol 2A", etc. refer to this manual.
 
+The November 18, 2024 version of the [System V Application Binary Interface](https://gitlab.com/x86-psABIs/x86-64-ABI) was helpful for working out the initial process stack, along with the following linux kernel source files:
+
+- `fs/binfmt_elf.c`
+- `fs/exec.c`
+- `arch/x86/kernel/process.c`
+
 [Felix Cloutier's Insstruction Reference](https://www.felixcloutier.com/x86) is good to save a bunch of jumping around in the PDF.
 
 The [coder64](http://ref.x86asm.net/coder64.html) and [geek64](http://ref.x86asm.net/geek64.html) references of MazeGen's X86 Opcode and Instruction Reference are quite thorough. The [index](http://ref.x86asm.net/index.html) helps describe how to read them.

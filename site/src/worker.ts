@@ -125,7 +125,15 @@ function startRunningCode(data: MsgRunCode) {
     if (om) {
       om.free();
     }
-    om = OuterMachine.init(elf);
+    om = OuterMachine.init(
+      elf,
+      // argv
+      ["/tmp/asm"],
+      // envp
+      [],
+      // TODO-seed: proper seed
+      123n
+    );
     setTimeout(() => continueRunningCode(false), 0);
   } catch (e) {
     postMessageFromWorker({

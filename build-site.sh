@@ -21,7 +21,7 @@ build_static() {
         node esbuild.mjs
     )
     cp "${PACK_DIR}"/*.{wasm,js} public-deploy/js
-    rsync -a site/public/ public-deploy/
+    cp -r site/public/* public-deploy/
 }
 
 build_wasm

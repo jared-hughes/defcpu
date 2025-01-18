@@ -3,6 +3,7 @@
 
 pub(crate) mod decode_inst;
 pub(crate) mod errors;
+pub(crate) mod init_mem;
 pub(crate) mod inst;
 pub(crate) mod inst_prefixes;
 pub mod interpret;
@@ -16,23 +17,23 @@ pub(crate) mod registers;
 use crate::decode_inst::decode_inst;
 
 use errors::{RResult, Rerr};
+use init_mem::init_program_segments;
 use interpret::Machine;
 use memory::Memory;
 use parse_elf::SimpleElfFile;
 use read_write::Writers;
 
-pub fn interpret_to_streams(input: &[u8]) {
+pub use init_mem::{InitOpts, InitUnpredictables, SideData};
+
+pub fn interpret_to_streams(elf_bytes: &[u8], init_opts: InitOpts) {
     let mut stdout = std::io::stdout();
     let mut stderr = std::io::stderr();
-    let mut writers = Writers {
+    let writers = &mut Writers {
         stdout: &mut stdout,
         stderr: &mut stderr,
     };
-    interpret(input, &mut writers);
-}
-
-fn interpret(input: &[u8], writers: &mut Writers) {
-    let Some(mut machine) = Machine::from_elf_bytes_with_writers(input, writers) else {
+    let Some(mut machine) = Machine::init_with_writers(writers, elf_bytes, init_opts) else {
+        // Expect the `init_with_writers` to log about any problems.
         return;
     };
     let max_steps: u64 = 0xFFFFFFFF;
@@ -53,7 +54,8 @@ fn interpret(input: &[u8], writers: &mut Writers) {
 
 pub fn disassemble(input: &[u8]) -> RResult<()> {
     let elf = SimpleElfFile::from_bytes(input).map_err(Rerr::ElfParseError)?;
-    let mem = Memory::from_segments(&elf.segments);
+    let mut mem = Memory::new();
+    init_program_segments(&mut mem, &elf);
     for segment in elf.segments {
         if !segment.flags.executable {
             continue;

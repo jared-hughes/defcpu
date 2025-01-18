@@ -1,4 +1,4 @@
-use defcpu_core::{disassemble, interpret_to_streams};
+use defcpu_core::{disassemble, interpret_to_streams, InitOpts, InitUnpredictables, SideData};
 
 fn print_usage(arg0: &str) {
     eprintln!("Usage:");
@@ -20,7 +20,18 @@ fn main() {
     match args[1].as_str() {
         "run" => {
             let contents = read_file(&args[2]);
-            interpret_to_streams(&contents);
+            // TODO-cli: pass in argv (after `--`?).
+            // TODO-cli: some way to configure environment variables?
+            let side_data = SideData {
+                argv: vec!["/tmp/asm".to_string()],
+                envp: vec![],
+            };
+            let init_opts = InitOpts {
+                side_data,
+                // TODO-cli: allow seeding the random gen.
+                init_unp: InitUnpredictables::Random(123),
+            };
+            interpret_to_streams(&contents, init_opts);
         }
         "dis" => {
             let contents = read_file(&args[2]);

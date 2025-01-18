@@ -10,6 +10,8 @@ pub enum Rerr {
     Hlt,
     SysExit(u8),
     DivideError,
+    /// Converting rust string to C-style string went bad. An extra null. See ffi::NulError
+    NulError,
     /// Described in "push" docs. Causes a double-fault and logical processer shutdown.
     StackFault,
     WriteOutsideSegment(u64),
@@ -29,6 +31,7 @@ impl fmt::Display for Rerr {
         match self {
             Self::ElfParseError(pe) => write!(f, "ELF parse error: {}", pe),
             Self::DivideError => write!(f, "Divide Error #DE."),
+            Self::NulError => write!(f, "A Rust string couldn't convert to a C string"),
             Self::StackFault => write!(f, "Stack Fault Exception #SS."),
             Self::SysExit(exit_code) => write!(f, "Clean exit with exit code {exit_code}."),
             Self::Hlt => write!(f, "Hlt (F4) instruction executed."),

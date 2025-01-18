@@ -1,4 +1,6 @@
-use defcpu_core::{interpret::Machine, read_write::Writers};
+use defcpu_core::{
+    interpret::Machine, read_write::Writers, InitOpts, InitUnpredictables, SideData,
+};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -11,14 +13,23 @@ pub struct OuterMachine {
 #[wasm_bindgen]
 impl OuterMachine {
     #[wasm_bindgen]
-    pub fn init(input: &[u8]) -> OuterMachine {
+    pub fn init(
+        elf_bytes: &[u8],
+        argv: Vec<String>,
+        envp: Vec<String>,
+        unp_seed: u64,
+    ) -> OuterMachine {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
         let mut writers = Writers {
             stdout: &mut stdout,
             stderr: &mut stderr,
         };
-        let machine = Machine::from_elf_bytes_with_writers(input, &mut writers);
+        let init_opts = InitOpts {
+            side_data: SideData { argv, envp },
+            init_unp: InitUnpredictables::Random(unp_seed),
+        };
+        let machine = Machine::init_with_writers(&mut writers, elf_bytes, init_opts);
         OuterMachine {
             stdout,
             stderr,
