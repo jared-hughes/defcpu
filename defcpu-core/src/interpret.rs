@@ -619,6 +619,14 @@ impl Machine {
                 let x = self.regs.get_eax();
                 self.regs.set_rax(x.sign_extend_double_width())
             }
+            Inst::BswapO32(gpr32) => {
+                let x = self.regs.get_reg32(gpr32);
+                self.regs.set_reg32(gpr32, x.swap_bytes());
+            }
+            Inst::BswapO64(gpr64) => {
+                let x = self.regs.get_reg64(gpr64);
+                self.regs.set_reg64(gpr64, x.swap_bytes());
+            }
         }
         Ok(())
     }

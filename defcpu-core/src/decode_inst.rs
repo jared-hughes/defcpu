@@ -74,6 +74,18 @@ impl<'a> Lexer<'a> {
         self.prefix.operand_size
     }
 
+    /// Only use in places where REX.W matters, and 32/64 are the only valid sizes.
+    fn get_operand_size_only_rexw(&mut self) -> OperandSizeAttribute {
+        if let Some(rex) = self.prefix.rex {
+            self.rex_w_mattered = true;
+            self.maybe_remove_rex();
+            if rex.w {
+                return Data64;
+            }
+        }
+        Data32
+    }
+
     /// This is used in one particular case that supports u16 and u64 but not u32.
     /// So the default is u64. The 0x66 operand-size prefix converts it to u16,
     /// but the REX.W takes precedence in keeping as u64. Since the default
@@ -512,6 +524,24 @@ fn decode_inst_inner(lex: &mut Lexer) -> RResult<Inst> {
                         _ => {
                             lex.rollback();
                             NotImplementedOpext(opcode, modrm.reg3)
+                        }
+                    }
+                }
+                0xC8..=0xCF => {
+                    // Reverses the byte order of a 32/64-bit register.
+                    // 0F C8+rd.
+                    let rex_b = lex.get_rex_b_matters();
+                    match lex.get_operand_size_only_rexw() {
+                        // gdb dumps it as (66 0f c8    bswap  %ax),
+                        // but that byte sequence is equivalent to `mov $0, %ax` on code.golf cpu.
+                        Data16 => unreachable!(),
+                        Data32 => {
+                            let reg = reg32_field_select(opcode2, rex_b);
+                            BswapO32(reg)
+                        }
+                        Data64 => {
+                            let reg = reg64_field_select(opcode2, rex_b);
+                            BswapO64(reg)
                         }
                     }
                 }

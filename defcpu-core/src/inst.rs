@@ -425,6 +425,8 @@ pub enum Inst {
     /// REX.W + D3 /2; RCL r/m64, CL; Rotate 65 bits (CF, r/m64) left CL times. Uses a 6 bit count.
     /// REX.W + D3 /3; RCR r/m64, CL; Rotate 65 bits (CF, r/m64) right CL times. Uses a 6 bit count.
     RotateMC64((RotType, RotDir), RM64),
+    BswapO32(GPR32),
+    BswapO64(GPR64),
     /// 70 cb; JO rel8; Jump short if overflow (OF=1).
     /// 0F 80 cd; JO rel32; Jump near if overflow (OF=1).
     /// 71 cb; JNO rel8; Jump short if not overflow (OF=0).
@@ -728,6 +730,8 @@ impl Inst {
             RotateMC16(_, rm16) => format!("%cl, {}", rm16),
             RotateMC32(_, rm32) => format!("%cl, {}", rm32),
             RotateMC64(_, rm64) => format!("%cl, {}", rm64),
+            BswapO32(gpr32) => format!("{gpr32}"),
+            BswapO64(gpr64) => format!("{gpr64}"),
         }
     }
     fn mnemonic(&self) -> &str {
@@ -922,7 +926,7 @@ impl Inst {
             | RotateMC32((RotType::RclRcr, RotDir::Right), rm32) => rm32.either("rcr", "rcrl"),
             RotateMI64((RotType::RclRcr, RotDir::Right), rm64, _)
             | RotateMC64((RotType::RclRcr, RotDir::Right), rm64) => rm64.either("rcr", "rcrq"),
-
+            BswapO32(_) | BswapO64(_) => "bswap",
             JccJo(_, Normal) => "jo",
             JccJo(_, Negate) => "jno",
             JccJb(_, Normal) => "jb",
