@@ -50,7 +50,7 @@ for source_file in sources/*.s; do
 
     # Substitute macro
     real_asm_path="real_sources/$base.s"
-    ./insert-print-regs-macro.mjs "$source_file" "$real_asm_path"
+    ./insert-macros.mjs "$source_file" "$real_asm_path"
 
     # Run
     run_tmp_dir="./expected/${base}-orig"

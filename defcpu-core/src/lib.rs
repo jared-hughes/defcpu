@@ -23,7 +23,7 @@ use memory::Memory;
 use parse_elf::SimpleElfFile;
 use read_write::Writers;
 
-pub use init_mem::{InitOpts, InitUnpredictables, SideData};
+pub use init_mem::{InitOpts, InitUnpredictables, SideData, Unpredictables};
 
 pub fn interpret_to_streams(elf_bytes: &[u8], init_opts: InitOpts) {
     let mut stdout = std::io::stdout();

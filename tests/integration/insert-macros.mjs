@@ -9,10 +9,9 @@ if (!input_filename || !output_filename) {
   process.exit(1);
 }
 
-const print_regs_s = fs.readFileSync("./print_regs.s").toString();
-
 let source = fs.readFileSync(input_filename).toString();
 let i = 0;
+let dumpCount = 0;
 let lineNum = 1;
 const lines = [];
 let hex = "0123456789abcdef";
@@ -43,13 +42,26 @@ for (let line of source.split("\n")) {
       `print${i}_ret:`,
     ].join("; ");
     i++;
+  } else if (/^\s*dump_initial\s*(#*)?$/.test(line)) {
+    line = "jmp dump_initial; dump_initial_ret:";
+    dumpCount++;
   }
   lines.push(line);
   lineNum++;
 }
 source = lines.join("\n");
 if (i > 0) {
+  const print_regs_s = fs.readFileSync("./print_regs.s").toString();
   source += "\n\n\n" + print_regs_s;
+}
+if (dumpCount > 1) {
+  throw new Error("There should only be one dump_initial macro.");
+}
+if (dumpCount > 0) {
+  const dump_initial_state_s = fs
+    .readFileSync("./dump_initial_state.s")
+    .toString();
+  source += "\n\n\n" + dump_initial_state_s;
 }
 
 fs.writeFileSync(output_filename, source);

@@ -1,10 +1,12 @@
-# hole: fibonacci
-.comm x, 0xf78000000
+# hole: rock-paper-scissors-spock-lizard
 SYS_WRITE = 1
 SYS_EXIT = 60
 STDOUT_FILENO = 1
 
 .text
+dump_initial
+
+print_regs
 
 mov $argc, %rsi
 call printsz
@@ -35,8 +37,8 @@ call print_stack_quad # .quad 0
 # one eightbyte each of environment pointers (none on code.golf)
 call print_stack_quad # .quad 0
 # begin auxiliary vector entries:
-call print_auxv # a_type=33 (??), a_un = pointer to start of ELF file? Always &0xFFF = 0x000
-call print_auxv # a_type=51 (??), a_val = 0xD30
+call print_auxv # a_type=33 (AT_SYSINFO_EHDR), a_un = pointer to start of ELF file? Always &0xFFF = 0x000
+call print_auxv # a_type=51 (AT_MINSIGSTKSZ), a_val = 0xD30
 call print_auxv # a_type=16 (AT_HWCAP), a_val = 0x178BFBFF
 call print_auxv # a_type=6 (AT_PAGESZ), a_val = 0x1000
 call print_auxv # a_type=17 (AT_CLKTCK), a_val = 0x64

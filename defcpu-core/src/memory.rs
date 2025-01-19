@@ -113,7 +113,7 @@ impl Memory {
             for other in &self.segments {
                 if new_seg.overlaps(other) {
                     panic!(
-                        "New segment at {}..{} overlaps the segment at {}..{}",
+                        "New segment at {:#x}..{:#x} overlaps the segment at {:#x}..{:#x}",
                         new_seg.start, new_seg.end, other.start, other.end
                     );
                 }

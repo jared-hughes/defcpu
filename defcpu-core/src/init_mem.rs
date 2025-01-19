@@ -85,9 +85,9 @@ pub struct InitOpts {
 
 pub struct Unpredictables {
     /// Ref vdso(7) (`man vdso`). Pointer to virtual ELF dynamic shared object (vDSO).
-    vdso_ptr: u64,
+    pub vdso_ptr: u64,
     /// TODO-correctness: still haven't figured out how to get the exact stack_top.
-    stack_top: u64,
+    pub stack_top: u64,
     /// Linux generates `argv0_to_platform_offset` via `get_random_u32_below(8192)`
     /// in `arch_align_stack` (arch/x86/kernel/process.c), called from
     /// `p = arch_align_stack(p);` in `create_elf_tables` of `fs/binfmt_elf.c`.
@@ -96,9 +96,9 @@ pub struct Unpredictables {
     /// where platform_ptr points to the start of the `"x86_64"` and is the
     /// a_type=15 (AT_PLATFORM) entry in the auxv.
     /// Or, randomly generate it by generating a random u32 below 8192.
-    argv0_to_platform_offset: u64,
+    pub argv0_to_platform_offset: u64,
     /// Great, every process is seeded with a random 16 bytes.
-    random_16_bytes: [u8; 16],
+    pub random_16_bytes: [u8; 16],
 }
 
 /// If `unp` is None, they are randomly generated.
@@ -108,6 +108,7 @@ pub(crate) fn init_mem(mem: &mut Memory, elf: &SimpleElfFile, init_opts: InitOpt
     let sp = init_extra_mem(
         mem,
         elf.e_entry,
+        elf.segments.len() as u64,
         init_opts.side_data,
         finalize_unp(init_opts.init_unp),
     )?;
@@ -171,6 +172,7 @@ fn randomize_unpredictables(seed: Seed) -> Unpredictables {
 fn init_extra_mem(
     mem: &mut Memory,
     entry_point: u64,
+    phnum: u64,
     side_data: SideData,
     unp: Unpredictables,
 ) -> RResult<u64> {
@@ -203,8 +205,8 @@ fn init_extra_mem(
         p: unp.stack_top,
     };
 
-    // Write arguments, following Linux: `do_execveat_common` in `fs/exec.c`
-    // For some reason there's some extra padding.
+    // Write arguments, following Linux: `do_execveat_common` in `fs/exec.c`.
+    // There's some extra padding on the filename, maybe to support long filenames.
     ms.write_bytes(&[0; 8])?;
     let execfn_ptr = ms.write_bytes(FILENAME)?;
     let u_envp = ms.write_strs(&side_data.envp)?;
@@ -239,13 +241,16 @@ fn init_extra_mem(
     // `create_elf_tables` goes out of order and does auxv at the end, which
     // is kinda silly. But this means the STACK_ROUND is after inserting argv.
     // Linux calls `auxv` as `elf_info`.
-    let auxv = get_auxv(AuxvPointers {
-        entry_point,
-        random_ptr,
-        platform_ptr,
-        execfn_ptr,
-        vdso_ptr: unp.vdso_ptr,
-    });
+    let auxv = get_auxv(
+        AuxvPointers {
+            entry_point,
+            random_ptr,
+            platform_ptr,
+            execfn_ptr,
+            vdso_ptr: unp.vdso_ptr,
+        },
+        phnum,
+    );
     let auxc = auxv.len() as u64;
 
     // Plan out space on stack
@@ -293,7 +298,7 @@ struct AuxvPointers {
     vdso_ptr: u64,
 }
 
-fn get_auxv(ptrs: AuxvPointers) -> Vec<AuxEntry> {
+fn get_auxv(ptrs: AuxvPointers, phnum: u64) -> Vec<AuxEntry> {
     // This was obtained by just dumping the output, see `integration/sources/015_dump.s`.
     // Linux: ref the `NEW_AUX_ENT()` macro calls in `create_elf_tables` in `fs/binfmt_elf`.
     // Note the first two entries are defined in `ARCH_DLINFO` from
@@ -311,7 +316,7 @@ fn get_auxv(ptrs: AuxvPointers) -> Vec<AuxEntry> {
         aux_entry(at::AT_CLKTCK, 0x64),
         aux_entry(at::AT_PHDR, 0x0),
         aux_entry(at::AT_PHENT, 0x38),
-        aux_entry(at::AT_PHNUM, 0x3),
+        aux_entry(at::AT_PHNUM, phnum),
         aux_entry(at::AT_BASE, 0x0),
         aux_entry(at::AT_FLAGS, 0x0),
         aux_entry(at::AT_ENTRY, ptrs.entry_point),

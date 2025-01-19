@@ -34,7 +34,7 @@ Eventual ideas:
     ```sh
     ./build-site.sh && npx http-server public-deploy/ -c-1
     ```
-- `cargo run -- run file.elf`: Interpret an ELF file
+- `cargo run -- run file.elf --random-seed 123456`: Interpret an ELF file
 - `cargo run -- dis file.elf`: Disassemble an ELF file
 
 ## Recommended editor plugins:

@@ -1,12 +1,27 @@
-Signal: segmentation fault on line 299 (%rip was 0000000000400394)
+Result from print_regs on line 9:
 Registers:
-    %rax = 00007FFF62BF5000        %r8  = 00000000004000CB
-    %rbx = 00007FFF629FAFEF        %r9  = 0000000000000000
+    %rax = 0000000000000000        %r8  = 0000000000000000
+    %rbx = 00000000000000E0        %r9  = 0000000000000000
+    %rcx = 0000000000000000        %r10 = 0000000000000000
+    %rdx = 0000000000000000        %r11 = 0000000000000000
+    %rsi = 0000000000000000        %r12 = 0000000000000000
+    %rdi = 0000000000000000        %r13 = 0000000000000000
+    %rsp = 00007FFEFE3BE4D0        %r14 = 0000000000000000
+    %rbp = 0000000000000000        %r15 = 0000000000000000
+Flags (0000000000000246):
+    Carry     = 0 (no carry)       Zero   = 1 (is zero)
+    Overflow  = 0 (no overflow)    Sign   = 0 (positive)
+    Direction = 0 (up)             Parity = 1 (even)
+
+Signal: segmentation fault on line 301 (%rip was 00000000004003BD)
+Registers:
+    %rax = 00007FFEFE3DB000        %r8  = 00000000004000F4
+    %rbx = 00007FFEFE3BEFEF        %r9  = 0000000000000000
     %rcx = 0000000000000010        %r10 = 0000000000000000
     %rdx = 0000000000000001        %r11 = 0000000000000246
-    %rsi = 00007FFF62BF5000        %r12 = 0000000000000000
-    %rdi = 00000000004010F2        %r13 = 00007FFF62BF5000
-    %rsp = 00007FFF629F98D0        %r14 = 0000000000000000
+    %rsi = 00007FFEFE3DB000        %r12 = 0000000000000000
+    %rdi = 00000000004010F2        %r13 = 00007FFEFE3DB000
+    %rsp = 00007FFEFE3BE6F8        %r14 = 0000000000000000
     %rbp = 0000000000000000        %r15 = 0000000000000000
 Flags (0000000000010246):
     Carry     = 0 (no carry)       Zero   = 1 (is zero)

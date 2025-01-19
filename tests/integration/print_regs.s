@@ -71,7 +71,7 @@ mini_stack_end: .quad 0
 
 
 .section .rodata
-hexaChars: .string "0123456789ABCDEF"
+pr_hexaChars: .string "0123456789ABCDEF"
 
 .data
 outputBuffer: .byte 0
@@ -87,7 +87,7 @@ line_num_len: .byte 0
 
 # Print the value of %rax in 16 hexadecimal characters
 # Uses 6 quadwords of mini_stack space.
-printQuad:
+pr_printQuad:
     push %rbx
     push %rdx
     push %rsi
@@ -97,11 +97,11 @@ printQuad:
     mov $16, %ebx
     mov $outputBuffer, %esi
     
-    nibbleLoop:
+    pr_nibbleLoop:
         rol $4, %rax
         mov %eax, %edx
         and $0xF, %edx
-        mov hexaChars(%rdx), %dl
+        mov pr_hexaChars(%rdx), %dl
         mov %dl, (%rsi)
 
         # Print the nibble
@@ -113,14 +113,14 @@ printQuad:
         pop %rax
 
         dec %ebx
-        jnz nibbleLoop
+        jnz pr_nibbleLoop
     
     pop %rcx
     pop %rdi
     pop %rsi
     pop %rdx
     pop %rbx
-    jmp printQuad_done
+    jmp pr_printQuad_done
 
 .section .rodata
 
@@ -231,8 +231,8 @@ printRegs:
             # bl < 17: Select register and print it
             mov registerOrder(, %rbx, 4), %eax
             mov (%rax), %rax
-            jmp printQuad
-            printQuad_done: jmp nextRegister
+            jmp pr_printQuad
+            pr_printQuad_done: jmp nextRegister
         printFlag:
             # bl >= 17: Select appropriate flag message
             push %rsi

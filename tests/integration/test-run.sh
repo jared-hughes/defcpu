@@ -4,10 +4,6 @@ set -euo pipefail
 echo
 echo "[Testing 'defcpu run']"
 
-trim_per_line() {
-    sed -E 's/\s+$//g'
-}
-
 # Script pre-req: build-elfs.sh built into `elfs/`.
 # Script pre-req: run-sources.sh ran and put results into `output/`
 # Will exit with a nonzero exit code if there's any test failure.
@@ -25,6 +21,12 @@ show_color || C_CLEAR=''
 rm -r output 2> /dev/null || true
 mkdir output
 
+normalize() {
+    # To match code.golf postprocessing, trailing spaces get trimmed,
+    # and multiple trailing newlines get normalized to 1.
+    sed -E 's/\s+$//g' | sed -z -E 's/\n+$/\n/'
+}
+
 exit_code=0
 for source_path in sources/*.s; do
     base="${source_path##sources/}"
@@ -39,31 +41,33 @@ for source_path in sources/*.s; do
     output="$out_dir/output"
     errors="$out_dir/errors"
 
+    exp_dir="./expected/${base}"
+
+    # mapfile splits each line into one word
+    # Split at form-feeds, into the array variable 'flags'
+    mapfile -d $'\f' -t flags < <(./read-initial-dump.mjs "$exp_dir/output")
+
     # Failure is ok here
-    ../../target/release/defcpu run "$elf" > "$output" \
-        2> >(grep -v "Detailed error:" | trim_per_line > "$errors") \
+    ../../target/release/defcpu run "$elf" "${flags[@]}" \
+        1> >(normalize > "$output") \
+        2> >(grep -v "Detailed error:" | normalize > "$errors") \
         || echo $'\n'"Nonzero exit code ($?) from defcpu run." >> "$errors"
         
     real_source_path="real_sources/${base}.s"
     ./insert-line-number.mjs "$errors" "$real_source_path"
 
-    exp_dir="./expected/${base}"
 
-    output_output=$(< "$output")
-    exp_output=$(< "$exp_dir/output")
-    if [[ "$exp_output" != "$output_output" ]]; then
+    if ! cmp "$output" "$exp_dir/output" 2> /dev/null; then
         pass=0
         exit_code=1
         echo "${C_RED}fail${C_CLEAR}."
-        git --no-pager diff --no-index "$output" "$exp_dir/output" || true
+        git --no-pager diff --text --no-index "$output" "$exp_dir/output" || true
     fi
-    output_errors=$(< "$errors")
-    exp_errors=$(< "$exp_dir/errors")
-    if [[ "$exp_errors" != "$output_errors" ]]; then
+    if ! cmp "$errors" "$exp_dir/errors" 2> /dev/null; then
         pass=0
         exit_code=1
         echo "${C_RED}fail${C_CLEAR}."
-        git --no-pager diff --no-index "$errors" "$exp_dir/errors" || true
+        git --no-pager diff --text --no-index "$errors" "$exp_dir/errors" || true
     fi
     if [[ "$pass" != "0" ]]; then
         echo "${C_GREEN}ok${C_CLEAR}."
