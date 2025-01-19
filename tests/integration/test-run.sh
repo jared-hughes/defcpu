@@ -23,8 +23,10 @@ mkdir output
 
 normalize() {
     # To match code.golf postprocessing, trailing spaces get trimmed,
-    # and multiple trailing newlines get normalized to 1.
-    sed -E 's/\s+$//g' | sed -z -E 's/\n+$/\n/'
+    # multiple trailing newlines get normalized to 1,
+    # and a trailing newline is added if missing
+    # shellcheck disable=SC1003
+    sed -E 's/\s+$//g' | sed '$a\' | sed -z -E 's/\n+$/\n/'
 }
 
 exit_code=0

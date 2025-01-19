@@ -56,6 +56,9 @@ for source_file in sources/*.s; do
     run_tmp_dir="./expected/${base}-orig"
     ../../node_modules/.bin/golfc submit -h "$hole" -l assembly \
         -i "$real_asm_path" --no-auth -o "${run_tmp_dir}"
+    # add trailing newline if missing.
+    # shellcheck disable=SC1003
+    sed -i '$ a\' "${run_tmp_dir}"/{output,errors}
     cp "${run_tmp_dir}"/{output,errors} "${out_dir}"
     rm -r "${run_tmp_dir}"
 
