@@ -20,6 +20,7 @@ export function inputConfigPanel(): Extension {
 }
 
 export interface InputConfigJSON {
+  arg0: string;
   argv: string;
   envp: string;
   randomSeed: string;
@@ -32,6 +33,7 @@ export interface InputConfigJSON {
 
 // TODO-cm: make them all undefined by default, so we know if the user changed it.
 export class InputConfig {
+  readonly arg0: string;
   readonly argv: string;
   readonly envp: string;
   readonly randomSeed: string;
@@ -42,6 +44,7 @@ export class InputConfig {
   readonly useFixed: boolean;
 
   constructor(config: InputConfigJSON) {
+    this.arg0 = config.arg0;
     this.argv = config.argv;
     this.envp = config.envp;
     this.randomSeed = config.randomSeed;
@@ -54,6 +57,7 @@ export class InputConfig {
 
   eq(other: InputConfig) {
     return (
+      this.arg0 === other.arg0 &&
       this.argv === other.argv &&
       this.envp === other.envp &&
       this.randomSeed === other.randomSeed &&
@@ -66,7 +70,18 @@ export class InputConfig {
   }
 
   static default = new InputConfig({
-    argv: "[]",
+    arg0: "/tmp/asm",
+    argv: JSON.stringify([
+      "__46____1",
+      "_8__4367_",
+      "____2____",
+      "__5______",
+      "8__1_47_2",
+      "__7_68__5",
+      "97_31_2_4",
+      "416_8__9_",
+      "_52__91__",
+    ]),
     envp: "[]",
     randomSeed: "123456",
     rand16: "0123456789abcdef0a2b2c3d4e5f6789",
@@ -80,6 +95,7 @@ export class InputConfig {
     const defaultConfig = InputConfig.default;
     if (typeof obj !== "object" || obj === null) return defaultConfig;
     const c = {
+      arg0: getString(obj, "arg0", defaultConfig.arg0),
       argv: getString(obj, "argv", defaultConfig.argv),
       envp: getString(obj, "envp", defaultConfig.envp),
       randomSeed: getString(obj, "randomSeed", defaultConfig.randomSeed),
@@ -99,6 +115,7 @@ export class InputConfig {
   /** Return a JSON-serializable object. */
   toJSON() {
     return {
+      arg0: this.arg0,
       argv: this.argv,
       envp: this.envp,
       randomSeed: this.randomSeed,
@@ -151,6 +168,7 @@ function phrase(view: EditorView, phrase: string) {
 
 // based on @codemirror/search panel.
 class InputConfigPanel implements Panel {
+  arg0Field: HTMLInputElement;
   argvField: HTMLInputElement;
   envpField: HTMLInputElement;
   randomSeedField: HTMLInputElement;
@@ -188,6 +206,7 @@ class InputConfigPanel implements Panel {
 
     // TODO-cm: placeholders for stuff like rand16 should
     // be computed based on the random seed.
+    this.arg0Field = stringField("argv", d.arg0);
     this.argvField = stringField("argv", d.argv, {
       "main-field": "true",
     });
@@ -206,6 +225,7 @@ class InputConfigPanel implements Panel {
     }) as HTMLInputElement;
 
     this.dom = elt("div", { class: "cm-input-config" }, [
+      elt("label", null, [phrase(view, "arg0"), this.arg0Field]),
       elt("label", null, [phrase(view, "argv"), this.argvField]),
       elt("label", null, [phrase(view, "envp"), this.envpField]),
       elt("label", null, [phrase(view, "randomSeed"), this.randomSeedField]),
@@ -233,6 +253,7 @@ class InputConfigPanel implements Panel {
 
   commit() {
     const inputConfig = new InputConfig({
+      arg0: this.arg0Field.value,
       argv: this.argvField.value,
       envp: this.envpField.value,
       randomSeed: this.randomSeedField.value,
@@ -270,6 +291,7 @@ class InputConfigPanel implements Panel {
   /** Sync DOM exactly. */
   setInputConfig(inputConfig: InputConfig) {
     this.inputConfig = inputConfig;
+    this.arg0Field.value = inputConfig.arg0;
     this.argvField.value = inputConfig.argv;
     this.envpField.value = inputConfig.envp;
     this.randomSeedField.value = inputConfig.randomSeed;

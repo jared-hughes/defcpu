@@ -120,7 +120,9 @@ process.stdout.write(
     map["execfn_ptr"],
     "--platform-offset",
     map["platform_offset"],
+    "--arg0",
+    argv[0],
     "--argv",
-    ...argv,
+    ...argv.slice(1),
   ].join("\f") + "\f"
 );

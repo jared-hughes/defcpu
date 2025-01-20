@@ -129,9 +129,9 @@ function startRunningCode(data: MsgRunCode) {
     om = OuterMachine.init(
       elf,
       // argv
-      JSON.parse(ds.inputConfig.argv),
+      getArgv(ds.inputConfig),
       // envp
-      JSON.parse(ds.inputConfig.envp),
+      getEnvp(ds.inputConfig),
       // TODO-seed: proper seed
       getInitUnp(ds.inputConfig)
     );
@@ -142,6 +142,33 @@ function startRunningCode(data: MsgRunCode) {
       error: `Error when running: ${e}`,
     });
   }
+}
+
+function getArgv(ic: InputConfigJSON) {
+  let argv;
+  try {
+    argv = JSON.parse(ic.argv);
+  } catch (e) {
+    throw new Error("Invalid argv JSON.");
+  }
+  if (!Array.isArray(argv) || argv.some((e) => typeof e !== "string")) {
+    throw new Error("Argv should be a JSON array of strings.");
+  }
+  argv.unshift(ic.arg0);
+  return argv;
+}
+
+function getEnvp(ic: InputConfigJSON) {
+  let envp;
+  try {
+    envp = JSON.parse(ic.envp);
+  } catch (e) {
+    throw new Error("Invalid envp JSON.");
+  }
+  if (!Array.isArray(envp) || envp.some((e) => typeof e !== "string")) {
+    throw new Error("Envp should be a JSON array of strings.");
+  }
+  return envp;
 }
 
 function getInitUnp(ic: InputConfigJSON) {

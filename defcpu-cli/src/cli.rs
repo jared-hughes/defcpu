@@ -40,7 +40,11 @@ enum DefCPUOpt {
         #[structopt(long)]
         platform_offset: Option<Hex64>,
 
-        /// Arguments vector. Remember to pass /tmp/asm as first arg.
+        /// Zeroth argument.
+        #[structopt(long, default_value = "/tmp/asm")]
+        arg0: String,
+
+        /// Arguments vector.
         #[structopt(long)]
         argv: Option<Vec<String>>,
 
@@ -69,13 +73,15 @@ fn main() {
             execfn_ptr,
             platform_offset,
             input,
+            arg0,
             argv,
             envp,
         } => {
             let contents = read_file(input);
+            let mut real_argv = vec![arg0];
+            real_argv.extend_from_slice(&argv.unwrap_or(vec![]));
             let side_data = SideData {
-                // TODO-cm: separate parameter for argv0, default to /tmp/asm
-                argv: argv.unwrap_or(vec!["/tmp/asm".to_string()]),
+                argv: real_argv,
                 envp: envp.unwrap_or(vec![]),
             };
             let init_unp = match (random_seed, rand16, vdso_ptr, execfn_ptr, platform_offset) {
