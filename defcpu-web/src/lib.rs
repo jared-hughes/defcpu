@@ -1,7 +1,51 @@
 use defcpu_core::{
-    interpret::Machine, read_write::Writers, InitOpts, InitUnpredictables, SideData,
+    interpret::Machine, read_write::Writers, InitOpts, SideData, UnpParseError, Unpredictables,
 };
 use wasm_bindgen::prelude::*;
+
+/// Wasm-bindgen converts results to errors, and it
+/// doesn't support enum variants with data, so here we are.
+#[wasm_bindgen]
+pub struct WebUnpredictables {
+    ok: Option<Unpredictables>,
+    err: Option<UnpParseError>,
+}
+
+#[wasm_bindgen]
+impl WebUnpredictables {
+    fn ok(unp: Unpredictables) -> Self {
+        Self {
+            ok: Some(unp),
+            err: None,
+        }
+    }
+
+    fn err(err: UnpParseError) -> Self {
+        Self {
+            ok: None,
+            err: Some(err),
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn from_random_seed(random_seed: u64) -> Self {
+        Self::ok(defcpu_core::gen_unpredictables(random_seed))
+    }
+
+    #[wasm_bindgen]
+    pub fn from_fixed(
+        vdso_ptr: String,
+        rand16: String,
+        execfn_ptr: String,
+        platform_offset: String,
+    ) -> Self {
+        let x = Unpredictables::from_fixed(vdso_ptr, rand16, execfn_ptr, platform_offset);
+        match x {
+            Ok(unp) => Self::ok(unp),
+            Err(err) => Self::err(err),
+        }
+    }
+}
 
 #[wasm_bindgen]
 pub struct OuterMachine {
@@ -17,7 +61,7 @@ impl OuterMachine {
         elf_bytes: &[u8],
         argv: Vec<String>,
         envp: Vec<String>,
-        unp_seed: u64,
+        unpredictables: WebUnpredictables,
     ) -> OuterMachine {
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
@@ -25,11 +69,21 @@ impl OuterMachine {
             stdout: &mut stdout,
             stderr: &mut stderr,
         };
-        let init_opts = InitOpts {
-            side_data: SideData { argv, envp },
-            init_unp: InitUnpredictables::Random(unp_seed),
+        let machine = match unpredictables.ok {
+            Some(unp) => {
+                let init_opts = InitOpts {
+                    side_data: SideData { argv, envp },
+                    init_unp: unp,
+                };
+                Machine::init_with_writers(&mut writers, elf_bytes, init_opts)
+            }
+            None => {
+                if let Some(err) = unpredictables.err {
+                    write!(writers.stderr(), "{}", err).expect("Write to stderr should not fail.")
+                };
+                None
+            }
         };
-        let machine = Machine::init_with_writers(&mut writers, elf_bytes, init_opts);
         OuterMachine {
             stdout,
             stderr,

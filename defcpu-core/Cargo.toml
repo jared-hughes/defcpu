@@ -17,3 +17,4 @@ name = "defcpu_core"
 
 [dependencies]
 elf = {workspace = true}
+hex = { version = "0.4" }

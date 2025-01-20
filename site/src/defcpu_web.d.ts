@@ -3,7 +3,7 @@
 export class OuterMachine {
   private constructor();
   free(): void;
-  static init(elf_bytes: Uint8Array, argv: (string)[], envp: (string)[], unp_seed: bigint): OuterMachine;
+  static init(elf_bytes: Uint8Array, argv: (string)[], envp: (string)[], unpredictables: WebUnpredictables): OuterMachine;
   step(): void;
   is_done(): boolean;
   get_stdout(): Uint8Array;
@@ -12,13 +12,26 @@ export class OuterMachine {
   get_rip(): bigint;
   get_full_step_count(): bigint;
 }
+/**
+ * Wasm-bindgen converts results to errors, and it
+ * doesn't support enum variants with data, so here we are.
+ */
+export class WebUnpredictables {
+  private constructor();
+  free(): void;
+  static from_random_seed(random_seed: bigint): WebUnpredictables;
+  static from_fixed(vdso_ptr: string, rand16: string, execfn_ptr: string, platform_offset: string): WebUnpredictables;
+}
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
+  readonly __wbg_webunpredictables_free: (a: number, b: number) => void;
+  readonly webunpredictables_from_random_seed: (a: bigint) => number;
+  readonly webunpredictables_from_fixed: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => number;
   readonly __wbg_outermachine_free: (a: number, b: number) => void;
-  readonly outermachine_init: (a: number, b: number, c: number, d: number, e: number, f: number, g: bigint) => number;
+  readonly outermachine_init: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => number;
   readonly outermachine_step: (a: number) => void;
   readonly outermachine_is_done: (a: number) => number;
   readonly outermachine_get_stdout: (a: number, b: number) => void;

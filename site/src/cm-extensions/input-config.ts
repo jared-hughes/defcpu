@@ -205,41 +205,29 @@ class InputConfigPanel implements Panel {
       onchange: commit,
     }) as HTMLInputElement;
 
-    this.dom = elt(
-      "div",
-      { class: "cm-input-config" },
-      view.state.readOnly
-        ? []
-        : [
-            elt("label", null, [phrase(view, "argv"), this.argvField]),
-            elt("label", null, [phrase(view, "envp"), this.envpField]),
-            elt("label", null, [
-              phrase(view, "randomSeed"),
-              this.randomSeedField,
-            ]),
-            elt("label", null, [phrase(view, "rand16"), this.rand16Field]),
-            elt("label", null, [phrase(view, "vdsoPtr"), this.vdsoPtrField]),
-            elt("label", null, [
-              phrase(view, "execfnPtr"),
-              this.execfnPtrField,
-            ]),
-            elt("label", null, [
-              phrase(view, "platformOffset"),
-              this.platformOffsetField,
-            ]),
-            elt("label", null, [phrase(view, "use fixed"), this.useFixedField]),
-            elt(
-              "button",
-              {
-                name: "close",
-                onclick: () => closeInputConfigPanel(view),
-                "aria-label": phrase(view, "close"),
-                type: "button",
-              },
-              ["×"]
-            ),
-          ]
-    );
+    this.dom = elt("div", { class: "cm-input-config" }, [
+      elt("label", null, [phrase(view, "argv"), this.argvField]),
+      elt("label", null, [phrase(view, "envp"), this.envpField]),
+      elt("label", null, [phrase(view, "randomSeed"), this.randomSeedField]),
+      elt("label", null, [phrase(view, "rand16"), this.rand16Field]),
+      elt("label", null, [phrase(view, "vdsoPtr"), this.vdsoPtrField]),
+      elt("label", null, [phrase(view, "execfnPtr"), this.execfnPtrField]),
+      elt("label", null, [
+        phrase(view, "platformOffset"),
+        this.platformOffsetField,
+      ]),
+      elt("label", null, [phrase(view, "use fixed"), this.useFixedField]),
+      elt(
+        "button",
+        {
+          name: "close",
+          onclick: () => closeInputConfigPanel(view),
+          "aria-label": phrase(view, "close"),
+          type: "button",
+        },
+        ["×"]
+      ),
+    ]);
     this.setInputConfig(inputConfig);
   }
 
@@ -271,6 +259,7 @@ class InputConfigPanel implements Panel {
 
   /** Sync all parts of the DOM that haven't already been changed by the user. */
   setDisabled(inputConfig: InputConfig) {
+    // TODO-cm: readonly while running?
     this.randomSeedField.disabled = !!inputConfig.useFixed;
     this.rand16Field.disabled = !inputConfig.useFixed;
     this.vdsoPtrField.disabled = !inputConfig.useFixed;

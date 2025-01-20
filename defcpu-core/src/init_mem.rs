@@ -1,11 +1,12 @@
 use crate::{
     errors::{RResult, Rerr},
     memory::Memory,
+    parse_args::{Hex64, Hex64Err, Rand16, Rand16Err},
     parse_elf::{LoadSegment, PermissionFlags, SimpleElfFile},
 };
-use std::ffi::CString;
+use std::{ffi::CString, fmt};
 
-const PAGE_SIZE: u64 = 0x1000;
+pub(crate) const PAGE_SIZE: u64 = 0x1000;
 const FILENAME: &[u8] = "/tmp/asm\0".as_bytes();
 /// Linux: `randomize_stack_top(STACK_TOP)` gives `STACK_TOP - random_variable`,
 ///   where `random_variable` is a multiple of PAGE_SIZE up to 0x7ff000,
@@ -19,7 +20,7 @@ const FILENAME: &[u8] = "/tmp/asm\0".as_bytes();
 ///   bprm->p -= stack_shift;
 ///   mm->arg_start = bprm->p;
 /// What I don't get is why it may be as low as 00007FFCxxxxxxxx
-const STACK_TOP: u64 = (1 << 47) - PAGE_SIZE;
+pub(crate) const STACK_TOP: u64 = (1 << 47) - PAGE_SIZE;
 
 /// Linux: `_STK_LIM` is the default stack limit, 8MB = `0x800000`, defined in `include/uapi/linux/resource.h`.
 /// Linux: `bprm->rlim_stack.rlim_cur` is the current stack limit.
@@ -69,18 +70,9 @@ pub struct SideData {
     pub envp: Vec<String>,
 }
 
-/// TODO-seed: Not really a seed
-type Seed = u64;
-
-pub enum InitUnpredictables {
-    Fixed(Unpredictables),
-    // TODO-seed: check out the `rand` crate and make this a `dyn Rand`?
-    Random(Seed),
-}
-
 pub struct InitOpts {
     pub side_data: SideData,
-    pub init_unp: InitUnpredictables,
+    pub init_unp: Unpredictables,
 }
 
 pub struct Unpredictables {
@@ -88,17 +80,60 @@ pub struct Unpredictables {
     pub vdso_ptr: u64,
     /// TODO-correctness: still haven't figured out how to get the exact stack_top.
     pub stack_top: u64,
-    /// Linux generates `argv0_to_platform_offset` via `get_random_u32_below(8192)`
+    /// Linux generates `platform_offset` via `get_random_u32_below(8192)`
     /// in `arch_align_stack` (arch/x86/kernel/process.c), called from
     /// `p = arch_align_stack(p);` in `create_elf_tables` of `fs/binfmt_elf.c`.
     /// We can compute it from user space with
-    /// `argv0_to_platform_offset = argv[0] - platform_ptr - strlen(platform_ptr) - 1`,
+    /// `platform_offset = argv[0] - platform_ptr - strlen(platform_ptr) - 1`,
     /// where platform_ptr points to the start of the `"x86_64"` and is the
     /// a_type=15 (AT_PLATFORM) entry in the auxv.
     /// Or, randomly generate it by generating a random u32 below 8192.
-    pub argv0_to_platform_offset: u64,
+    pub platform_offset: u64,
     /// Great, every process is seeded with a random 16 bytes.
     pub random_16_bytes: [u8; 16],
+}
+
+#[derive(Debug)]
+pub enum UnpParseError {
+    Vdso(Hex64Err),
+    Execfn(Hex64Err),
+    PlatformOffset(Hex64Err),
+    Rand16(Rand16Err),
+}
+
+impl fmt::Display for UnpParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            UnpParseError::Vdso(hex64_err) => write!(f, "vdsoPtr: {}", hex64_err),
+            UnpParseError::Execfn(hex64_err) => write!(f, "execfnPtr: {}", hex64_err),
+            UnpParseError::PlatformOffset(hex64_err) => write!(f, "platformOffset: {}", hex64_err),
+            UnpParseError::Rand16(rand16_err) => write!(f, "rand16: {}", rand16_err),
+        }
+    }
+}
+
+impl Unpredictables {
+    pub fn from_fixed(
+        vdso_ptr: String,
+        rand16: String,
+        execfn_ptr: String,
+        platform_offset: String,
+    ) -> Result<Self, UnpParseError> {
+        Ok(Unpredictables {
+            vdso_ptr: vdso_ptr.parse::<Hex64>().map_err(UnpParseError::Vdso)?.0,
+            stack_top: execfn_ptr
+                .parse::<Hex64>()
+                .map_err(UnpParseError::Execfn)?
+                .0
+                // TODO-unp: this is slightly wrong
+                .next_multiple_of(0x1000),
+            platform_offset: platform_offset
+                .parse::<Hex64>()
+                .map_err(UnpParseError::PlatformOffset)?
+                .0,
+            random_16_bytes: rand16.parse::<Rand16>().map_err(UnpParseError::Rand16)?.0,
+        })
+    }
 }
 
 /// If `unp` is None, they are randomly generated.
@@ -110,61 +145,13 @@ pub(crate) fn init_mem(mem: &mut Memory, elf: &SimpleElfFile, init_opts: InitOpt
         elf.e_entry,
         elf.segments.len() as u64,
         init_opts.side_data,
-        finalize_unp(init_opts.init_unp),
+        init_opts.init_unp,
     )?;
     Ok(sp)
 }
 
 pub(crate) fn init_program_segments(mem: &mut Memory, elf: &SimpleElfFile) {
     mem.insert_segments(&elf.segments);
-}
-
-fn finalize_unp(init_unp: InitUnpredictables) -> Unpredictables {
-    match init_unp {
-        InitUnpredictables::Fixed(unp) => unp,
-        InitUnpredictables::Random(seed) => randomize_unpredictables(seed),
-    }
-}
-
-/// TODO-seed: most terrible prng.
-fn silly_prng_byte(seed: Seed, i: u64) -> u8 {
-    (((i.wrapping_mul(0x12345678abcdef0)) ^ seed).wrapping_mul(0x1a2b3c4d5e6f708) >> 16) as u8
-}
-
-/// TODO-seed: most terrible prng.
-fn silly_prng_u32(seed: Seed, i: u64) -> u32 {
-    (((i.wrapping_mul(0x1a2b3c4d5e6f708)) ^ seed).wrapping_mul(0x12345678abcdef0) >> 8) as u32
-}
-
-/// TODO-correctness: this is nowhere close to what is actually going on.
-fn randomize_unpredictables(seed: Seed) -> Unpredictables {
-    let vdso_ptr = STACK_TOP - ((silly_prng_u32(seed, 123) & 0x7FF) as u64) * PAGE_SIZE;
-    let stack_top =
-        vdso_ptr - 0x1000 * PAGE_SIZE - ((silly_prng_u32(seed, 567) & 0x7FF) as u64) * PAGE_SIZE;
-    let argv0_to_platform_offset = (silly_prng_u32(seed, 234) & 0x1FFF) as u64;
-    Unpredictables {
-        vdso_ptr,
-        stack_top,
-        argv0_to_platform_offset,
-        random_16_bytes: [
-            silly_prng_byte(seed, 1001),
-            silly_prng_byte(seed, 1002),
-            silly_prng_byte(seed, 1013),
-            silly_prng_byte(seed, 1034),
-            silly_prng_byte(seed, 1085),
-            silly_prng_byte(seed, 1116),
-            silly_prng_byte(seed, 1237),
-            silly_prng_byte(seed, 1478),
-            silly_prng_byte(seed, 1301),
-            silly_prng_byte(seed, 1202),
-            silly_prng_byte(seed, 1113),
-            silly_prng_byte(seed, 1534),
-            silly_prng_byte(seed, 1485),
-            silly_prng_byte(seed, 1716),
-            silly_prng_byte(seed, 1537),
-            silly_prng_byte(seed, 1978),
-        ],
-    }
 }
 
 /// Load vDSO and the initial stack (arguments, environment variables, etc.)
@@ -226,7 +213,7 @@ fn init_extra_mem(
     // following Linux: `p = arch_align_stack(p);` in `create_elf_tables` of `fs/binfmt_elf.c`
     // This includes ASLR, so it's not always immediately before the arg vector.
     let k_platform = "x86_64\0".as_bytes();
-    let aligned_p = (ms.p - unp.argv0_to_platform_offset) & !0xF;
+    let aligned_p = (ms.p - unp.platform_offset) & !0xF;
     let mut ms = MemWithStackPtrDown {
         mem: ms.mem,
         p: aligned_p,

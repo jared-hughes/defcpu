@@ -1,4 +1,5 @@
-import init, { OuterMachine } from "./defcpu_web.js";
+import { InputConfigJSON } from "./cm-extensions/input-config.js";
+import init, { OuterMachine, WebUnpredictables } from "./defcpu_web.js";
 import { findInstructionFromOffset, linePosition } from "./line-number.mjs";
 import {
   MessageFromWorker,
@@ -125,8 +126,6 @@ function startRunningCode(data: MsgRunCode) {
     if (om) {
       om.free();
     }
-    // TODO-cm: rest of the argument passing.
-    // TODO-cm: separate parameter for argv0, default to /tmp/asm
     om = OuterMachine.init(
       elf,
       // argv
@@ -134,7 +133,7 @@ function startRunningCode(data: MsgRunCode) {
       // envp
       JSON.parse(ds.inputConfig.envp),
       // TODO-seed: proper seed
-      BigInt(ds.inputConfig.randomSeed)
+      getInitUnp(ds.inputConfig)
     );
     setTimeout(() => continueRunningCode(false), 0);
   } catch (e) {
@@ -143,6 +142,18 @@ function startRunningCode(data: MsgRunCode) {
       error: `Error when running: ${e}`,
     });
   }
+}
+
+function getInitUnp(ic: InputConfigJSON) {
+  if (!ic.useFixed) {
+    return WebUnpredictables.from_random_seed(BigInt(ic.randomSeed));
+  }
+  return WebUnpredictables.from_fixed(
+    ic.vdsoPtr,
+    ic.rand16,
+    ic.execfnPtr,
+    ic.platformOffset
+  );
 }
 
 function checkDone() {

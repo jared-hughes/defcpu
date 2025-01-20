@@ -36,7 +36,6 @@ name = "defcpu_cli"
 version = "0.1.0"
 dependencies = [
  "defcpu_core",
- "hex",
  "structopt",
 ]
 
@@ -45,6 +44,7 @@ name = "defcpu_core"
 version = "0.1.0"
 dependencies = [
  "elf",
+ "hex",
 ]
 
 [[package]]

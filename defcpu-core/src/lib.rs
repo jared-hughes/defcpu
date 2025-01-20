@@ -3,6 +3,7 @@
 
 pub(crate) mod decode_inst;
 pub(crate) mod errors;
+mod gen_unpredictables;
 pub(crate) mod init_mem;
 pub(crate) mod inst;
 pub(crate) mod inst_prefixes;
@@ -10,6 +11,7 @@ pub mod interpret;
 pub(crate) mod memory;
 pub(crate) mod num_traits;
 pub(crate) mod num_u1;
+pub mod parse_args;
 pub(crate) mod parse_elf;
 pub mod read_write;
 pub(crate) mod registers;
@@ -23,7 +25,9 @@ use memory::Memory;
 use parse_elf::SimpleElfFile;
 use read_write::Writers;
 
-pub use init_mem::{InitOpts, InitUnpredictables, SideData, Unpredictables};
+pub use gen_unpredictables::gen_unpredictables;
+
+pub use init_mem::{InitOpts, SideData, UnpParseError, Unpredictables};
 
 pub fn interpret_to_streams(elf_bytes: &[u8], init_opts: InitOpts) {
     let mut stdout = std::io::stdout();
