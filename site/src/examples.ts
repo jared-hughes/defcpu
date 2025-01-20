@@ -1,9 +1,86 @@
 interface Example {
   name: string;
   source: string;
+  args?: string[];
 }
 
 const _examples: Example[] = [
+  {
+    name: "code.golf starter",
+    source: String.raw`SYS_WRITE = 1
+      SYS_EXIT = 60
+      STDOUT_FILENO = 1
+
+      # Printing
+      .data
+      buffer: .string "Hello, World!\n"
+      bufferLen = . - buffer
+
+      .text
+      mov $SYS_WRITE, %eax
+      mov $STDOUT_FILENO, %edi
+      mov $buffer, %esi
+      mov $bufferLen, %edx
+      syscall
+
+      # Looping
+      .data
+      digit: .byte   '0', '\n'
+
+      .text
+      mov $10, %bl
+      numberLoop:
+          mov $SYS_WRITE, %eax
+          mov $STDOUT_FILENO, %edi
+          mov $digit, %esi
+          mov $2, %edx
+          syscall
+
+          incb (%rsi)
+          dec %bl
+          jnz numberLoop
+
+      # Accessing arguments
+      pop %rbx
+      pop %rax
+
+      argLoop:
+          dec %rbx
+          jz endArgLoop
+
+          pop %rsi
+          mov %rsi, %rdi
+
+          mov $-1, %ecx
+          xor %al, %al
+          repnz scasb
+
+          not %ecx
+          movb $'\n', -1(%rsi, %rcx)
+
+          mov %ecx, %edx
+          mov $SYS_WRITE, %eax
+          mov $STDOUT_FILENO, %edi
+          syscall
+
+          jmp argLoop
+      endArgLoop:
+
+      mov $SYS_EXIT, %eax
+      mov $0, %edi
+      syscall`,
+    args: [
+      "__46____1",
+      "_8__4367_",
+      "____2____",
+      "__5______",
+      "8__1_47_2",
+      "__7_68__5",
+      "97_31_2_4",
+      "416_8__9_",
+      "_52__91__",
+    ],
+  },
   {
     name: "64-bit add",
     source: String.raw`mov $0xABCD1234, %eax

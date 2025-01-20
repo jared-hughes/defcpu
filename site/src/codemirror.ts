@@ -4,7 +4,6 @@ import {
   keymap,
   lineNumbers,
   drawSelection,
-  ViewUpdate,
 } from "@codemirror/view";
 export { EditorState, EditorView };
 import { assembly } from "@defasm/codemirror";
@@ -29,13 +28,22 @@ import {
   oneDarkHighlightStyle,
 } from "@codemirror/theme-one-dark";
 import { highlightLineExt } from "./cm-extensions/highlight-line";
-import { breakpointGutterExt } from "./cm-extensions/breakpoint-gutter";
+import {
+  breakpointField,
+  breakpointGutterExt,
+} from "./cm-extensions/breakpoint-gutter";
+import {
+  inputConfigField,
+  InputConfigJSON,
+  inputConfigPanel,
+} from "./cm-extensions/input-config";
+import { voidFacet } from "./cm-extensions/cm-utils";
 
 const themeCompartment = new Compartment();
 const readonlyCompartment = new Compartment();
 
 export function getExtensions(
-  onViewUpdate: (vu: ViewUpdate) => void,
+  onSerializedChange: () => void,
   onNewGutters: (breakpointFroms: number[]) => void
 ) {
   const asmErrorTooltip = {
@@ -57,7 +65,12 @@ export function getExtensions(
     drawSelection(),
     assembly(),
     bracketMatching(),
-    EditorView.updateListener.of(onViewUpdate),
+    EditorView.updateListener.of((vu) => {
+      if (vu.docChanged) onSerializedChange();
+    }),
+    voidFacet.compute(Object.values(serializedFields), () => {
+      onSerializedChange();
+    }),
     EditorView.theme({
       ".cm-lineWrapping": lineWrapping,
       ".cm-gutters": { fontFamily },
@@ -70,6 +83,7 @@ export function getExtensions(
       ".cm-tooltip-autocomplete": { fontFamily },
     }),
     themeCompartment.of([]),
+    rethemeTextfield,
     readonlyCompartment.of([]),
     highlightLineExt(),
     breakpointGutterExt(onNewGutters),
@@ -77,6 +91,7 @@ export function getExtensions(
 
   // More extensions that we won't need for output boxes.
   extensions.push(
+    inputConfigPanel(),
     history(),
     keymap.of([
       // Replace "enter" with a non auto indenting action.
@@ -125,4 +140,35 @@ function themeExtensions(theme: "dark" | "light") {
         syntaxHighlighting(oneDarkHighlightStyle),
       ]
     : [syntaxHighlighting(defaultHighlightStyle)];
+}
+
+// Overrides .cm-textfield styles from @codemirror/view src/theme.ts baseTheme.
+const rethemeTextfield = EditorView.theme({
+  ".cm-textfield": {
+    fontSize: "85%",
+    color: "var(--color)",
+  },
+  ".cm-textfield:disabled": {
+    color: "var(--color-disabled)",
+    backgroundColor: "var(--bg-disabled)",
+  },
+});
+
+export const serializedFields = {
+  breakpoints: breakpointField,
+  inputConfig: inputConfigField,
+};
+
+interface SerializedFieldsJSON {
+  breakpoints: number[];
+  inputConfig: InputConfigJSON;
+}
+
+export interface SerializedJSON extends SerializedFieldsJSON {
+  doc: string;
+  selection: unknown;
+}
+
+export function serializeState(state: EditorState) {
+  return state.toJSON(serializedFields) as SerializedJSON;
 }

@@ -1,8 +1,8 @@
+import { SerializedJSON } from "./codemirror";
+
 export interface MsgRunCode {
   type: "run";
-  src: string;
-  // Char offsets from the start of the code.
-  breakpointFroms: number[];
+  state: SerializedJSON;
 }
 
 export interface MsgSetGutters {

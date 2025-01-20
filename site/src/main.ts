@@ -3,16 +3,14 @@ import {
   getExtensions,
   reconfigureTheme,
   reconfigureReadonly,
+  serializedFields,
+  serializeState,
 } from "./codemirror";
 import { $ } from "./util.js";
 import { EditorState, EditorView } from "./codemirror";
-import { ViewUpdate } from "@codemirror/view";
 import { MessageFromWorker, MessageToWorker, Status } from "./messages.js";
 import { setHighlightedLines } from "./cm-extensions/highlight-line.js";
-import {
-  getBreakpointFroms,
-  setBreakpointInit,
-} from "./cm-extensions/breakpoint-gutter.js";
+import { openInputConfigPanel } from "./cm-extensions/input-config.js";
 
 const worker = new Worker(new URL("worker.js", import.meta.url), {
   type: "module",
@@ -127,6 +125,10 @@ $<HTMLButtonElement>("button#continue-button").addEventListener(
   continueRun
 );
 $<HTMLButtonElement>("button#step-button").addEventListener("click", stepRun);
+$<HTMLButtonElement>("button#open-input-config-panel").addEventListener(
+  "click",
+  () => openInputConfigPanel(editor)
+);
 
 function canHalt() {
   return state !== "idle";
@@ -196,12 +198,13 @@ function canRun() {
 function startRun() {
   if (!canRun()) return;
   setState("running");
-  const src = editor.state.sliceDoc();
+  const state = serializeState(editor.state);
+
+  // editor.state.
 
   postMessageToWorker({
     type: "run",
-    src,
-    breakpointFroms: getBreakpointFroms(editor.state),
+    state,
   });
 }
 
@@ -222,43 +225,14 @@ const editor = new EditorView({
 });
 
 function saveToLocalStorage() {
-  const code = editor.state.sliceDoc();
-  localStorage.setItem("saved-src", code);
-  const breakpointFroms = getBreakpointFroms(editor.state);
-  localStorage.setItem("saved-breakpoints", JSON.stringify(breakpointFroms));
+  const obj = serializeState(editor.state);
+  localStorage.setItem("saved-state", JSON.stringify(obj));
 }
 
 const debouncedSave = debounce(saveToLocalStorage, 250);
 
-function onViewUpdate(vu: ViewUpdate) {
-  if (!vu.docChanged) return;
+function onSerializedChange() {
   debouncedSave();
-}
-
-function getDefaultSource() {
-  const saved = localStorage.getItem("saved-src");
-  if (saved === null || /^\s+$/.test(saved)) {
-    return examples[0].source;
-  } else {
-    return saved;
-  }
-}
-
-function getDefaultBreakpointFroms() {
-  const saved = localStorage.getItem("saved-breakpoints");
-  if (!saved) return [];
-  try {
-    const breakpointFroms = JSON.parse(saved);
-    if (
-      Array.isArray(breakpointFroms) &&
-      breakpointFroms.every((x) => typeof x === "number")
-    ) {
-      return breakpointFroms;
-    }
-    return [];
-  } catch {
-    return [];
-  }
 }
 
 function onNewGutters(breakpointFroms: number[]) {
@@ -267,19 +241,39 @@ function onNewGutters(breakpointFroms: number[]) {
       type: "set-breakpoints",
       breakpointFroms,
     });
-  debouncedSave();
 }
 
-editor.setState(
-  EditorState.create({
-    doc: getDefaultSource(),
-    extensions: getExtensions(onViewUpdate, onNewGutters),
-  })
-);
+function allExtensions() {
+  return getExtensions(onSerializedChange, onNewGutters);
+}
 
-editor.dispatch({
-  effects: setBreakpointInit(getDefaultBreakpointFroms()),
-});
+function initialState() {
+  const savedState = localStorage.getItem("saved-state");
+  if (!savedState) return defaultState();
+  const obj = JSON.parse(savedState);
+  if (typeof obj !== "object" || obj === null) return defaultState();
+  if (typeof obj.doc !== "string" || /^\s+$/.test(obj.doc)) {
+    obj.doc = defaultDoc();
+  }
+  return EditorState.fromJSON(
+    obj,
+    { extensions: allExtensions() },
+    serializedFields
+  );
+}
+
+function defaultState() {
+  return EditorState.create({
+    doc: defaultDoc(),
+    extensions: allExtensions(),
+  });
+}
+
+function defaultDoc() {
+  return examples[0].source;
+}
+
+editor.setState(initialState());
 
 const themeMatch = matchMedia("(prefers-color-scheme: light)");
 

@@ -12,7 +12,7 @@ const breakpointEffect = StateEffect.define<{ pos: number; on: boolean }>({
   map: (val, mapping) => ({ pos: mapping.mapPos(val.pos), on: val.on }),
 });
 
-const breakpointField = StateField.define<RangeSet<GutterMarker>>({
+export const breakpointField = StateField.define<RangeSet<GutterMarker>>({
   create() {
     return RangeSet.empty;
   },
@@ -28,6 +28,20 @@ const breakpointField = StateField.define<RangeSet<GutterMarker>>({
       }
     }
     return set;
+  },
+  toJSON(value) {
+    return breakpointFroms(value);
+  },
+  fromJSON(obj: unknown) {
+    if (!Array.isArray(obj) || obj.some((x) => typeof x !== "number")) {
+      return RangeSet.empty;
+    }
+    const breakpointFroms = obj as number[];
+    const markers = [];
+    for (const from of breakpointFroms) {
+      markers.push(breakpointMarker.range(from));
+    }
+    return RangeSet.of(markers);
   },
 });
 
@@ -60,12 +74,6 @@ function breakpointFroms(breakpoints: RangeSet<GutterMarker>) {
 export function getBreakpointFroms(state: EditorState): number[] {
   const breakpoints = state.field(breakpointField);
   return breakpointFroms(breakpoints);
-}
-
-export function setBreakpointInit(breakpointFroms: number[]) {
-  return breakpointFroms.map((from) =>
-    breakpointEffect.of({ pos: from, on: true })
-  );
 }
 
 export function breakpointGutterExt(onNewGutters: (froms: number[]) => void) {

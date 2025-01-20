@@ -19,6 +19,7 @@
     "@defasm/codemirror": "^1.4.4",
     "buffer": "^6.0.3",
     "codemirror": "^6.0.1",
+    "crelt": "^1.0.6",
     "defasm-cli-browser": "file:./defasm/cli-browser"
   }
 }

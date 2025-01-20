@@ -3,6 +3,8 @@
     color-scheme: dark;
     --background: hsl(210, 9%, 13%);
     --color: #ebebeb;
+    --color-disabled: rgb(170, 170, 170);
+    --bg-disabled: rgba(59, 59, 59, 0.3);
     --gray: #85888c;
     --asm-dump: hsl(210, 10%, 67%);
     --light-gray: hsl(214, 8%, 17%);
@@ -15,6 +17,8 @@
     color-scheme: light;
     --background: #fdfdfd;
     --color: #343a40;
+    --color-disabled: rgb(84, 84, 84);
+    --bg-disabled: rgba(239, 239, 239, 0.3);
     --gray: #85888c;
     --asm-dump: hsl(210, 10%, 67%);
     --light-gray: #eee;
@@ -51,8 +55,13 @@ h2 {
   display: flex;
   flex-direction: row;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .inapplicable {
   color: var(--gray);
+}
+
+.cm-gutter {
+  background: var(--background);
 }

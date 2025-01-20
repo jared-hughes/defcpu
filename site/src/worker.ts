@@ -109,10 +109,10 @@ function getStatus(om: OuterMachine, state: AssemblyStateT): Status {
 function startRunningCode(data: MsgRunCode) {
   try {
     running = true;
-    const src = data.src;
+    const ds = data.state;
     state = new AssemblyState();
     // state.compile may throw
-    state.compile(src, { haltOnError: true });
+    state.compile(ds.doc, { haltOnError: true });
     const elf = createExecutable(state);
 
     // This clearly may throw
@@ -120,19 +120,21 @@ function startRunningCode(data: MsgRunCode) {
       throw new Error("Wasm module not yet loaded");
     }
 
-    setBreakpoints(data.breakpointFroms);
+    setBreakpoints(ds.breakpoints);
 
     if (om) {
       om.free();
     }
+    // TODO-cm: rest of the argument passing.
+    // TODO-cm: separate parameter for argv0, default to /tmp/asm
     om = OuterMachine.init(
       elf,
       // argv
-      ["/tmp/asm"],
+      JSON.parse(ds.inputConfig.argv),
       // envp
-      [],
+      JSON.parse(ds.inputConfig.envp),
       // TODO-seed: proper seed
-      123n
+      BigInt(ds.inputConfig.randomSeed)
     );
     setTimeout(() => continueRunningCode(false), 0);
   } catch (e) {
