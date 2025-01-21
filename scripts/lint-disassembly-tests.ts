@@ -87,6 +87,8 @@ async function lintSingleFile(base: string, fix: boolean): Promise<boolean> {
       "-batch",
       ...["-ex", `b *${startAddr}`],
       ...["-ex", "r"],
+      // https://visualgdb.com/gdbreference/commands/disassemble
+      ...["-ex", `set disassembly-flavor intel`],
       ...["-ex", `disassemble /r ${startAddr}, +${segmentLen}`],
     ])
   ).toString("utf-8");
