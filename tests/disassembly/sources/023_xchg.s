@@ -1,79 +1,79 @@
 90          nop
-91          xchg   %eax, %ecx
-92          xchg   %eax, %edx
-93          xchg   %eax, %ebx
-94          xchg   %eax, %esp
-95          xchg   %eax, %ebp
-96          xchg   %eax, %esi
-97          xchg   %eax, %edi
-66 90       xchg   %ax, %ax
-66 91       xchg   %ax, %cx
-66 92       xchg   %ax, %dx
-66 93       xchg   %ax, %bx
-66 94       xchg   %ax, %sp
-66 95       xchg   %ax, %bp
-66 96       xchg   %ax, %si
-66 97       xchg   %ax, %di
-41 90       xchg   %eax, %r8d
-41 91       xchg   %eax, %r9d
-41 92       xchg   %eax, %r10d
-41 93       xchg   %eax, %r11d
-41 94       xchg   %eax, %r12d
-41 95       xchg   %eax, %r13d
-41 96       xchg   %eax, %r14d
-41 97       xchg   %eax, %r15d
-66 41 90    xchg   %ax, %r8w
-66 41 91    xchg   %ax, %r9w
-66 41 92    xchg   %ax, %r10w
-66 41 93    xchg   %ax, %r11w
-66 41 94    xchg   %ax, %r12w
-66 41 95    xchg   %ax, %r13w
-66 41 96    xchg   %ax, %r14w
-66 41 97    xchg   %ax, %r15w
+91          xchg   ecx, eax
+92          xchg   edx, eax
+93          xchg   ebx, eax
+94          xchg   esp, eax
+95          xchg   ebp, eax
+96          xchg   esi, eax
+97          xchg   edi, eax
+66 90       xchg   ax, ax
+66 91       xchg   cx, ax
+66 92       xchg   dx, ax
+66 93       xchg   bx, ax
+66 94       xchg   sp, ax
+66 95       xchg   bp, ax
+66 96       xchg   si, ax
+66 97       xchg   di, ax
+41 90       xchg   r8d, eax
+41 91       xchg   r9d, eax
+41 92       xchg   r10d, eax
+41 93       xchg   r11d, eax
+41 94       xchg   r12d, eax
+41 95       xchg   r13d, eax
+41 96       xchg   r14d, eax
+41 97       xchg   r15d, eax
+66 41 90    xchg   r8w, ax
+66 41 91    xchg   r9w, ax
+66 41 92    xchg   r10w, ax
+66 41 93    xchg   r11w, ax
+66 41 94    xchg   r12w, ax
+66 41 95    xchg   r13w, ax
+66 41 96    xchg   r14w, ax
+66 41 97    xchg   r15w, ax
 48 90       rex.W nop
-48 91       xchg   %rax, %rcx
-48 92       xchg   %rax, %rdx
-48 93       xchg   %rax, %rbx
-48 94       xchg   %rax, %rsp
-48 95       xchg   %rax, %rbp
-48 96       xchg   %rax, %rsi
-48 97       xchg   %rax, %rdi
-49 90       xchg   %rax, %r8
-49 91       xchg   %rax, %r9
-49 92       xchg   %rax, %r10
-49 93       xchg   %rax, %r11
-49 94       xchg   %rax, %r12
-49 95       xchg   %rax, %r13
-49 96       xchg   %rax, %r14
-49 97       xchg   %rax, %r15
-86 13       xchg   %dl, (%rbx)
-66 48 90    xchg   %rax, %rax
-66 48 91    data16 xchg %rax, %rcx
-66 48 92    data16 xchg %rax, %rdx
-66 48 93    data16 xchg %rax, %rbx
-66 48 94    data16 xchg %rax, %rsp
-66 48 95    data16 xchg %rax, %rbp
-66 48 96    data16 xchg %rax, %rsi
-66 48 97    data16 xchg %rax, %rdi
-66 49 90    xchg   %rax, %r8
-66 49 91    data16 xchg %rax, %r9
-66 49 92    data16 xchg %rax, %r10
-66 49 93    data16 xchg %rax, %r11
-66 49 94    data16 xchg %rax, %r12
-66 49 95    data16 xchg %rax, %r13
-66 49 96    data16 xchg %rax, %r14
-66 49 97    data16 xchg %rax, %r15
-86 13       xchg   %dl, (%rbx)
-66 86 13    data16 xchg %dl, (%rbx)
-67 86 13    xchg   %dl, (%ebx)
-40 86 13    rex xchg %dl, (%rbx)
-41 86 13    xchg   %dl, (%r11)
-48 86 13    rex.W xchg %dl, (%rbx)
-49 86 13    rex.WB xchg %dl, (%r11)
-87 13       xchg   %edx, (%rbx)
-66 87 13    xchg   %dx, (%rbx)
-67 87 13    xchg   %edx, (%ebx)
-40 87 13    rex xchg %edx, (%rbx)
-41 87 13    xchg   %edx, (%r11)
-48 87 13    xchg   %rdx, (%rbx)
-49 87 13    xchg   %rdx, (%r11)
+48 91       xchg   rcx, rax
+48 92       xchg   rdx, rax
+48 93       xchg   rbx, rax
+48 94       xchg   rsp, rax
+48 95       xchg   rbp, rax
+48 96       xchg   rsi, rax
+48 97       xchg   rdi, rax
+49 90       xchg   r8, rax
+49 91       xchg   r9, rax
+49 92       xchg   r10, rax
+49 93       xchg   r11, rax
+49 94       xchg   r12, rax
+49 95       xchg   r13, rax
+49 96       xchg   r14, rax
+49 97       xchg   r15, rax
+86 13       xchg   BYTE PTR [rbx], dl
+66 48 90    xchg   rax, rax
+66 48 91    data16 xchg rcx, rax
+66 48 92    data16 xchg rdx, rax
+66 48 93    data16 xchg rbx, rax
+66 48 94    data16 xchg rsp, rax
+66 48 95    data16 xchg rbp, rax
+66 48 96    data16 xchg rsi, rax
+66 48 97    data16 xchg rdi, rax
+66 49 90    xchg   r8, rax
+66 49 91    data16 xchg r9, rax
+66 49 92    data16 xchg r10, rax
+66 49 93    data16 xchg r11, rax
+66 49 94    data16 xchg r12, rax
+66 49 95    data16 xchg r13, rax
+66 49 96    data16 xchg r14, rax
+66 49 97    data16 xchg r15, rax
+86 13       xchg   BYTE PTR [rbx], dl
+66 86 13    data16 xchg BYTE PTR [rbx], dl
+67 86 13    xchg   BYTE PTR [ebx], dl
+40 86 13    rex xchg BYTE PTR [rbx], dl
+41 86 13    xchg   BYTE PTR [r11], dl
+48 86 13    rex.W xchg BYTE PTR [rbx], dl
+49 86 13    rex.WB xchg BYTE PTR [r11], dl
+87 13       xchg   DWORD PTR [rbx], edx
+66 87 13    xchg   WORD PTR [rbx], dx
+67 87 13    xchg   DWORD PTR [ebx], edx
+40 87 13    rex xchg DWORD PTR [rbx], edx
+41 87 13    xchg   DWORD PTR [r11], edx
+48 87 13    xchg   QWORD PTR [rbx], rdx
+49 87 13    xchg   QWORD PTR [r11], rdx

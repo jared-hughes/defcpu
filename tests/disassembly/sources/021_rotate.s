@@ -1,128 +1,128 @@
-c0 01 12    rolb   $0x12, (%rcx)
-48 c0 01 12 rex.W rolb $0x12, (%rcx)
-41 c0 01 12 rolb   $0x12, (%r9)
-c0 c1 12    rol    $0x12, %cl
-c0 09 12    rorb   $0x12, (%rcx)
-48 c0 09 12 rex.W rorb $0x12, (%rcx)
-41 c0 09 12 rorb   $0x12, (%r9)
-c0 c9 12    ror    $0x12, %cl
-c0 11 12    rclb   $0x12, (%rcx)
-48 c0 11 12 rex.W rclb $0x12, (%rcx)
-41 c0 11 12 rclb   $0x12, (%r9)
-c0 d1 12    rcl    $0x12, %cl
-c0 19 12    rcrb   $0x12, (%rcx)
-48 c0 19 12 rex.W rcrb $0x12, (%rcx)
-41 c0 19 12 rcrb   $0x12, (%r9)
-c0 d9 12    rcr    $0x12, %cl
-d0 01       rolb   (%rcx)
-48 d0 01    rex.W rolb (%rcx)
-41 d0 01    rolb   (%r9)
-d0 c1       rol    %cl
-d0 09       rorb   (%rcx)
-48 d0 09    rex.W rorb (%rcx)
-41 d0 09    rorb   (%r9)
-d0 c9       ror    %cl
-d0 11       rclb   (%rcx)
-48 d0 11    rex.W rclb (%rcx)
-41 d0 11    rclb   (%r9)
-d0 d1       rcl    %cl
-d0 19       rcrb   (%rcx)
-48 d0 19    rex.W rcrb (%rcx)
-41 d0 19    rcrb   (%r9)
-d0 d9       rcr    %cl
-c1 01 12    roll   $0x12, (%rcx)
-66 c1 01 12 rolw   $0x12, (%rcx)
-67 c1 01 12 roll   $0x12, (%ecx)
-41 c1 01 12 roll   $0x12, (%r9)
-48 c1 01 12 rolq   $0x12, (%rcx)
-49 c1 01 12 rolq   $0x12, (%r9)
-c1 09 12    rorl   $0x12, (%rcx)
-66 c1 09 12 rorw   $0x12, (%rcx)
-67 c1 09 12 rorl   $0x12, (%ecx)
-41 c1 09 12 rorl   $0x12, (%r9)
-48 c1 09 12 rorq   $0x12, (%rcx)
-49 c1 09 12 rorq   $0x12, (%r9)
-c1 11 12    rcll   $0x12, (%rcx)
-66 c1 11 12 rclw   $0x12, (%rcx)
-67 c1 11 12 rcll   $0x12, (%ecx)
-41 c1 11 12 rcll   $0x12, (%r9)
-48 c1 11 12 rclq   $0x12, (%rcx)
-49 c1 11 12 rclq   $0x12, (%r9)
-c1 19 12    rcrl   $0x12, (%rcx)
-66 c1 19 12 rcrw   $0x12, (%rcx)
-67 c1 19 12 rcrl   $0x12, (%ecx)
-41 c1 19 12 rcrl   $0x12, (%r9)
-48 c1 19 12 rcrq   $0x12, (%rcx)
-49 c1 19 12 rcrq   $0x12, (%r9)
-d1 01       roll   (%rcx)
-66 d1 01    rolw   (%rcx)
-67 d1 01    roll   (%ecx)
-41 d1 01    roll   (%r9)
-48 d1 01    rolq   (%rcx)
-49 d1 01    rolq   (%r9)
-d1 09       rorl   (%rcx)
-66 d1 09    rorw   (%rcx)
-67 d1 09    rorl   (%ecx)
-41 d1 09    rorl   (%r9)
-48 d1 09    rorq   (%rcx)
-49 d1 09    rorq   (%r9)
-d1 11       rcll   (%rcx)
-66 d1 11    rclw   (%rcx)
-67 d1 11    rcll   (%ecx)
-41 d1 11    rcll   (%r9)
-48 d1 11    rclq   (%rcx)
-49 d1 11    rclq   (%r9)
-d1 19       rcrl   (%rcx)
-66 d1 19    rcrw   (%rcx)
-67 d1 19    rcrl   (%ecx)
-41 d1 19    rcrl   (%r9)
-48 d1 19    rcrq   (%rcx)
-49 d1 19    rcrq   (%r9)
-d2 01       rolb   %cl, (%rcx)
-66 d2 01    data16 rolb %cl, (%rcx)
-67 d2 01    rolb   %cl, (%ecx)
-41 d2 01    rolb   %cl, (%r9)
-48 d2 01    rex.W rolb %cl, (%rcx)
-49 d2 01    rex.WB rolb %cl, (%r9)
-d2 09       rorb   %cl, (%rcx)
-66 d2 09    data16 rorb %cl, (%rcx)
-67 d2 09    rorb   %cl, (%ecx)
-41 d2 09    rorb   %cl, (%r9)
-48 d2 09    rex.W rorb %cl, (%rcx)
-49 d2 09    rex.WB rorb %cl, (%r9)
-d2 11       rclb   %cl, (%rcx)
-66 d2 11    data16 rclb %cl, (%rcx)
-67 d2 11    rclb   %cl, (%ecx)
-41 d2 11    rclb   %cl, (%r9)
-48 d2 11    rex.W rclb %cl, (%rcx)
-49 d2 11    rex.WB rclb %cl, (%r9)
-d2 19       rcrb   %cl, (%rcx)
-66 d2 19    data16 rcrb %cl, (%rcx)
-67 d2 19    rcrb   %cl, (%ecx)
-41 d2 19    rcrb   %cl, (%r9)
-48 d2 19    rex.W rcrb %cl, (%rcx)
-49 d2 19    rex.WB rcrb %cl, (%r9)
-d3 01       roll   %cl, (%rcx)
-66 d3 01    rolw   %cl, (%rcx)
-67 d3 01    roll   %cl, (%ecx)
-41 d3 01    roll   %cl, (%r9)
-48 d3 01    rolq   %cl, (%rcx)
-49 d3 01    rolq   %cl, (%r9)
-d3 09       rorl   %cl, (%rcx)
-66 d3 09    rorw   %cl, (%rcx)
-67 d3 09    rorl   %cl, (%ecx)
-41 d3 09    rorl   %cl, (%r9)
-48 d3 09    rorq   %cl, (%rcx)
-49 d3 09    rorq   %cl, (%r9)
-d3 11       rcll   %cl, (%rcx)
-66 d3 11    rclw   %cl, (%rcx)
-67 d3 11    rcll   %cl, (%ecx)
-41 d3 11    rcll   %cl, (%r9)
-48 d3 11    rclq   %cl, (%rcx)
-49 d3 11    rclq   %cl, (%r9)
-d3 19       rcrl   %cl, (%rcx)
-66 d3 19    rcrw   %cl, (%rcx)
-67 d3 19    rcrl   %cl, (%ecx)
-41 d3 19    rcrl   %cl, (%r9)
-48 d3 19    rcrq   %cl, (%rcx)
-49 d3 19    rcrq   %cl, (%r9)
+c0 01 12    rol    BYTE PTR [rcx], 0x12
+48 c0 01 12 rex.W rol BYTE PTR [rcx], 0x12
+41 c0 01 12 rol    BYTE PTR [r9], 0x12
+c0 c1 12    rol    cl, 0x12
+c0 09 12    ror    BYTE PTR [rcx], 0x12
+48 c0 09 12 rex.W ror BYTE PTR [rcx], 0x12
+41 c0 09 12 ror    BYTE PTR [r9], 0x12
+c0 c9 12    ror    cl, 0x12
+c0 11 12    rcl    BYTE PTR [rcx], 0x12
+48 c0 11 12 rex.W rcl BYTE PTR [rcx], 0x12
+41 c0 11 12 rcl    BYTE PTR [r9], 0x12
+c0 d1 12    rcl    cl, 0x12
+c0 19 12    rcr    BYTE PTR [rcx], 0x12
+48 c0 19 12 rex.W rcr BYTE PTR [rcx], 0x12
+41 c0 19 12 rcr    BYTE PTR [r9], 0x12
+c0 d9 12    rcr    cl, 0x12
+d0 01       rol    BYTE PTR [rcx], 1
+48 d0 01    rex.W rol BYTE PTR [rcx], 1
+41 d0 01    rol    BYTE PTR [r9], 1
+d0 c1       rol    cl, 1
+d0 09       ror    BYTE PTR [rcx], 1
+48 d0 09    rex.W ror BYTE PTR [rcx], 1
+41 d0 09    ror    BYTE PTR [r9], 1
+d0 c9       ror    cl, 1
+d0 11       rcl    BYTE PTR [rcx], 1
+48 d0 11    rex.W rcl BYTE PTR [rcx], 1
+41 d0 11    rcl    BYTE PTR [r9], 1
+d0 d1       rcl    cl, 1
+d0 19       rcr    BYTE PTR [rcx], 1
+48 d0 19    rex.W rcr BYTE PTR [rcx], 1
+41 d0 19    rcr    BYTE PTR [r9], 1
+d0 d9       rcr    cl, 1
+c1 01 12    rol    DWORD PTR [rcx], 0x12
+66 c1 01 12 rol    WORD PTR [rcx], 0x12
+67 c1 01 12 rol    DWORD PTR [ecx], 0x12
+41 c1 01 12 rol    DWORD PTR [r9], 0x12
+48 c1 01 12 rol    QWORD PTR [rcx], 0x12
+49 c1 01 12 rol    QWORD PTR [r9], 0x12
+c1 09 12    ror    DWORD PTR [rcx], 0x12
+66 c1 09 12 ror    WORD PTR [rcx], 0x12
+67 c1 09 12 ror    DWORD PTR [ecx], 0x12
+41 c1 09 12 ror    DWORD PTR [r9], 0x12
+48 c1 09 12 ror    QWORD PTR [rcx], 0x12
+49 c1 09 12 ror    QWORD PTR [r9], 0x12
+c1 11 12    rcl    DWORD PTR [rcx], 0x12
+66 c1 11 12 rcl    WORD PTR [rcx], 0x12
+67 c1 11 12 rcl    DWORD PTR [ecx], 0x12
+41 c1 11 12 rcl    DWORD PTR [r9], 0x12
+48 c1 11 12 rcl    QWORD PTR [rcx], 0x12
+49 c1 11 12 rcl    QWORD PTR [r9], 0x12
+c1 19 12    rcr    DWORD PTR [rcx], 0x12
+66 c1 19 12 rcr    WORD PTR [rcx], 0x12
+67 c1 19 12 rcr    DWORD PTR [ecx], 0x12
+41 c1 19 12 rcr    DWORD PTR [r9], 0x12
+48 c1 19 12 rcr    QWORD PTR [rcx], 0x12
+49 c1 19 12 rcr    QWORD PTR [r9], 0x12
+d1 01       rol    DWORD PTR [rcx], 1
+66 d1 01    rol    WORD PTR [rcx], 1
+67 d1 01    rol    DWORD PTR [ecx], 1
+41 d1 01    rol    DWORD PTR [r9], 1
+48 d1 01    rol    QWORD PTR [rcx], 1
+49 d1 01    rol    QWORD PTR [r9], 1
+d1 09       ror    DWORD PTR [rcx], 1
+66 d1 09    ror    WORD PTR [rcx], 1
+67 d1 09    ror    DWORD PTR [ecx], 1
+41 d1 09    ror    DWORD PTR [r9], 1
+48 d1 09    ror    QWORD PTR [rcx], 1
+49 d1 09    ror    QWORD PTR [r9], 1
+d1 11       rcl    DWORD PTR [rcx], 1
+66 d1 11    rcl    WORD PTR [rcx], 1
+67 d1 11    rcl    DWORD PTR [ecx], 1
+41 d1 11    rcl    DWORD PTR [r9], 1
+48 d1 11    rcl    QWORD PTR [rcx], 1
+49 d1 11    rcl    QWORD PTR [r9], 1
+d1 19       rcr    DWORD PTR [rcx], 1
+66 d1 19    rcr    WORD PTR [rcx], 1
+67 d1 19    rcr    DWORD PTR [ecx], 1
+41 d1 19    rcr    DWORD PTR [r9], 1
+48 d1 19    rcr    QWORD PTR [rcx], 1
+49 d1 19    rcr    QWORD PTR [r9], 1
+d2 01       rol    BYTE PTR [rcx], cl
+66 d2 01    data16 rol BYTE PTR [rcx], cl
+67 d2 01    rol    BYTE PTR [ecx], cl
+41 d2 01    rol    BYTE PTR [r9], cl
+48 d2 01    rex.W rol BYTE PTR [rcx], cl
+49 d2 01    rex.WB rol BYTE PTR [r9], cl
+d2 09       ror    BYTE PTR [rcx], cl
+66 d2 09    data16 ror BYTE PTR [rcx], cl
+67 d2 09    ror    BYTE PTR [ecx], cl
+41 d2 09    ror    BYTE PTR [r9], cl
+48 d2 09    rex.W ror BYTE PTR [rcx], cl
+49 d2 09    rex.WB ror BYTE PTR [r9], cl
+d2 11       rcl    BYTE PTR [rcx], cl
+66 d2 11    data16 rcl BYTE PTR [rcx], cl
+67 d2 11    rcl    BYTE PTR [ecx], cl
+41 d2 11    rcl    BYTE PTR [r9], cl
+48 d2 11    rex.W rcl BYTE PTR [rcx], cl
+49 d2 11    rex.WB rcl BYTE PTR [r9], cl
+d2 19       rcr    BYTE PTR [rcx], cl
+66 d2 19    data16 rcr BYTE PTR [rcx], cl
+67 d2 19    rcr    BYTE PTR [ecx], cl
+41 d2 19    rcr    BYTE PTR [r9], cl
+48 d2 19    rex.W rcr BYTE PTR [rcx], cl
+49 d2 19    rex.WB rcr BYTE PTR [r9], cl
+d3 01       rol    DWORD PTR [rcx], cl
+66 d3 01    rol    WORD PTR [rcx], cl
+67 d3 01    rol    DWORD PTR [ecx], cl
+41 d3 01    rol    DWORD PTR [r9], cl
+48 d3 01    rol    QWORD PTR [rcx], cl
+49 d3 01    rol    QWORD PTR [r9], cl
+d3 09       ror    DWORD PTR [rcx], cl
+66 d3 09    ror    WORD PTR [rcx], cl
+67 d3 09    ror    DWORD PTR [ecx], cl
+41 d3 09    ror    DWORD PTR [r9], cl
+48 d3 09    ror    QWORD PTR [rcx], cl
+49 d3 09    ror    QWORD PTR [r9], cl
+d3 11       rcl    DWORD PTR [rcx], cl
+66 d3 11    rcl    WORD PTR [rcx], cl
+67 d3 11    rcl    DWORD PTR [ecx], cl
+41 d3 11    rcl    DWORD PTR [r9], cl
+48 d3 11    rcl    QWORD PTR [rcx], cl
+49 d3 11    rcl    QWORD PTR [r9], cl
+d3 19       rcr    DWORD PTR [rcx], cl
+66 d3 19    rcr    WORD PTR [rcx], cl
+67 d3 19    rcr    DWORD PTR [ecx], cl
+41 d3 19    rcr    DWORD PTR [r9], cl
+48 d3 19    rcr    QWORD PTR [rcx], cl
+49 d3 19    rcr    QWORD PTR [r9], cl

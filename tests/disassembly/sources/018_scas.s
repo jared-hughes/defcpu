@@ -1,23 +1,23 @@
-ae          scas   %es:(%rdi), %al
-66 ae       data16 scas %es:(%rdi), %al
-67 ae       scas   %es:(%edi), %al
-66 67 ae    data16 scas %es:(%edi), %al
-41 ae       rex.B scas %es:(%rdi), %al
-48 ae       rex.W scas %es:(%rdi), %al
-49 ae       rex.WB scas %es:(%rdi), %al
-67 49 ae    rex.WB scas %es:(%edi), %al
-66 af       scas   %es:(%rdi), %ax
-67 af       scas   %es:(%edi), %eax
-66 67 af    scas   %es:(%edi), %ax
-41 af       rex.B scas %es:(%rdi), %eax
-66 41 af    rex.B scas %es:(%rdi), %ax
-67 41 af    rex.B scas %es:(%edi), %eax
-66 67 41 af rex.B scas %es:(%edi), %ax
-48 af       scas   %es:(%rdi), %rax
-66 48 af    data16 scas %es:(%rdi), %rax
-67 48 af    scas   %es:(%edi), %rax
+ae          scas   al, BYTE PTR es:[rdi]
+66 ae       data16 scas al, BYTE PTR es:[rdi]
+67 ae       scas   al, BYTE PTR es:[edi]
+66 67 ae    data16 scas al, BYTE PTR es:[edi]
+41 ae       rex.B scas al, BYTE PTR es:[rdi]
+48 ae       rex.W scas al, BYTE PTR es:[rdi]
+49 ae       rex.WB scas al, BYTE PTR es:[rdi]
+67 49 ae    rex.WB scas al, BYTE PTR es:[edi]
+66 af       scas   ax, WORD PTR es:[rdi]
+67 af       scas   eax, DWORD PTR es:[edi]
+66 67 af    scas   ax, WORD PTR es:[edi]
+41 af       rex.B scas eax, DWORD PTR es:[rdi]
+66 41 af    rex.B scas ax, WORD PTR es:[rdi]
+67 41 af    rex.B scas eax, DWORD PTR es:[edi]
+66 67 41 af rex.B scas ax, WORD PTR es:[edi]
+48 af       scas   rax, QWORD PTR es:[rdi]
+66 48 af    data16 scas rax, QWORD PTR es:[rdi]
+67 48 af    scas   rax, QWORD PTR es:[edi]
 66 67 48    data16 addr32 rex.W
-49 af       rex.WB scas %es:(%rdi), %rax
-66 49 af    data16 rex.WB scas %es:(%rdi), %rax
-67 49 af    rex.WB scas %es:(%edi), %rax
-66 67 49 af data16 rex.WB scas %es:(%edi), %rax
+49 af       rex.WB scas rax, QWORD PTR es:[rdi]
+66 49 af    data16 rex.WB scas rax, QWORD PTR es:[rdi]
+67 49 af    rex.WB scas rax, QWORD PTR es:[edi]
+66 67 49 af data16 rex.WB scas rax, QWORD PTR es:[edi]

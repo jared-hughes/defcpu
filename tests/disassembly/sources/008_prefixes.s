@@ -1,55 +1,55 @@
-b0 12                       mov    $0x12, %al
-66 b0 12                    data16 mov $0x12, %al
-67 b0 12                    addr32 mov $0x12, %al
-66 67 b0 12                 data16 addr32 mov $0x12, %al
-66 66 67 67 b0 12           data16 data16 addr32 addr32 mov $0x12, %al
-67 67 66 66 b0 12           addr32 addr32 data16 data16 mov $0x12, %al
-67 66 67 66 b0 12           addr32 data16 addr32 data16 mov $0x12, %al
-88 23                       mov    %ah, (%rbx)
-66 88 23                    data16 mov %ah, (%rbx)
-67 88 23                    mov    %ah, (%ebx)
-66 67 88 23                 data16 mov %ah, (%ebx)
-66 66 67 67 88 23           data16 data16 addr32 mov %ah, (%ebx)
-67 67 66 66 88 23           addr32 data16 data16 mov %ah, (%ebx)
-67 66 67 66 88 23           addr32 data16 data16 mov %ah, (%ebx)
-40 88 23                    mov    %spl, (%rbx)
+b0 12                       mov    al, 0x12
+66 b0 12                    data16 mov al, 0x12
+67 b0 12                    addr32 mov al, 0x12
+66 67 b0 12                 data16 addr32 mov al, 0x12
+66 66 67 67 b0 12           data16 data16 addr32 addr32 mov al, 0x12
+67 67 66 66 b0 12           addr32 addr32 data16 data16 mov al, 0x12
+67 66 67 66 b0 12           addr32 data16 addr32 data16 mov al, 0x12
+88 23                       mov    BYTE PTR [rbx], ah
+66 88 23                    data16 mov BYTE PTR [rbx], ah
+67 88 23                    mov    BYTE PTR [ebx], ah
+66 67 88 23                 data16 mov BYTE PTR [ebx], ah
+66 66 67 67 88 23           data16 data16 addr32 mov BYTE PTR [ebx], ah
+67 67 66 66 88 23           addr32 data16 data16 mov BYTE PTR [ebx], ah
+67 66 67 66 88 23           addr32 data16 data16 mov BYTE PTR [ebx], ah
+40 88 23                    mov    BYTE PTR [rbx], spl
 40                          rex
-66 88 23                    data16 mov %ah, (%rbx)
+66 88 23                    data16 mov BYTE PTR [rbx], ah
 40                          rex
-67 88 23                    mov    %ah, (%ebx)
+67 88 23                    mov    BYTE PTR [ebx], ah
 40                          rex
-66 67 88 23                 data16 mov %ah, (%ebx)
+66 67 88 23                 data16 mov BYTE PTR [ebx], ah
 40                          rex
-66 66 67 67 88 23           data16 data16 addr32 mov %ah, (%ebx)
+66 66 67 67 88 23           data16 data16 addr32 mov BYTE PTR [ebx], ah
 40                          rex
-67 67 66 66 88 23           addr32 data16 data16 mov %ah, (%ebx)
+67 67 66 66 88 23           addr32 data16 data16 mov BYTE PTR [ebx], ah
 40                          rex
-67 66 67 66 88 23           addr32 data16 data16 mov %ah, (%ebx)
-40 88 23                    mov    %spl, (%rbx)
-66 40 88 23                 data16 mov %spl, (%rbx)
-67 40 88 23                 mov    %spl, (%ebx)
-66 67 40 88 23              data16 mov %spl, (%ebx)
-66 66 67 67 40 88 23        data16 data16 addr32 mov %spl, (%ebx)
-67 67 66 66 40 88 23        addr32 data16 data16 mov %spl, (%ebx)
-67 66 67 66 40 88 23        addr32 data16 data16 mov %spl, (%ebx)
-48 88 23                    rex.W mov %spl, (%rbx)
-66 48 88 23                 data16 rex.W mov %spl, (%rbx)
-67 48 88 23                 rex.W mov %spl, (%ebx)
-66 67 48 88 23              data16 rex.W mov %spl, (%ebx)
-66 66 67 67 48 88 23        data16 data16 addr32 rex.W mov %spl, (%ebx)
-67 67 66 66 48 88 23        addr32 data16 data16 rex.W mov %spl, (%ebx)
-67 66 67 66 48 88 23        addr32 data16 data16 rex.W mov %spl, (%ebx)
-41 88 23                    mov    %spl, (%r11)
-66 41 88 23                 data16 mov %spl, (%r11)
-67 41 88 23                 mov    %spl, (%r11d)
-66 67 41 88 23              data16 mov %spl, (%r11d)
-66 66 67 67 41 88 23        data16 data16 addr32 mov %spl, (%r11d)
-67 67 66 66 41 88 23        addr32 data16 data16 mov %spl, (%r11d)
-67 66 67 66 41 88 23        addr32 data16 data16 mov %spl, (%r11d)
-49 88 23                    rex.WB mov %spl, (%r11)
-66 49 88 23                 data16 rex.WB mov %spl, (%r11)
-67 49 88 23                 rex.WB mov %spl, (%r11d)
-66 67 49 88 23              data16 rex.WB mov %spl, (%r11d)
-66 66 67 67 49 88 23        data16 data16 addr32 rex.WB mov %spl, (%r11d)
-67 67 66 66 49 88 23        addr32 data16 data16 rex.WB mov %spl, (%r11d)
-67 66 67 66 49 88 23        addr32 data16 data16 rex.WB mov %spl, (%r11d)
+67 66 67 66 88 23           addr32 data16 data16 mov BYTE PTR [ebx], ah
+40 88 23                    mov    BYTE PTR [rbx], spl
+66 40 88 23                 data16 mov BYTE PTR [rbx], spl
+67 40 88 23                 mov    BYTE PTR [ebx], spl
+66 67 40 88 23              data16 mov BYTE PTR [ebx], spl
+66 66 67 67 40 88 23        data16 data16 addr32 mov BYTE PTR [ebx], spl
+67 67 66 66 40 88 23        addr32 data16 data16 mov BYTE PTR [ebx], spl
+67 66 67 66 40 88 23        addr32 data16 data16 mov BYTE PTR [ebx], spl
+48 88 23                    rex.W mov BYTE PTR [rbx], spl
+66 48 88 23                 data16 rex.W mov BYTE PTR [rbx], spl
+67 48 88 23                 rex.W mov BYTE PTR [ebx], spl
+66 67 48 88 23              data16 rex.W mov BYTE PTR [ebx], spl
+66 66 67 67 48 88 23        data16 data16 addr32 rex.W mov BYTE PTR [ebx], spl
+67 67 66 66 48 88 23        addr32 data16 data16 rex.W mov BYTE PTR [ebx], spl
+67 66 67 66 48 88 23        addr32 data16 data16 rex.W mov BYTE PTR [ebx], spl
+41 88 23                    mov    BYTE PTR [r11], spl
+66 41 88 23                 data16 mov BYTE PTR [r11], spl
+67 41 88 23                 mov    BYTE PTR [r11d], spl
+66 67 41 88 23              data16 mov BYTE PTR [r11d], spl
+66 66 67 67 41 88 23        data16 data16 addr32 mov BYTE PTR [r11d], spl
+67 67 66 66 41 88 23        addr32 data16 data16 mov BYTE PTR [r11d], spl
+67 66 67 66 41 88 23        addr32 data16 data16 mov BYTE PTR [r11d], spl
+49 88 23                    rex.WB mov BYTE PTR [r11], spl
+66 49 88 23                 data16 rex.WB mov BYTE PTR [r11], spl
+67 49 88 23                 rex.WB mov BYTE PTR [r11d], spl
+66 67 49 88 23              data16 rex.WB mov BYTE PTR [r11d], spl
+66 66 67 67 49 88 23        data16 data16 addr32 rex.WB mov BYTE PTR [r11d], spl
+67 67 66 66 49 88 23        addr32 data16 data16 rex.WB mov BYTE PTR [r11d], spl
+67 66 67 66 49 88 23        addr32 data16 data16 rex.WB mov BYTE PTR [r11d], spl

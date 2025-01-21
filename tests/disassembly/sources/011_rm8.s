@@ -1,359 +1,359 @@
-fe 00                       incb   (%rax)
-fe 01                       incb   (%rcx)
-fe 02                       incb   (%rdx)
-fe 03                       incb   (%rbx)
-fe 04 12                    incb   (%rdx, %rdx, 1)
-fe 05 12 34 56 78           incb   0x78563412(%rip)
-fe 06                       incb   (%rsi)
-fe 07                       incb   (%rdi)
-fe 40 12                    incb   0x12(%rax)
-fe 41 12                    incb   0x12(%rcx)
-fe 42 12                    incb   0x12(%rdx)
-fe 43 12                    incb   0x12(%rbx)
-fe 44 12 34                 incb   0x34(%rdx, %rdx, 1)
-fe 45 12                    incb   0x12(%rbp)
-fe 46 12                    incb   0x12(%rsi)
-fe 47 12                    incb   0x12(%rdi)
-fe 80 12 34 56 78           incb   0x78563412(%rax)
-fe 81 12 34 56 78           incb   0x78563412(%rcx)
-fe 82 12 34 56 78           incb   0x78563412(%rdx)
-fe 83 12 34 56 78           incb   0x78563412(%rbx)
-fe 84 12 34 56 78 9a        incb   -0x6587a9cc(%rdx, %rdx, 1)
-fe 85 12 34 56 78           incb   0x78563412(%rbp)
-fe 86 12 34 56 78           incb   0x78563412(%rsi)
-fe 87 12 34 56 78           incb   0x78563412(%rdi)
-fe c0                       inc    %al
-fe c1                       inc    %cl
-fe c2                       inc    %dl
-fe c3                       inc    %bl
-fe c4                       inc    %ah
-fe c5                       inc    %ch
-fe c6                       inc    %dh
-fe c7                       inc    %bh
-67 fe 00                    incb   (%eax)
-67 fe 01                    incb   (%ecx)
-67 fe 02                    incb   (%edx)
-67 fe 03                    incb   (%ebx)
-67 fe 04 12                 incb   (%edx, %edx, 1)
-67 fe 05 12 34 56 78        incb   0x78563412(%eip)
-67 fe 06                    incb   (%esi)
-67 fe 07                    incb   (%edi)
-67 fe 40 12                 incb   0x12(%eax)
-67 fe 41 12                 incb   0x12(%ecx)
-67 fe 42 12                 incb   0x12(%edx)
-67 fe 43 12                 incb   0x12(%ebx)
-67 fe 44 12 34              incb   0x34(%edx, %edx, 1)
-67 fe 45 12                 incb   0x12(%ebp)
-67 fe 46 12                 incb   0x12(%esi)
-67 fe 47 12                 incb   0x12(%edi)
-67 fe 80 12 34 56 78        incb   0x78563412(%eax)
-67 fe 81 12 34 56 78        incb   0x78563412(%ecx)
-67 fe 82 12 34 56 78        incb   0x78563412(%edx)
-67 fe 83 12 34 56 78        incb   0x78563412(%ebx)
-67 fe 84 12 34 56 78 9a     incb   -0x6587a9cc(%edx, %edx, 1)
-67 fe 85 12 34 56 78        incb   0x78563412(%ebp)
-67 fe 86 12 34 56 78        incb   0x78563412(%esi)
-67 fe 87 12 34 56 78        incb   0x78563412(%edi)
-67 fe c0                    addr32 inc %al
-67 fe c1                    addr32 inc %cl
-67 fe c2                    addr32 inc %dl
-67 fe c3                    addr32 inc %bl
-67 fe c4                    addr32 inc %ah
-67 fe c5                    addr32 inc %ch
-67 fe c6                    addr32 inc %dh
-67 fe c7                    addr32 inc %bh
-41 fe 00                    incb   (%r8)
-41 fe 01                    incb   (%r9)
-41 fe 02                    incb   (%r10)
-41 fe 03                    incb   (%r11)
-41 fe 04 12                 incb   (%r10, %rdx, 1)
-41 fe 05 12 34 56 78        incb   0x78563412(%rip)
-41 fe 06                    incb   (%r14)
-41 fe 07                    incb   (%r15)
-41 fe 40 12                 incb   0x12(%r8)
-41 fe 41 12                 incb   0x12(%r9)
-41 fe 42 12                 incb   0x12(%r10)
-41 fe 43 12                 incb   0x12(%r11)
-41 fe 44 00 12              incb   0x12(%r8, %rax, 1)
-41 fe 44 01 12              incb   0x12(%r9, %rax, 1)
-41 fe 44 02 12              incb   0x12(%r10, %rax, 1)
-41 fe 44 03 12              incb   0x12(%r11, %rax, 1)
-41 fe 44 04 12              incb   0x12(%r12, %rax, 1)
-41 fe 44 05 12              incb   0x12(%r13, %rax, 1)
-41 fe 44 06 12              incb   0x12(%r14, %rax, 1)
-41 fe 44 07 12              incb   0x12(%r15, %rax, 1)
-41 fe 44 08 12              incb   0x12(%r8, %rcx, 1)
-41 fe 44 09 12              incb   0x12(%r9, %rcx, 1)
-41 fe 44 0a 12              incb   0x12(%r10, %rcx, 1)
-41 fe 44 0b 12              incb   0x12(%r11, %rcx, 1)
-41 fe 44 0c 12              incb   0x12(%r12, %rcx, 1)
-41 fe 44 0d 12              incb   0x12(%r13, %rcx, 1)
-41 fe 44 0e 12              incb   0x12(%r14, %rcx, 1)
-41 fe 44 0f 12              incb   0x12(%r15, %rcx, 1)
-41 fe 44 10 12              incb   0x12(%r8, %rdx, 1)
-41 fe 44 11 12              incb   0x12(%r9, %rdx, 1)
-41 fe 44 12 12              incb   0x12(%r10, %rdx, 1)
-41 fe 44 13 12              incb   0x12(%r11, %rdx, 1)
-41 fe 44 14 12              incb   0x12(%r12, %rdx, 1)
-41 fe 44 15 12              incb   0x12(%r13, %rdx, 1)
-41 fe 44 16 12              incb   0x12(%r14, %rdx, 1)
-41 fe 44 17 12              incb   0x12(%r15, %rdx, 1)
-41 fe 44 18 12              incb   0x12(%r8, %rbx, 1)
-41 fe 44 19 12              incb   0x12(%r9, %rbx, 1)
-41 fe 44 1a 12              incb   0x12(%r10, %rbx, 1)
-41 fe 44 1b 12              incb   0x12(%r11, %rbx, 1)
-41 fe 44 1c 12              incb   0x12(%r12, %rbx, 1)
-41 fe 44 1d 12              incb   0x12(%r13, %rbx, 1)
-41 fe 44 1e 12              incb   0x12(%r14, %rbx, 1)
-41 fe 44 1f 12              incb   0x12(%r15, %rbx, 1)
-41 fe 44 20 12              incb   0x12(%r8, %riz, 1)
-41 fe 44 21 12              incb   0x12(%r9, %riz, 1)
-41 fe 44 22 12              incb   0x12(%r10, %riz, 1)
-41 fe 44 23 12              incb   0x12(%r11, %riz, 1)
-41 fe 44 24 12              incb   0x12(%r12)
-41 fe 44 25 12              incb   0x12(%r13, %riz, 1)
-41 fe 44 26 12              incb   0x12(%r14, %riz, 1)
-41 fe 44 27 12              incb   0x12(%r15, %riz, 1)
-41 fe 44 28 12              incb   0x12(%r8, %rbp, 1)
-41 fe 44 29 12              incb   0x12(%r9, %rbp, 1)
-41 fe 44 2a 12              incb   0x12(%r10, %rbp, 1)
-41 fe 44 2b 12              incb   0x12(%r11, %rbp, 1)
-41 fe 44 2c 12              incb   0x12(%r12, %rbp, 1)
-41 fe 44 2d 12              incb   0x12(%r13, %rbp, 1)
-41 fe 44 2e 12              incb   0x12(%r14, %rbp, 1)
-41 fe 44 2f 12              incb   0x12(%r15, %rbp, 1)
-41 fe 44 30 12              incb   0x12(%r8, %rsi, 1)
-41 fe 44 31 12              incb   0x12(%r9, %rsi, 1)
-41 fe 44 32 12              incb   0x12(%r10, %rsi, 1)
-41 fe 44 33 12              incb   0x12(%r11, %rsi, 1)
-41 fe 44 34 12              incb   0x12(%r12, %rsi, 1)
-41 fe 44 35 12              incb   0x12(%r13, %rsi, 1)
-41 fe 44 36 12              incb   0x12(%r14, %rsi, 1)
-41 fe 44 37 12              incb   0x12(%r15, %rsi, 1)
-41 fe 44 38 12              incb   0x12(%r8, %rdi, 1)
-41 fe 44 39 12              incb   0x12(%r9, %rdi, 1)
-41 fe 44 3a 12              incb   0x12(%r10, %rdi, 1)
-41 fe 44 3b 12              incb   0x12(%r11, %rdi, 1)
-41 fe 44 3c 12              incb   0x12(%r12, %rdi, 1)
-41 fe 44 3d 12              incb   0x12(%r13, %rdi, 1)
-41 fe 44 3e 12              incb   0x12(%r14, %rdi, 1)
-41 fe 44 3f 12              incb   0x12(%r15, %rdi, 1)
-41 fe 44 40 12              incb   0x12(%r8, %rax, 2)
-41 fe 44 41 12              incb   0x12(%r9, %rax, 2)
-41 fe 44 42 12              incb   0x12(%r10, %rax, 2)
-41 fe 44 43 12              incb   0x12(%r11, %rax, 2)
-41 fe 44 44 12              incb   0x12(%r12, %rax, 2)
-41 fe 44 45 12              incb   0x12(%r13, %rax, 2)
-41 fe 44 46 12              incb   0x12(%r14, %rax, 2)
-41 fe 44 47 12              incb   0x12(%r15, %rax, 2)
-41 fe 44 48 12              incb   0x12(%r8, %rcx, 2)
-41 fe 44 49 12              incb   0x12(%r9, %rcx, 2)
-41 fe 44 4a 12              incb   0x12(%r10, %rcx, 2)
-41 fe 44 4b 12              incb   0x12(%r11, %rcx, 2)
-41 fe 44 4c 12              incb   0x12(%r12, %rcx, 2)
-41 fe 44 4d 12              incb   0x12(%r13, %rcx, 2)
-41 fe 44 4e 12              incb   0x12(%r14, %rcx, 2)
-41 fe 44 4f 12              incb   0x12(%r15, %rcx, 2)
-41 fe 44 50 12              incb   0x12(%r8, %rdx, 2)
-41 fe 44 51 12              incb   0x12(%r9, %rdx, 2)
-41 fe 44 52 12              incb   0x12(%r10, %rdx, 2)
-41 fe 44 53 12              incb   0x12(%r11, %rdx, 2)
-41 fe 44 54 12              incb   0x12(%r12, %rdx, 2)
-41 fe 44 55 12              incb   0x12(%r13, %rdx, 2)
-41 fe 44 56 12              incb   0x12(%r14, %rdx, 2)
-41 fe 44 57 12              incb   0x12(%r15, %rdx, 2)
-41 fe 44 58 12              incb   0x12(%r8, %rbx, 2)
-41 fe 44 59 12              incb   0x12(%r9, %rbx, 2)
-41 fe 44 5a 12              incb   0x12(%r10, %rbx, 2)
-41 fe 44 5b 12              incb   0x12(%r11, %rbx, 2)
-41 fe 44 5c 12              incb   0x12(%r12, %rbx, 2)
-41 fe 44 5d 12              incb   0x12(%r13, %rbx, 2)
-41 fe 44 5e 12              incb   0x12(%r14, %rbx, 2)
-41 fe 44 5f 12              incb   0x12(%r15, %rbx, 2)
-41 fe 44 60 12              incb   0x12(%r8, %riz, 2)
-41 fe 44 61 12              incb   0x12(%r9, %riz, 2)
-41 fe 44 62 12              incb   0x12(%r10, %riz, 2)
-41 fe 44 63 12              incb   0x12(%r11, %riz, 2)
-41 fe 44 64 12              incb   0x12(%r12, %riz, 2)
-41 fe 44 65 12              incb   0x12(%r13, %riz, 2)
-41 fe 44 66 12              incb   0x12(%r14, %riz, 2)
-41 fe 44 67 12              incb   0x12(%r15, %riz, 2)
-41 fe 44 68 12              incb   0x12(%r8, %rbp, 2)
-41 fe 44 69 12              incb   0x12(%r9, %rbp, 2)
-41 fe 44 6a 12              incb   0x12(%r10, %rbp, 2)
-41 fe 44 6b 12              incb   0x12(%r11, %rbp, 2)
-41 fe 44 6c 12              incb   0x12(%r12, %rbp, 2)
-41 fe 44 6d 12              incb   0x12(%r13, %rbp, 2)
-41 fe 44 6e 12              incb   0x12(%r14, %rbp, 2)
-41 fe 44 6f 12              incb   0x12(%r15, %rbp, 2)
-41 fe 44 70 12              incb   0x12(%r8, %rsi, 2)
-41 fe 44 71 12              incb   0x12(%r9, %rsi, 2)
-41 fe 44 72 12              incb   0x12(%r10, %rsi, 2)
-41 fe 44 73 12              incb   0x12(%r11, %rsi, 2)
-41 fe 44 74 12              incb   0x12(%r12, %rsi, 2)
-41 fe 44 75 12              incb   0x12(%r13, %rsi, 2)
-41 fe 44 76 12              incb   0x12(%r14, %rsi, 2)
-41 fe 44 77 12              incb   0x12(%r15, %rsi, 2)
-41 fe 44 78 12              incb   0x12(%r8, %rdi, 2)
-41 fe 44 79 12              incb   0x12(%r9, %rdi, 2)
-41 fe 44 7a 12              incb   0x12(%r10, %rdi, 2)
-41 fe 44 7b 12              incb   0x12(%r11, %rdi, 2)
-41 fe 44 7c 12              incb   0x12(%r12, %rdi, 2)
-41 fe 44 7d 12              incb   0x12(%r13, %rdi, 2)
-41 fe 44 7e 12              incb   0x12(%r14, %rdi, 2)
-41 fe 44 7f 12              incb   0x12(%r15, %rdi, 2)
-41 fe 44 80 12              incb   0x12(%r8, %rax, 4)
-41 fe 44 81 12              incb   0x12(%r9, %rax, 4)
-41 fe 44 82 12              incb   0x12(%r10, %rax, 4)
-41 fe 44 83 12              incb   0x12(%r11, %rax, 4)
-41 fe 44 84 12              incb   0x12(%r12, %rax, 4)
-41 fe 44 85 12              incb   0x12(%r13, %rax, 4)
-41 fe 44 86 12              incb   0x12(%r14, %rax, 4)
-41 fe 44 87 12              incb   0x12(%r15, %rax, 4)
-41 fe 44 88 12              incb   0x12(%r8, %rcx, 4)
-41 fe 44 89 12              incb   0x12(%r9, %rcx, 4)
-41 fe 44 8a 12              incb   0x12(%r10, %rcx, 4)
-41 fe 44 8b 12              incb   0x12(%r11, %rcx, 4)
-41 fe 44 8c 12              incb   0x12(%r12, %rcx, 4)
-41 fe 44 8d 12              incb   0x12(%r13, %rcx, 4)
-41 fe 44 8e 12              incb   0x12(%r14, %rcx, 4)
-41 fe 44 8f 12              incb   0x12(%r15, %rcx, 4)
-41 fe 44 90 12              incb   0x12(%r8, %rdx, 4)
-41 fe 44 91 12              incb   0x12(%r9, %rdx, 4)
-41 fe 44 92 12              incb   0x12(%r10, %rdx, 4)
-41 fe 44 93 12              incb   0x12(%r11, %rdx, 4)
-41 fe 44 94 12              incb   0x12(%r12, %rdx, 4)
-41 fe 44 95 12              incb   0x12(%r13, %rdx, 4)
-41 fe 44 96 12              incb   0x12(%r14, %rdx, 4)
-41 fe 44 97 12              incb   0x12(%r15, %rdx, 4)
-41 fe 44 98 12              incb   0x12(%r8, %rbx, 4)
-41 fe 44 99 12              incb   0x12(%r9, %rbx, 4)
-41 fe 44 9a 12              incb   0x12(%r10, %rbx, 4)
-41 fe 44 9b 12              incb   0x12(%r11, %rbx, 4)
-41 fe 44 9c 12              incb   0x12(%r12, %rbx, 4)
-41 fe 44 9d 12              incb   0x12(%r13, %rbx, 4)
-41 fe 44 9e 12              incb   0x12(%r14, %rbx, 4)
-41 fe 44 9f 12              incb   0x12(%r15, %rbx, 4)
-41 fe 44 a0 12              incb   0x12(%r8, %riz, 4)
-41 fe 44 a1 12              incb   0x12(%r9, %riz, 4)
-41 fe 44 a2 12              incb   0x12(%r10, %riz, 4)
-41 fe 44 a3 12              incb   0x12(%r11, %riz, 4)
-41 fe 44 a4 12              incb   0x12(%r12, %riz, 4)
-41 fe 44 a5 12              incb   0x12(%r13, %riz, 4)
-41 fe 44 a6 12              incb   0x12(%r14, %riz, 4)
-41 fe 44 a7 12              incb   0x12(%r15, %riz, 4)
-41 fe 44 a8 12              incb   0x12(%r8, %rbp, 4)
-41 fe 44 a9 12              incb   0x12(%r9, %rbp, 4)
-41 fe 44 aa 12              incb   0x12(%r10, %rbp, 4)
-41 fe 44 ab 12              incb   0x12(%r11, %rbp, 4)
-41 fe 44 ac 12              incb   0x12(%r12, %rbp, 4)
-41 fe 44 ad 12              incb   0x12(%r13, %rbp, 4)
-41 fe 44 ae 12              incb   0x12(%r14, %rbp, 4)
-41 fe 44 af 12              incb   0x12(%r15, %rbp, 4)
-41 fe 44 b0 12              incb   0x12(%r8, %rsi, 4)
-41 fe 44 b1 12              incb   0x12(%r9, %rsi, 4)
-41 fe 44 b2 12              incb   0x12(%r10, %rsi, 4)
-41 fe 44 b3 12              incb   0x12(%r11, %rsi, 4)
-41 fe 44 b4 12              incb   0x12(%r12, %rsi, 4)
-41 fe 44 b5 12              incb   0x12(%r13, %rsi, 4)
-41 fe 44 b6 12              incb   0x12(%r14, %rsi, 4)
-41 fe 44 b7 12              incb   0x12(%r15, %rsi, 4)
-41 fe 44 b8 12              incb   0x12(%r8, %rdi, 4)
-41 fe 44 b9 12              incb   0x12(%r9, %rdi, 4)
-41 fe 44 ba 12              incb   0x12(%r10, %rdi, 4)
-41 fe 44 bb 12              incb   0x12(%r11, %rdi, 4)
-41 fe 44 bc 12              incb   0x12(%r12, %rdi, 4)
-41 fe 44 bd 12              incb   0x12(%r13, %rdi, 4)
-41 fe 44 be 12              incb   0x12(%r14, %rdi, 4)
-41 fe 44 bf 12              incb   0x12(%r15, %rdi, 4)
-41 fe 44 c0 12              incb   0x12(%r8, %rax, 8)
-41 fe 44 c1 12              incb   0x12(%r9, %rax, 8)
-41 fe 44 c2 12              incb   0x12(%r10, %rax, 8)
-41 fe 44 c3 12              incb   0x12(%r11, %rax, 8)
-41 fe 44 c4 12              incb   0x12(%r12, %rax, 8)
-41 fe 44 c5 12              incb   0x12(%r13, %rax, 8)
-41 fe 44 c6 12              incb   0x12(%r14, %rax, 8)
-41 fe 44 c7 12              incb   0x12(%r15, %rax, 8)
-41 fe 44 c8 12              incb   0x12(%r8, %rcx, 8)
-41 fe 44 c9 12              incb   0x12(%r9, %rcx, 8)
-41 fe 44 ca 12              incb   0x12(%r10, %rcx, 8)
-41 fe 44 cb 12              incb   0x12(%r11, %rcx, 8)
-41 fe 44 cc 12              incb   0x12(%r12, %rcx, 8)
-41 fe 44 cd 12              incb   0x12(%r13, %rcx, 8)
-41 fe 44 ce 12              incb   0x12(%r14, %rcx, 8)
-41 fe 44 cf 12              incb   0x12(%r15, %rcx, 8)
-41 fe 44 d0 12              incb   0x12(%r8, %rdx, 8)
-41 fe 44 d1 12              incb   0x12(%r9, %rdx, 8)
-41 fe 44 d2 12              incb   0x12(%r10, %rdx, 8)
-41 fe 44 d3 12              incb   0x12(%r11, %rdx, 8)
-41 fe 44 d4 12              incb   0x12(%r12, %rdx, 8)
-41 fe 44 d5 12              incb   0x12(%r13, %rdx, 8)
-41 fe 44 d6 12              incb   0x12(%r14, %rdx, 8)
-41 fe 44 d7 12              incb   0x12(%r15, %rdx, 8)
-41 fe 44 d8 12              incb   0x12(%r8, %rbx, 8)
-41 fe 44 d9 12              incb   0x12(%r9, %rbx, 8)
-41 fe 44 da 12              incb   0x12(%r10, %rbx, 8)
-41 fe 44 db 12              incb   0x12(%r11, %rbx, 8)
-41 fe 44 dc 12              incb   0x12(%r12, %rbx, 8)
-41 fe 44 dd 12              incb   0x12(%r13, %rbx, 8)
-41 fe 44 de 12              incb   0x12(%r14, %rbx, 8)
-41 fe 44 df 12              incb   0x12(%r15, %rbx, 8)
-41 fe 44 e0 12              incb   0x12(%r8, %riz, 8)
-41 fe 44 e1 12              incb   0x12(%r9, %riz, 8)
-41 fe 44 e2 12              incb   0x12(%r10, %riz, 8)
-41 fe 44 e3 12              incb   0x12(%r11, %riz, 8)
-41 fe 44 e4 12              incb   0x12(%r12, %riz, 8)
-41 fe 44 e5 12              incb   0x12(%r13, %riz, 8)
-41 fe 44 e6 12              incb   0x12(%r14, %riz, 8)
-41 fe 44 e7 12              incb   0x12(%r15, %riz, 8)
-41 fe 44 e8 12              incb   0x12(%r8, %rbp, 8)
-41 fe 44 e9 12              incb   0x12(%r9, %rbp, 8)
-41 fe 44 ea 12              incb   0x12(%r10, %rbp, 8)
-41 fe 44 eb 12              incb   0x12(%r11, %rbp, 8)
-41 fe 44 ec 12              incb   0x12(%r12, %rbp, 8)
-41 fe 44 ed 12              incb   0x12(%r13, %rbp, 8)
-41 fe 44 ee 12              incb   0x12(%r14, %rbp, 8)
-41 fe 44 ef 12              incb   0x12(%r15, %rbp, 8)
-41 fe 44 f0 12              incb   0x12(%r8, %rsi, 8)
-41 fe 44 f1 12              incb   0x12(%r9, %rsi, 8)
-41 fe 44 f2 12              incb   0x12(%r10, %rsi, 8)
-41 fe 44 f3 12              incb   0x12(%r11, %rsi, 8)
-41 fe 44 f4 12              incb   0x12(%r12, %rsi, 8)
-41 fe 44 f5 12              incb   0x12(%r13, %rsi, 8)
-41 fe 44 f6 12              incb   0x12(%r14, %rsi, 8)
-41 fe 44 f7 12              incb   0x12(%r15, %rsi, 8)
-41 fe 44 f8 12              incb   0x12(%r8, %rdi, 8)
-41 fe 44 f9 12              incb   0x12(%r9, %rdi, 8)
-41 fe 44 fa 12              incb   0x12(%r10, %rdi, 8)
-41 fe 44 fb 12              incb   0x12(%r11, %rdi, 8)
-41 fe 44 fc 12              incb   0x12(%r12, %rdi, 8)
-41 fe 44 fd 12              incb   0x12(%r13, %rdi, 8)
-41 fe 44 fe 12              incb   0x12(%r14, %rdi, 8)
-41 fe 44 ff 12              incb   0x12(%r15, %rdi, 8)
-41 fe 45 12                 incb   0x12(%r13)
-41 fe 46 12                 incb   0x12(%r14)
-41 fe 47 12                 incb   0x12(%r15)
-41 fe 80 12 34 56 78        incb   0x78563412(%r8)
-41 fe 81 12 34 56 78        incb   0x78563412(%r9)
-41 fe 82 12 34 56 78        incb   0x78563412(%r10)
-41 fe 83 12 34 56 78        incb   0x78563412(%r11)
-41 fe 84 12 34 56 78 9a     incb   -0x6587a9cc(%r10, %rdx, 1)
-41 fe 85 12 34 56 78        incb   0x78563412(%r13)
-41 fe 86 12 34 56 78        incb   0x78563412(%r14)
-41 fe 87 12 34 56 78        incb   0x78563412(%r15)
-41 fe c0                    inc    %r8b
-41 fe c1                    inc    %r9b
-41 fe c2                    inc    %r10b
-41 fe c3                    inc    %r11b
-41 fe c4                    inc    %r12b
-41 fe c5                    inc    %r13b
-41 fe c6                    inc    %r14b
-41 fe c7                    inc    %r15b
-40 fe c0                    rex inc %al
-40 fe c1                    rex inc %cl
-40 fe c2                    rex inc %dl
-40 fe c3                    rex inc %bl
-40 fe c4                    inc    %spl
-40 fe c5                    inc    %bpl
-40 fe c6                    inc    %sil
-40 fe c7                    inc    %dil
+fe 00                       inc    BYTE PTR [rax]
+fe 01                       inc    BYTE PTR [rcx]
+fe 02                       inc    BYTE PTR [rdx]
+fe 03                       inc    BYTE PTR [rbx]
+fe 04 12                    inc    BYTE PTR [rdx+rdx*1]
+fe 05 12 34 56 78           inc    BYTE PTR [rip+0x78563412]
+fe 06                       inc    BYTE PTR [rsi]
+fe 07                       inc    BYTE PTR [rdi]
+fe 40 12                    inc    BYTE PTR [rax+0x12]
+fe 41 12                    inc    BYTE PTR [rcx+0x12]
+fe 42 12                    inc    BYTE PTR [rdx+0x12]
+fe 43 12                    inc    BYTE PTR [rbx+0x12]
+fe 44 12 34                 inc    BYTE PTR [rdx+rdx*1+0x34]
+fe 45 12                    inc    BYTE PTR [rbp+0x12]
+fe 46 12                    inc    BYTE PTR [rsi+0x12]
+fe 47 12                    inc    BYTE PTR [rdi+0x12]
+fe 80 12 34 56 78           inc    BYTE PTR [rax+0x78563412]
+fe 81 12 34 56 78           inc    BYTE PTR [rcx+0x78563412]
+fe 82 12 34 56 78           inc    BYTE PTR [rdx+0x78563412]
+fe 83 12 34 56 78           inc    BYTE PTR [rbx+0x78563412]
+fe 84 12 34 56 78 9a        inc    BYTE PTR [rdx+rdx*1-0x6587a9cc]
+fe 85 12 34 56 78           inc    BYTE PTR [rbp+0x78563412]
+fe 86 12 34 56 78           inc    BYTE PTR [rsi+0x78563412]
+fe 87 12 34 56 78           inc    BYTE PTR [rdi+0x78563412]
+fe c0                       inc    al
+fe c1                       inc    cl
+fe c2                       inc    dl
+fe c3                       inc    bl
+fe c4                       inc    ah
+fe c5                       inc    ch
+fe c6                       inc    dh
+fe c7                       inc    bh
+67 fe 00                    inc    BYTE PTR [eax]
+67 fe 01                    inc    BYTE PTR [ecx]
+67 fe 02                    inc    BYTE PTR [edx]
+67 fe 03                    inc    BYTE PTR [ebx]
+67 fe 04 12                 inc    BYTE PTR [edx+edx*1]
+67 fe 05 12 34 56 78        inc    BYTE PTR [eip+0x78563412]
+67 fe 06                    inc    BYTE PTR [esi]
+67 fe 07                    inc    BYTE PTR [edi]
+67 fe 40 12                 inc    BYTE PTR [eax+0x12]
+67 fe 41 12                 inc    BYTE PTR [ecx+0x12]
+67 fe 42 12                 inc    BYTE PTR [edx+0x12]
+67 fe 43 12                 inc    BYTE PTR [ebx+0x12]
+67 fe 44 12 34              inc    BYTE PTR [edx+edx*1+0x34]
+67 fe 45 12                 inc    BYTE PTR [ebp+0x12]
+67 fe 46 12                 inc    BYTE PTR [esi+0x12]
+67 fe 47 12                 inc    BYTE PTR [edi+0x12]
+67 fe 80 12 34 56 78        inc    BYTE PTR [eax+0x78563412]
+67 fe 81 12 34 56 78        inc    BYTE PTR [ecx+0x78563412]
+67 fe 82 12 34 56 78        inc    BYTE PTR [edx+0x78563412]
+67 fe 83 12 34 56 78        inc    BYTE PTR [ebx+0x78563412]
+67 fe 84 12 34 56 78 9a     inc    BYTE PTR [edx+edx*1-0x6587a9cc]
+67 fe 85 12 34 56 78        inc    BYTE PTR [ebp+0x78563412]
+67 fe 86 12 34 56 78        inc    BYTE PTR [esi+0x78563412]
+67 fe 87 12 34 56 78        inc    BYTE PTR [edi+0x78563412]
+67 fe c0                    addr32 inc al
+67 fe c1                    addr32 inc cl
+67 fe c2                    addr32 inc dl
+67 fe c3                    addr32 inc bl
+67 fe c4                    addr32 inc ah
+67 fe c5                    addr32 inc ch
+67 fe c6                    addr32 inc dh
+67 fe c7                    addr32 inc bh
+41 fe 00                    inc    BYTE PTR [r8]
+41 fe 01                    inc    BYTE PTR [r9]
+41 fe 02                    inc    BYTE PTR [r10]
+41 fe 03                    inc    BYTE PTR [r11]
+41 fe 04 12                 inc    BYTE PTR [r10+rdx*1]
+41 fe 05 12 34 56 78        inc    BYTE PTR [rip+0x78563412]
+41 fe 06                    inc    BYTE PTR [r14]
+41 fe 07                    inc    BYTE PTR [r15]
+41 fe 40 12                 inc    BYTE PTR [r8+0x12]
+41 fe 41 12                 inc    BYTE PTR [r9+0x12]
+41 fe 42 12                 inc    BYTE PTR [r10+0x12]
+41 fe 43 12                 inc    BYTE PTR [r11+0x12]
+41 fe 44 00 12              inc    BYTE PTR [r8+rax*1+0x12]
+41 fe 44 01 12              inc    BYTE PTR [r9+rax*1+0x12]
+41 fe 44 02 12              inc    BYTE PTR [r10+rax*1+0x12]
+41 fe 44 03 12              inc    BYTE PTR [r11+rax*1+0x12]
+41 fe 44 04 12              inc    BYTE PTR [r12+rax*1+0x12]
+41 fe 44 05 12              inc    BYTE PTR [r13+rax*1+0x12]
+41 fe 44 06 12              inc    BYTE PTR [r14+rax*1+0x12]
+41 fe 44 07 12              inc    BYTE PTR [r15+rax*1+0x12]
+41 fe 44 08 12              inc    BYTE PTR [r8+rcx*1+0x12]
+41 fe 44 09 12              inc    BYTE PTR [r9+rcx*1+0x12]
+41 fe 44 0a 12              inc    BYTE PTR [r10+rcx*1+0x12]
+41 fe 44 0b 12              inc    BYTE PTR [r11+rcx*1+0x12]
+41 fe 44 0c 12              inc    BYTE PTR [r12+rcx*1+0x12]
+41 fe 44 0d 12              inc    BYTE PTR [r13+rcx*1+0x12]
+41 fe 44 0e 12              inc    BYTE PTR [r14+rcx*1+0x12]
+41 fe 44 0f 12              inc    BYTE PTR [r15+rcx*1+0x12]
+41 fe 44 10 12              inc    BYTE PTR [r8+rdx*1+0x12]
+41 fe 44 11 12              inc    BYTE PTR [r9+rdx*1+0x12]
+41 fe 44 12 12              inc    BYTE PTR [r10+rdx*1+0x12]
+41 fe 44 13 12              inc    BYTE PTR [r11+rdx*1+0x12]
+41 fe 44 14 12              inc    BYTE PTR [r12+rdx*1+0x12]
+41 fe 44 15 12              inc    BYTE PTR [r13+rdx*1+0x12]
+41 fe 44 16 12              inc    BYTE PTR [r14+rdx*1+0x12]
+41 fe 44 17 12              inc    BYTE PTR [r15+rdx*1+0x12]
+41 fe 44 18 12              inc    BYTE PTR [r8+rbx*1+0x12]
+41 fe 44 19 12              inc    BYTE PTR [r9+rbx*1+0x12]
+41 fe 44 1a 12              inc    BYTE PTR [r10+rbx*1+0x12]
+41 fe 44 1b 12              inc    BYTE PTR [r11+rbx*1+0x12]
+41 fe 44 1c 12              inc    BYTE PTR [r12+rbx*1+0x12]
+41 fe 44 1d 12              inc    BYTE PTR [r13+rbx*1+0x12]
+41 fe 44 1e 12              inc    BYTE PTR [r14+rbx*1+0x12]
+41 fe 44 1f 12              inc    BYTE PTR [r15+rbx*1+0x12]
+41 fe 44 20 12              inc    BYTE PTR [r8+riz*1+0x12]
+41 fe 44 21 12              inc    BYTE PTR [r9+riz*1+0x12]
+41 fe 44 22 12              inc    BYTE PTR [r10+riz*1+0x12]
+41 fe 44 23 12              inc    BYTE PTR [r11+riz*1+0x12]
+41 fe 44 24 12              inc    BYTE PTR [r12+0x12]
+41 fe 44 25 12              inc    BYTE PTR [r13+riz*1+0x12]
+41 fe 44 26 12              inc    BYTE PTR [r14+riz*1+0x12]
+41 fe 44 27 12              inc    BYTE PTR [r15+riz*1+0x12]
+41 fe 44 28 12              inc    BYTE PTR [r8+rbp*1+0x12]
+41 fe 44 29 12              inc    BYTE PTR [r9+rbp*1+0x12]
+41 fe 44 2a 12              inc    BYTE PTR [r10+rbp*1+0x12]
+41 fe 44 2b 12              inc    BYTE PTR [r11+rbp*1+0x12]
+41 fe 44 2c 12              inc    BYTE PTR [r12+rbp*1+0x12]
+41 fe 44 2d 12              inc    BYTE PTR [r13+rbp*1+0x12]
+41 fe 44 2e 12              inc    BYTE PTR [r14+rbp*1+0x12]
+41 fe 44 2f 12              inc    BYTE PTR [r15+rbp*1+0x12]
+41 fe 44 30 12              inc    BYTE PTR [r8+rsi*1+0x12]
+41 fe 44 31 12              inc    BYTE PTR [r9+rsi*1+0x12]
+41 fe 44 32 12              inc    BYTE PTR [r10+rsi*1+0x12]
+41 fe 44 33 12              inc    BYTE PTR [r11+rsi*1+0x12]
+41 fe 44 34 12              inc    BYTE PTR [r12+rsi*1+0x12]
+41 fe 44 35 12              inc    BYTE PTR [r13+rsi*1+0x12]
+41 fe 44 36 12              inc    BYTE PTR [r14+rsi*1+0x12]
+41 fe 44 37 12              inc    BYTE PTR [r15+rsi*1+0x12]
+41 fe 44 38 12              inc    BYTE PTR [r8+rdi*1+0x12]
+41 fe 44 39 12              inc    BYTE PTR [r9+rdi*1+0x12]
+41 fe 44 3a 12              inc    BYTE PTR [r10+rdi*1+0x12]
+41 fe 44 3b 12              inc    BYTE PTR [r11+rdi*1+0x12]
+41 fe 44 3c 12              inc    BYTE PTR [r12+rdi*1+0x12]
+41 fe 44 3d 12              inc    BYTE PTR [r13+rdi*1+0x12]
+41 fe 44 3e 12              inc    BYTE PTR [r14+rdi*1+0x12]
+41 fe 44 3f 12              inc    BYTE PTR [r15+rdi*1+0x12]
+41 fe 44 40 12              inc    BYTE PTR [r8+rax*2+0x12]
+41 fe 44 41 12              inc    BYTE PTR [r9+rax*2+0x12]
+41 fe 44 42 12              inc    BYTE PTR [r10+rax*2+0x12]
+41 fe 44 43 12              inc    BYTE PTR [r11+rax*2+0x12]
+41 fe 44 44 12              inc    BYTE PTR [r12+rax*2+0x12]
+41 fe 44 45 12              inc    BYTE PTR [r13+rax*2+0x12]
+41 fe 44 46 12              inc    BYTE PTR [r14+rax*2+0x12]
+41 fe 44 47 12              inc    BYTE PTR [r15+rax*2+0x12]
+41 fe 44 48 12              inc    BYTE PTR [r8+rcx*2+0x12]
+41 fe 44 49 12              inc    BYTE PTR [r9+rcx*2+0x12]
+41 fe 44 4a 12              inc    BYTE PTR [r10+rcx*2+0x12]
+41 fe 44 4b 12              inc    BYTE PTR [r11+rcx*2+0x12]
+41 fe 44 4c 12              inc    BYTE PTR [r12+rcx*2+0x12]
+41 fe 44 4d 12              inc    BYTE PTR [r13+rcx*2+0x12]
+41 fe 44 4e 12              inc    BYTE PTR [r14+rcx*2+0x12]
+41 fe 44 4f 12              inc    BYTE PTR [r15+rcx*2+0x12]
+41 fe 44 50 12              inc    BYTE PTR [r8+rdx*2+0x12]
+41 fe 44 51 12              inc    BYTE PTR [r9+rdx*2+0x12]
+41 fe 44 52 12              inc    BYTE PTR [r10+rdx*2+0x12]
+41 fe 44 53 12              inc    BYTE PTR [r11+rdx*2+0x12]
+41 fe 44 54 12              inc    BYTE PTR [r12+rdx*2+0x12]
+41 fe 44 55 12              inc    BYTE PTR [r13+rdx*2+0x12]
+41 fe 44 56 12              inc    BYTE PTR [r14+rdx*2+0x12]
+41 fe 44 57 12              inc    BYTE PTR [r15+rdx*2+0x12]
+41 fe 44 58 12              inc    BYTE PTR [r8+rbx*2+0x12]
+41 fe 44 59 12              inc    BYTE PTR [r9+rbx*2+0x12]
+41 fe 44 5a 12              inc    BYTE PTR [r10+rbx*2+0x12]
+41 fe 44 5b 12              inc    BYTE PTR [r11+rbx*2+0x12]
+41 fe 44 5c 12              inc    BYTE PTR [r12+rbx*2+0x12]
+41 fe 44 5d 12              inc    BYTE PTR [r13+rbx*2+0x12]
+41 fe 44 5e 12              inc    BYTE PTR [r14+rbx*2+0x12]
+41 fe 44 5f 12              inc    BYTE PTR [r15+rbx*2+0x12]
+41 fe 44 60 12              inc    BYTE PTR [r8+riz*2+0x12]
+41 fe 44 61 12              inc    BYTE PTR [r9+riz*2+0x12]
+41 fe 44 62 12              inc    BYTE PTR [r10+riz*2+0x12]
+41 fe 44 63 12              inc    BYTE PTR [r11+riz*2+0x12]
+41 fe 44 64 12              inc    BYTE PTR [r12+riz*2+0x12]
+41 fe 44 65 12              inc    BYTE PTR [r13+riz*2+0x12]
+41 fe 44 66 12              inc    BYTE PTR [r14+riz*2+0x12]
+41 fe 44 67 12              inc    BYTE PTR [r15+riz*2+0x12]
+41 fe 44 68 12              inc    BYTE PTR [r8+rbp*2+0x12]
+41 fe 44 69 12              inc    BYTE PTR [r9+rbp*2+0x12]
+41 fe 44 6a 12              inc    BYTE PTR [r10+rbp*2+0x12]
+41 fe 44 6b 12              inc    BYTE PTR [r11+rbp*2+0x12]
+41 fe 44 6c 12              inc    BYTE PTR [r12+rbp*2+0x12]
+41 fe 44 6d 12              inc    BYTE PTR [r13+rbp*2+0x12]
+41 fe 44 6e 12              inc    BYTE PTR [r14+rbp*2+0x12]
+41 fe 44 6f 12              inc    BYTE PTR [r15+rbp*2+0x12]
+41 fe 44 70 12              inc    BYTE PTR [r8+rsi*2+0x12]
+41 fe 44 71 12              inc    BYTE PTR [r9+rsi*2+0x12]
+41 fe 44 72 12              inc    BYTE PTR [r10+rsi*2+0x12]
+41 fe 44 73 12              inc    BYTE PTR [r11+rsi*2+0x12]
+41 fe 44 74 12              inc    BYTE PTR [r12+rsi*2+0x12]
+41 fe 44 75 12              inc    BYTE PTR [r13+rsi*2+0x12]
+41 fe 44 76 12              inc    BYTE PTR [r14+rsi*2+0x12]
+41 fe 44 77 12              inc    BYTE PTR [r15+rsi*2+0x12]
+41 fe 44 78 12              inc    BYTE PTR [r8+rdi*2+0x12]
+41 fe 44 79 12              inc    BYTE PTR [r9+rdi*2+0x12]
+41 fe 44 7a 12              inc    BYTE PTR [r10+rdi*2+0x12]
+41 fe 44 7b 12              inc    BYTE PTR [r11+rdi*2+0x12]
+41 fe 44 7c 12              inc    BYTE PTR [r12+rdi*2+0x12]
+41 fe 44 7d 12              inc    BYTE PTR [r13+rdi*2+0x12]
+41 fe 44 7e 12              inc    BYTE PTR [r14+rdi*2+0x12]
+41 fe 44 7f 12              inc    BYTE PTR [r15+rdi*2+0x12]
+41 fe 44 80 12              inc    BYTE PTR [r8+rax*4+0x12]
+41 fe 44 81 12              inc    BYTE PTR [r9+rax*4+0x12]
+41 fe 44 82 12              inc    BYTE PTR [r10+rax*4+0x12]
+41 fe 44 83 12              inc    BYTE PTR [r11+rax*4+0x12]
+41 fe 44 84 12              inc    BYTE PTR [r12+rax*4+0x12]
+41 fe 44 85 12              inc    BYTE PTR [r13+rax*4+0x12]
+41 fe 44 86 12              inc    BYTE PTR [r14+rax*4+0x12]
+41 fe 44 87 12              inc    BYTE PTR [r15+rax*4+0x12]
+41 fe 44 88 12              inc    BYTE PTR [r8+rcx*4+0x12]
+41 fe 44 89 12              inc    BYTE PTR [r9+rcx*4+0x12]
+41 fe 44 8a 12              inc    BYTE PTR [r10+rcx*4+0x12]
+41 fe 44 8b 12              inc    BYTE PTR [r11+rcx*4+0x12]
+41 fe 44 8c 12              inc    BYTE PTR [r12+rcx*4+0x12]
+41 fe 44 8d 12              inc    BYTE PTR [r13+rcx*4+0x12]
+41 fe 44 8e 12              inc    BYTE PTR [r14+rcx*4+0x12]
+41 fe 44 8f 12              inc    BYTE PTR [r15+rcx*4+0x12]
+41 fe 44 90 12              inc    BYTE PTR [r8+rdx*4+0x12]
+41 fe 44 91 12              inc    BYTE PTR [r9+rdx*4+0x12]
+41 fe 44 92 12              inc    BYTE PTR [r10+rdx*4+0x12]
+41 fe 44 93 12              inc    BYTE PTR [r11+rdx*4+0x12]
+41 fe 44 94 12              inc    BYTE PTR [r12+rdx*4+0x12]
+41 fe 44 95 12              inc    BYTE PTR [r13+rdx*4+0x12]
+41 fe 44 96 12              inc    BYTE PTR [r14+rdx*4+0x12]
+41 fe 44 97 12              inc    BYTE PTR [r15+rdx*4+0x12]
+41 fe 44 98 12              inc    BYTE PTR [r8+rbx*4+0x12]
+41 fe 44 99 12              inc    BYTE PTR [r9+rbx*4+0x12]
+41 fe 44 9a 12              inc    BYTE PTR [r10+rbx*4+0x12]
+41 fe 44 9b 12              inc    BYTE PTR [r11+rbx*4+0x12]
+41 fe 44 9c 12              inc    BYTE PTR [r12+rbx*4+0x12]
+41 fe 44 9d 12              inc    BYTE PTR [r13+rbx*4+0x12]
+41 fe 44 9e 12              inc    BYTE PTR [r14+rbx*4+0x12]
+41 fe 44 9f 12              inc    BYTE PTR [r15+rbx*4+0x12]
+41 fe 44 a0 12              inc    BYTE PTR [r8+riz*4+0x12]
+41 fe 44 a1 12              inc    BYTE PTR [r9+riz*4+0x12]
+41 fe 44 a2 12              inc    BYTE PTR [r10+riz*4+0x12]
+41 fe 44 a3 12              inc    BYTE PTR [r11+riz*4+0x12]
+41 fe 44 a4 12              inc    BYTE PTR [r12+riz*4+0x12]
+41 fe 44 a5 12              inc    BYTE PTR [r13+riz*4+0x12]
+41 fe 44 a6 12              inc    BYTE PTR [r14+riz*4+0x12]
+41 fe 44 a7 12              inc    BYTE PTR [r15+riz*4+0x12]
+41 fe 44 a8 12              inc    BYTE PTR [r8+rbp*4+0x12]
+41 fe 44 a9 12              inc    BYTE PTR [r9+rbp*4+0x12]
+41 fe 44 aa 12              inc    BYTE PTR [r10+rbp*4+0x12]
+41 fe 44 ab 12              inc    BYTE PTR [r11+rbp*4+0x12]
+41 fe 44 ac 12              inc    BYTE PTR [r12+rbp*4+0x12]
+41 fe 44 ad 12              inc    BYTE PTR [r13+rbp*4+0x12]
+41 fe 44 ae 12              inc    BYTE PTR [r14+rbp*4+0x12]
+41 fe 44 af 12              inc    BYTE PTR [r15+rbp*4+0x12]
+41 fe 44 b0 12              inc    BYTE PTR [r8+rsi*4+0x12]
+41 fe 44 b1 12              inc    BYTE PTR [r9+rsi*4+0x12]
+41 fe 44 b2 12              inc    BYTE PTR [r10+rsi*4+0x12]
+41 fe 44 b3 12              inc    BYTE PTR [r11+rsi*4+0x12]
+41 fe 44 b4 12              inc    BYTE PTR [r12+rsi*4+0x12]
+41 fe 44 b5 12              inc    BYTE PTR [r13+rsi*4+0x12]
+41 fe 44 b6 12              inc    BYTE PTR [r14+rsi*4+0x12]
+41 fe 44 b7 12              inc    BYTE PTR [r15+rsi*4+0x12]
+41 fe 44 b8 12              inc    BYTE PTR [r8+rdi*4+0x12]
+41 fe 44 b9 12              inc    BYTE PTR [r9+rdi*4+0x12]
+41 fe 44 ba 12              inc    BYTE PTR [r10+rdi*4+0x12]
+41 fe 44 bb 12              inc    BYTE PTR [r11+rdi*4+0x12]
+41 fe 44 bc 12              inc    BYTE PTR [r12+rdi*4+0x12]
+41 fe 44 bd 12              inc    BYTE PTR [r13+rdi*4+0x12]
+41 fe 44 be 12              inc    BYTE PTR [r14+rdi*4+0x12]
+41 fe 44 bf 12              inc    BYTE PTR [r15+rdi*4+0x12]
+41 fe 44 c0 12              inc    BYTE PTR [r8+rax*8+0x12]
+41 fe 44 c1 12              inc    BYTE PTR [r9+rax*8+0x12]
+41 fe 44 c2 12              inc    BYTE PTR [r10+rax*8+0x12]
+41 fe 44 c3 12              inc    BYTE PTR [r11+rax*8+0x12]
+41 fe 44 c4 12              inc    BYTE PTR [r12+rax*8+0x12]
+41 fe 44 c5 12              inc    BYTE PTR [r13+rax*8+0x12]
+41 fe 44 c6 12              inc    BYTE PTR [r14+rax*8+0x12]
+41 fe 44 c7 12              inc    BYTE PTR [r15+rax*8+0x12]
+41 fe 44 c8 12              inc    BYTE PTR [r8+rcx*8+0x12]
+41 fe 44 c9 12              inc    BYTE PTR [r9+rcx*8+0x12]
+41 fe 44 ca 12              inc    BYTE PTR [r10+rcx*8+0x12]
+41 fe 44 cb 12              inc    BYTE PTR [r11+rcx*8+0x12]
+41 fe 44 cc 12              inc    BYTE PTR [r12+rcx*8+0x12]
+41 fe 44 cd 12              inc    BYTE PTR [r13+rcx*8+0x12]
+41 fe 44 ce 12              inc    BYTE PTR [r14+rcx*8+0x12]
+41 fe 44 cf 12              inc    BYTE PTR [r15+rcx*8+0x12]
+41 fe 44 d0 12              inc    BYTE PTR [r8+rdx*8+0x12]
+41 fe 44 d1 12              inc    BYTE PTR [r9+rdx*8+0x12]
+41 fe 44 d2 12              inc    BYTE PTR [r10+rdx*8+0x12]
+41 fe 44 d3 12              inc    BYTE PTR [r11+rdx*8+0x12]
+41 fe 44 d4 12              inc    BYTE PTR [r12+rdx*8+0x12]
+41 fe 44 d5 12              inc    BYTE PTR [r13+rdx*8+0x12]
+41 fe 44 d6 12              inc    BYTE PTR [r14+rdx*8+0x12]
+41 fe 44 d7 12              inc    BYTE PTR [r15+rdx*8+0x12]
+41 fe 44 d8 12              inc    BYTE PTR [r8+rbx*8+0x12]
+41 fe 44 d9 12              inc    BYTE PTR [r9+rbx*8+0x12]
+41 fe 44 da 12              inc    BYTE PTR [r10+rbx*8+0x12]
+41 fe 44 db 12              inc    BYTE PTR [r11+rbx*8+0x12]
+41 fe 44 dc 12              inc    BYTE PTR [r12+rbx*8+0x12]
+41 fe 44 dd 12              inc    BYTE PTR [r13+rbx*8+0x12]
+41 fe 44 de 12              inc    BYTE PTR [r14+rbx*8+0x12]
+41 fe 44 df 12              inc    BYTE PTR [r15+rbx*8+0x12]
+41 fe 44 e0 12              inc    BYTE PTR [r8+riz*8+0x12]
+41 fe 44 e1 12              inc    BYTE PTR [r9+riz*8+0x12]
+41 fe 44 e2 12              inc    BYTE PTR [r10+riz*8+0x12]
+41 fe 44 e3 12              inc    BYTE PTR [r11+riz*8+0x12]
+41 fe 44 e4 12              inc    BYTE PTR [r12+riz*8+0x12]
+41 fe 44 e5 12              inc    BYTE PTR [r13+riz*8+0x12]
+41 fe 44 e6 12              inc    BYTE PTR [r14+riz*8+0x12]
+41 fe 44 e7 12              inc    BYTE PTR [r15+riz*8+0x12]
+41 fe 44 e8 12              inc    BYTE PTR [r8+rbp*8+0x12]
+41 fe 44 e9 12              inc    BYTE PTR [r9+rbp*8+0x12]
+41 fe 44 ea 12              inc    BYTE PTR [r10+rbp*8+0x12]
+41 fe 44 eb 12              inc    BYTE PTR [r11+rbp*8+0x12]
+41 fe 44 ec 12              inc    BYTE PTR [r12+rbp*8+0x12]
+41 fe 44 ed 12              inc    BYTE PTR [r13+rbp*8+0x12]
+41 fe 44 ee 12              inc    BYTE PTR [r14+rbp*8+0x12]
+41 fe 44 ef 12              inc    BYTE PTR [r15+rbp*8+0x12]
+41 fe 44 f0 12              inc    BYTE PTR [r8+rsi*8+0x12]
+41 fe 44 f1 12              inc    BYTE PTR [r9+rsi*8+0x12]
+41 fe 44 f2 12              inc    BYTE PTR [r10+rsi*8+0x12]
+41 fe 44 f3 12              inc    BYTE PTR [r11+rsi*8+0x12]
+41 fe 44 f4 12              inc    BYTE PTR [r12+rsi*8+0x12]
+41 fe 44 f5 12              inc    BYTE PTR [r13+rsi*8+0x12]
+41 fe 44 f6 12              inc    BYTE PTR [r14+rsi*8+0x12]
+41 fe 44 f7 12              inc    BYTE PTR [r15+rsi*8+0x12]
+41 fe 44 f8 12              inc    BYTE PTR [r8+rdi*8+0x12]
+41 fe 44 f9 12              inc    BYTE PTR [r9+rdi*8+0x12]
+41 fe 44 fa 12              inc    BYTE PTR [r10+rdi*8+0x12]
+41 fe 44 fb 12              inc    BYTE PTR [r11+rdi*8+0x12]
+41 fe 44 fc 12              inc    BYTE PTR [r12+rdi*8+0x12]
+41 fe 44 fd 12              inc    BYTE PTR [r13+rdi*8+0x12]
+41 fe 44 fe 12              inc    BYTE PTR [r14+rdi*8+0x12]
+41 fe 44 ff 12              inc    BYTE PTR [r15+rdi*8+0x12]
+41 fe 45 12                 inc    BYTE PTR [r13+0x12]
+41 fe 46 12                 inc    BYTE PTR [r14+0x12]
+41 fe 47 12                 inc    BYTE PTR [r15+0x12]
+41 fe 80 12 34 56 78        inc    BYTE PTR [r8+0x78563412]
+41 fe 81 12 34 56 78        inc    BYTE PTR [r9+0x78563412]
+41 fe 82 12 34 56 78        inc    BYTE PTR [r10+0x78563412]
+41 fe 83 12 34 56 78        inc    BYTE PTR [r11+0x78563412]
+41 fe 84 12 34 56 78 9a     inc    BYTE PTR [r10+rdx*1-0x6587a9cc]
+41 fe 85 12 34 56 78        inc    BYTE PTR [r13+0x78563412]
+41 fe 86 12 34 56 78        inc    BYTE PTR [r14+0x78563412]
+41 fe 87 12 34 56 78        inc    BYTE PTR [r15+0x78563412]
+41 fe c0                    inc    r8b
+41 fe c1                    inc    r9b
+41 fe c2                    inc    r10b
+41 fe c3                    inc    r11b
+41 fe c4                    inc    r12b
+41 fe c5                    inc    r13b
+41 fe c6                    inc    r14b
+41 fe c7                    inc    r15b
+40 fe c0                    rex inc al
+40 fe c1                    rex inc cl
+40 fe c2                    rex inc dl
+40 fe c3                    rex inc bl
+40 fe c4                    inc    spl
+40 fe c5                    inc    bpl
+40 fe c6                    inc    sil
+40 fe c7                    inc    dil
