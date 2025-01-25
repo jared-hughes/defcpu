@@ -24,6 +24,11 @@ pub enum Rerr {
     LeaRegInsteadOfAddr,
     UnimplementedSyscall(u32),
     IllegalSyscall(u32),
+    Syscall(SyscallError),
+}
+
+pub enum SyscallError {
+    CapacityExceeded(u64),
     UnknownFileDescriptor(u32),
 }
 
@@ -72,6 +77,19 @@ impl fmt::Display for Rerr {
             }
             Self::IllegalSyscall(fd) => {
                 write!(f, "Syscall %eax={fd} is disallowed or does not exit.")
+            }
+            Self::Syscall(e) => {
+                write!(f, "{}", e)
+            }
+        }
+    }
+}
+
+impl fmt::Display for SyscallError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CapacityExceeded(size) => {
+                write!(f, "[sys_write] Count {size:#x} = {size} exceeds capacity.")
             }
             Self::UnknownFileDescriptor(fd) => {
                 write!(f, "[sys_write] Unknown file descriptor fd=%edi={fd}")

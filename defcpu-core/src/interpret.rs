@@ -1,3 +1,4 @@
+use crate::errors::SyscallError;
 use crate::init_mem::{init_mem, InitOpts};
 use crate::inst::{DestMROp, OneOp, PlainOneOp, ShrinkOp, TwoOp, WidenOp};
 use crate::num_traits::{HasDoubleWidth, HasHalfWidth, UNum, UNum8To64};
@@ -11,6 +12,9 @@ use crate::{
     read_write::Writers,
     registers::{Flags, Registers, GPR16, GPR32, GPR64, GPR8},
 };
+
+/// Arbitrary limit 64KiB in a single sys_write.
+const SYS_WRITE_MAX_COUNT: u64 = 0x10000;
 
 pub struct Machine {
     pub regs: Registers,
@@ -780,6 +784,10 @@ impl Machine {
         let fd = self.regs.get_reg32(&GPR32::edi);
         let buf = self.regs.get_reg64(&GPR64::rsi);
         let count = self.regs.get_reg64(&GPR64::rdx);
+        // Real important for wasm.
+        if count > SYS_WRITE_MAX_COUNT {
+            Err(Rerr::Syscall(SyscallError::CapacityExceeded(count)))?;
+        }
         let mut buf_out: Vec<u8> = vec![0; count as usize];
         for i in 0..count {
             buf_out[i as usize] = self.mem.read_u8(buf + i)?;
@@ -793,7 +801,7 @@ impl Machine {
                 .stderr()
                 .write_all(&buf_out)
                 .expect("Write should succeed"),
-            _ => Err(Rerr::UnknownFileDescriptor(fd))?,
+            _ => Err(Rerr::Syscall(SyscallError::UnknownFileDescriptor(fd)))?,
         }
         Ok(count)
     }

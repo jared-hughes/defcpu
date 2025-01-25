@@ -5,6 +5,7 @@ build_wasm() {
     PACK_DIR="$PWD/node_modules/defcpu_web"
     (
         cd defcpu-web
+        # Note: add --debug flag to debug.
         wasm-pack build --target web --out-dir "${PACK_DIR}"
     )
     cp "${PACK_DIR}"/defcpu_web.d.ts site/src/
