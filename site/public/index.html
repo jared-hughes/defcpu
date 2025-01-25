@@ -22,10 +22,6 @@
       Undefined behavior is chosen to mimic the execution on <a href="https://code.golf/fizz-buzz#assembly">code.golf</a>.
       Check out the <a href=https://github.com/jared-hughes/defcpu>DefCPU Github</a>.
     </p>
-    <h2>Source:</h2>
-    <br />
-    <div id="editor"></div>
-    <br />
     <div id="action-buttons">
       <div id="run-button-container">
         ctrl + enter or
@@ -41,12 +37,25 @@
         (<span id="full-step-count">0</span> instructions executed)
       </span>
     </div>
-    <h2>Registers:</h2>
-    <pre id="registers"></pre>
-    <h2>Output:</h2>
-    <pre id="output"></pre>
-    <h2>Errors:</h2>
-    <pre id="errors"></pre>
+    <br />
+    <div id="main-grid">
+      <div id="source-container" class="pane">
+        <h2>Source:</h2>
+        <div id="editor"></div>
+      </div>
+      <div id="registers-container" class="pane output">
+        <h2>Registers:</h2>
+        <pre id="registers"></pre>
+      </div>
+      <div id="output-container" class="pane output">
+        <h2>Output:</h2>
+        <pre id="output"></pre>
+      </div>
+      <div id="errors-container" class="pane output">
+        <h2>Errors:</h2>
+        <pre id="errors"></pre>
+      </div>
+    </div>
     <script type="module" src="./js/main.js"></script>
   </body>
 </html>
