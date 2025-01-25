@@ -23,6 +23,7 @@ pub enum Rerr {
     NotImplementedOpext(u8, u8),
     LeaRegInsteadOfAddr,
     UnimplementedSyscall(u32),
+    IllegalSyscall(u32),
     UnknownFileDescriptor(u32),
 }
 
@@ -68,6 +69,9 @@ impl fmt::Display for Rerr {
             }
             Self::UnimplementedSyscall(eax) => {
                 write!(f, "Not yet implemented syscall %eax={eax}.")
+            }
+            Self::IllegalSyscall(fd) => {
+                write!(f, "Syscall %eax={fd} is disallowed or does not exit.")
             }
             Self::UnknownFileDescriptor(fd) => {
                 write!(f, "[sys_write] Unknown file descriptor fd=%edi={fd}")
