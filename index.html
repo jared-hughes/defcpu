@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8" />
+    <title>DefCPU Playground</title>
+    <link href="./index.css" rel="stylesheet" />
+  </head>
+  <body>
+    <header>
+      <h1>DefCPU Playground</h1>
+    </header>
+    <p>
+      Examples:
+      <span id="examples"></span>
+    </p>
+    <p>
+      Info: Press Esc to tab out of the editor.
+      Click line numbers to set breakpoints.
+      Only some instructions are implemented.
+      All execution is local (not on a server).
+      The assembler is <a href=https://github.com/NewDefectus/defasm>DefAsm</a>.
+      Undefined behavior is chosen to mimic the execution on <a href="https://code.golf/fizz-buzz#assembly">code.golf</a>.
+      Check out the <a href=https://github.com/jared-hughes/defcpu>DefCPU Github</a>.
+    </p>
+    <div id="action-buttons">
+      <div id="run-button-container">
+        <kbd>ctrl</kbd> + <kbd>enter</kbd> or
+        <button id="run-button">Run locally</button>
+      </div>
+      <span id="pause-button__container">
+        <kbd>ctrl</kbd> + <kbd>\</kbd> or
+        <button id="pause-button">Pause</button>
+      </span>
+      <span id="step-button__container">
+        <kbd>ctrl</kbd> + <kbd>.</kbd> or
+        <button id="step-button">Step</button>
+      </span>
+      <span id="continue-button__container">
+        <kbd>ctrl</kbd> + <kbd>\</kbd> or
+        <button id="continue-button">Continue</button>
+      </span>
+      <span id="halt-button__container">
+        <kbd>ctrl</kbd> + <kbd>'</kbd> or
+        <button id="halt-button">Halt (permanent)</button>
+      </span>
+      <button id="open-input-config-panel">Edit args</button>
+      <span>Status: <span id="status">idle</span>
+      <span id="step-count-container">
+        (<span id="full-step-count">0</span> instructions executed)
+      </span>
+    </div>
+    <br />
+    <div id="main-grid">
+      <div id="source-container" class="pane">
+        <h2>Source:</h2>
+        <div id="editor"></div>
+      </div>
+      <div id="registers-container" class="pane output">
+        <h2>Registers:</h2>
+        <pre id="registers"></pre>
+      </div>
+      <div id="output-container" class="pane output">
+        <h2>Output:</h2>
+        <pre id="output"></pre>
+      </div>
+      <div id="errors-container" class="pane output">
+        <h2>Errors:</h2>
+        <pre id="errors"></pre>
+      </div>
+    </div>
+    <script type="module" src="./js/main.js"></script>
+  </body>
+</html>

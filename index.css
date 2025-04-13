@@ -1,0 +1,129 @@
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --background: hsl(210, 9%, 13%);
+    --backerground: hsl(214, 8%, 17%);
+    --bg-border: hsl(214, 8%, 30%);
+    --color: #ebebeb;
+    --color-disabled: rgb(170, 170, 170);
+    --bg-disabled: rgba(59, 59, 59, 0.3);
+    --gray: #85888c;
+    --asm-dump: hsl(210, 10%, 67%);
+    --light-gray: hsl(214, 8%, 17%);
+    --asm-error: #f76970;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --background: #fdfdfd;
+    --backerground: #eee;
+    --bg-border: #ccc;
+    --color: #343a40;
+    --color-disabled: rgb(84, 84, 84);
+    --bg-disabled: rgba(239, 239, 239, 0.3);
+    --gray: #85888c;
+    --asm-dump: hsl(210, 10%, 67%);
+    --light-gray: #eee;
+    --asm-error: red;
+  }
+}
+
+body {
+  background: var(--backerground);
+  color: var(--color);
+  margin: 0.5rem;
+}
+
+h1 {
+  margin-block-start: 0.4em;
+  margin-block-end: 0.2em;
+}
+
+h2 {
+  margin-block-start: 0.4em;
+  margin-block-end: 0.2em;
+}
+
+#action-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.inapplicable {
+  display: none;
+}
+
+kbd {
+  font-family: inherit;
+}
+
+.cm-gutter {
+  background: var(--background);
+}
+
+#main-grid {
+  height: 50rem;
+  display: grid;
+  grid-template:
+    "a b" 1fr
+    "a c" 1fr
+    "a d" 1fr /
+    60% calc(40% - 0.4rem);
+  gap: 0.4rem;
+}
+
+@media (max-width: 750px) {
+  #main-grid {
+    grid-template:
+      "a" 1fr
+      "b" 16rem
+      "c" 16rem
+      "d" 16rem /
+      100%;
+  }
+}
+
+#source-container {
+  grid-area: a;
+}
+
+#registers-container {
+  grid-area: b;
+}
+
+#output-container {
+  grid-area: c;
+}
+
+#errors-container {
+  grid-area: d;
+}
+
+.pane {
+  background: var(--background);
+  border: 1px solid var(--bg-border);
+  padding: 0.3em;
+}
+
+.pane > h2:first-child {
+  margin-top: 0;
+}
+
+#editor {
+  width: calc(100% + 0.6em);
+  margin-inline: -0.3em;
+}
+
+.output {
+  overflow-y: auto;
+}
+
+.cm-scroller {
+  /* Ok no clue how to get sizing right with the grid. */
+  min-height: 48rem;
+  max-height: 48rem;
+}
