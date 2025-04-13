@@ -24,13 +24,25 @@
     </p>
     <div id="action-buttons">
       <div id="run-button-container">
-        ctrl + enter or
+        <kbd>ctrl</kbd> + <kbd>enter</kbd> or
         <button id="run-button">Run locally</button>
       </div>
-      <button id="pause-button">Pause</button>
-      <button id="step-button">Step</button>
-      <button id="continue-button">Continue</button>
-      <button id="halt-button">Halt (permanent)</button>
+      <span id="pause-button__container">
+        <kbd>ctrl</kbd> + <kbd>\</kbd> or
+        <button id="pause-button">Pause</button>
+      </span>
+      <span id="step-button__container">
+        <kbd>ctrl</kbd> + <kbd>.</kbd> or
+        <button id="step-button">Step</button>
+      </span>
+      <span id="continue-button__container">
+        <kbd>ctrl</kbd> + <kbd>\</kbd> or
+        <button id="continue-button">Continue</button>
+      </span>
+      <span id="halt-button__container">
+        <kbd>ctrl</kbd> + <kbd>'</kbd> or
+        <button id="halt-button">Halt (permanent)</button>
+      </span>
       <button id="open-input-config-panel">Edit args</button>
       <span>Status: <span id="status">idle</span>
       <span id="step-count-container">

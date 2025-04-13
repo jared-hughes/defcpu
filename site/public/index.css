@@ -54,7 +54,11 @@ h2 {
 }
 
 .inapplicable {
-  color: var(--gray);
+  display: none;
+}
+
+kbd {
+  font-family: inherit;
 }
 
 .cm-gutter {

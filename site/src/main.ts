@@ -38,20 +38,15 @@ function setState(s: State) {
   state = s;
   $<HTMLSpanElement>("span#status").innerText = s;
 
-  $<HTMLSpanElement>("span#step-count-container").classList.toggle(
-    "inapplicable",
-    state === "idle"
-  );
+  function applicableIf(el: HTMLElement, b: boolean) {
+    el.classList.toggle("inapplicable", !b);
+  }
 
-  $<HTMLDivElement>("div#run-button-container").classList.toggle(
-    "inapplicable",
-    !canRun()
-  );
-  $<HTMLButtonElement>("button#run-button").disabled = !canRun();
-  $<HTMLButtonElement>("button#continue-button").disabled = !canContinue();
-  $<HTMLButtonElement>("button#step-button").disabled = !canStep();
-  $<HTMLButtonElement>("button#pause-button").disabled = !canPause();
-  $<HTMLButtonElement>("button#halt-button").disabled = !canHalt();
+  applicableIf($("#run-button-container"), canRun());
+  applicableIf($("#pause-button__container"), canPause());
+  applicableIf($("#step-button__container"), canStep());
+  applicableIf($("#continue-button__container"), canContinue());
+  applicableIf($("#halt-button__container"), canHalt());
   if (s === "running") {
     if (!pollInterval)
       pollInterval = setInterval(() => {
@@ -184,9 +179,41 @@ function stepRun() {
 }
 
 document.documentElement.addEventListener("keypress", (e) => {
-  if ((e.ctrlKey || e.metaKey) && e.key == "Enter") {
-    // Ctrl-Enter
-    startRun();
+  const ctrl = e.ctrlKey || e.metaKey;
+  let handled = true;
+  switch (true) {
+    case ctrl && e.key == "Enter":
+      // Ctrl-Enter
+      if (canRun()) {
+        startRun();
+      }
+      break;
+    case ctrl && e.key == "\\":
+      // Ctrl-\
+      if (canContinue()) {
+        continueRun();
+      } else if (canPause()) {
+        pauseRun();
+      }
+      break;
+    case ctrl && e.key == "'":
+      // Ctrl + '
+      if (canHalt()) {
+        haltRun();
+      }
+      break;
+    case ctrl && e.key == ".":
+      // Ctrl + .
+      if (canStep()) {
+        stepRun();
+      }
+      break;
+    default:
+      handled = false;
+  }
+  if (handled) {
+    // e.preventDefault();
+    // e.stopPropagation();
   }
 });
 
