@@ -23,12 +23,11 @@ function postMessageToWorker(msg: MessageToWorker) {
 }
 
 /**
- * idle = machine is empty.
+ * idle = machine hasn't run yet or is done running.
  * running = currently running.
  * paused = machine is paused and can continue.
- * done = machine is paused and cannot continue.
  */
-type State = "idle" | "running" | "paused" | "done";
+type State = "idle" | "running" | "paused";
 
 let state: State = "idle";
 let pollInterval: number | undefined;
@@ -85,7 +84,7 @@ function setStatus(status: Status) {
 
 worker.addEventListener("message", (fullMsg) => {
   const msg = fullMsg.data as MessageFromWorker;
-  if (state === "idle" || state === "done") {
+  if (state === "idle") {
     console.error("Unexpected message while not running", msg);
   }
   switch (msg.type) {
@@ -93,11 +92,11 @@ worker.addEventListener("message", (fullMsg) => {
       setStatus(msg.status);
       return;
     case "done":
-      setState("done");
+      setState("idle");
       setStatus(msg.status);
       break;
     case "error":
-      setState("done");
+      setState("idle");
       setStatus({
         stdout: "",
         stderr: msg.error,
